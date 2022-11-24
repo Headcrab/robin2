@@ -5,6 +5,8 @@ import (
 	"robin2/internal/cache"
 	"robin2/pkg/config"
 	"robin2/pkg/logger"
+
+	_ "github.com/denisenkom/go-mssqldb"
 )
 
 type MsSqlStore interface {
@@ -36,7 +38,7 @@ func (s *MsSqlStoreImpl) Connect(cache *cache.BaseCache) error {
 		}
 	}
 	base.cache = cache
-	base.db, err = sql.Open(base.config.GetString("app.db.name"), base.marshalConnectionString())
+	base.db, err = sql.Open(base.config.GetString("app.db.type"), base.marshalConnectionString())
 	if err != nil {
 		logger.Log(logger.Error, err.Error())
 		return err

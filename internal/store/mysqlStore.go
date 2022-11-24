@@ -5,6 +5,8 @@ import (
 	"robin2/internal/cache"
 	"robin2/pkg/config"
 	"robin2/pkg/logger"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type MySqlStore interface {

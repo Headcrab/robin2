@@ -11,9 +11,8 @@ import (
 	"robin2/internal/cache"
 	"robin2/pkg/config"
 	"robin2/pkg/logger"
-
-	_ "github.com/denisenkom/go-mssqldb"
-	_ "github.com/go-sql-driver/mysql"
+	// _ "github.com/denisenkom/go-mssqldb"
+	// _ "github.com/go-sql-driver/mysql"
 )
 
 /*------------------------------------------------------------------*/

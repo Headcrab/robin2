@@ -2,8 +2,8 @@
     "app": {
         "port": 8008,
         "db": {
-            "type": "mysql",
-            "name": "mysql_docker"
+            "type": "mssql",
+            "name": "hs0"
         },
         "round": "2",
         "cache": "redis",
