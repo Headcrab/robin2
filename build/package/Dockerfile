@@ -10,7 +10,7 @@ COPY --from=builder /bin/robin2 /bin/robin2
 COPY /bin/logs /bin/logs
 # RUN chmod a+rwx /bin/logs
 COPY /configs /bin/configs
-COPY /configs/robin.cfg.json /bin/configs/robin.cfg.json
+COPY /configs/robin2.cfg.json /bin/configs/robin2.cfg.json
 CMD ["chmod", "a+rwx", "/bin/logs"]
 RUN apt update && apt install -y tzdata
 # RUN echo "Asia/Almaty" > /etc/timezone

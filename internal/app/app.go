@@ -76,7 +76,7 @@ func getLocalhostIpAdresses() []string {
 func (a *App) init() {
 	logger.Log(logger.Debug, "initializing app")
 	a.config = *config.GetConfig()
-	a.cache = *cache.NewCacheFactory().NewCache(a.config.GetString("app.cache"))
+	a.cache = *cache.NewCacheFactory().NewCache(a.config.GetString("app.cache.type"))
 	a.store = *store.NewStoreFactory().NewStore(a.config.GetString("app.db.type"))
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
 		"/":               a.handleHome,

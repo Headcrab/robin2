@@ -31,13 +31,14 @@ func NewRedisCache() *BaseCache {
 }
 
 func (c *RedisCacheImpl) Connect() error {
+	a := "db." + c.config.GetString("app.cache.name") + "."
 	logger.Log(logger.Trace, "RedisCacheImpl.Connect")
 	c.rds = redis.NewClient(&redis.Options{
-		Addr:     c.config.GetString("db.redis.host") + ":" + c.config.GetString("db.redis.port"),
-		Password: c.config.GetString("db.redis.password"),
-		DB:       c.config.GetInt("db.redis.db"),
+		Addr:     c.config.GetString(a+"host") + ":" + c.config.GetString(a+"port"),
+		Password: c.config.GetString(a + "password"),
+		DB:       c.config.GetInt(a + "db"),
 	})
-	logger.Log(logger.Info, "cache connected to redis on "+c.config.GetString("db.redis.host")+":"+c.config.GetString("db.redis.port"))
+	logger.Log(logger.Info, "cache connected to redis on "+c.config.GetString(a+"host")+":"+c.config.GetString(a+"port"))
 	return nil
 }
 

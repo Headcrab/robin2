@@ -25,7 +25,7 @@ func (c *Config) Init() {
 	logger.Log(logger.Debug, "Initializing config...")
 	lock.Lock()
 	defer lock.Unlock()
-	viper.SetConfigName("robin.cfg")
+	viper.SetConfigName("robin2.cfg")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("./configs")
 	viper.AddConfigPath("../configs")

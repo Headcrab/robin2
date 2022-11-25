@@ -6,7 +6,10 @@
             "name": "hs0"
         },
         "round": "2",
-        "cache": "redis",
+        "cache": {
+            "type": "redis",
+            "name": "redis.docker"
+        },
         "date_formats": [
             "2006-01-02 15:04:05",
             "2006-01-02T15:04:05Z",
@@ -100,9 +103,20 @@
                 "get_tag_count2": "select '{date}' date, case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{date}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where h.TagName = '{tag}' and h.DataTime <= '{date}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where h.TagName = '{tag}' and h.DataTime >= '{date}' limit 1 ) tt on ft.TagName = tt.TagName"
             }
         },
-        "redis": {
+        "redis.localhost": {
             "active": "false",
-            "host": "localhost",
+            "host": "127.0.0.1",
+            "port": "6379",
+            "password": "",
+            "db": 0,
+            "max_open_conns": 100,
+            "max_idle_conns": 10,
+            "conn_max_lifetime": 60,
+            "connection_string": "redis://{host}:{port}/{db}"
+        },
+        "redis.docker": {
+            "active": "false",
+            "host": "host.docker.internal",
             "port": "6379",
             "password": "",
             "db": 0,
