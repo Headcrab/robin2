@@ -2,6 +2,7 @@ package robin
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 
 	"io"
@@ -144,6 +145,7 @@ func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 	group := r.URL.Query().Get("group")
 	round := r.URL.Query().Get("round")
 	count := r.URL.Query().Get("count")
+	format := r.URL.Query().Get("format")
 	// fmt.Println("tag:", r.URL.Query()["tag"])
 	if round != "" {
 		a.round, _ = strconv.Atoi(round)
@@ -161,7 +163,11 @@ func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte("#logger.Error: " + err.Error()))
 			return
 		}
-		w.Write([]byte(a.store.RoundAndFormat(tagValue_f)))
+		if format == "raw" {
+			w.Write([]byte(fmt.Sprintf("%f", tagValue_f)))
+		} else {
+			w.Write([]byte(a.store.RoundAndFormat(tagValue_f)))
+		}
 		return
 	} else if tag != "" && from != "" && to != "" {
 		fromT, err := a.excelTimeToTime(from)
