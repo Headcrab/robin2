@@ -69,7 +69,7 @@ func (s *BaseStoreImpl) replaceTemplate(repMap map[string]string, query string) 
 }
 
 func (s *BaseStoreImpl) GetTagDate(tag string, date time.Time) (float32, error) {
-	logger.Log(logger.Trace, "GetTagDate "+tag+" : "+date.Format("2006-01-02 15:04:05"))
+	// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+date.Format("2006-01-02 15:04:05"))
 	if date.IsZero() {
 		return 0, errors.New("date logger.Error")
 	}
@@ -81,7 +81,7 @@ func (s *BaseStoreImpl) GetTagDate(tag string, date time.Time) (float32, error) 
 	}
 	if s.cache != nil {
 		if val, err := (*s.cache).Get(tag, date); err == nil {
-			logger.Log(logger.Trace, "GetTagDate "+tag+" : "+date.Format("2006-01-02 15:04:05")+" from cache")
+			// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+date.Format("2006-01-02 15:04:05")+" from cache")
 			return s.Round(val), nil
 		}
 	}
@@ -96,7 +96,7 @@ func (s *BaseStoreImpl) GetTagDate(tag string, date time.Time) (float32, error) 
 	if s.cache != nil {
 		(*s.cache).Set(tag, date, value)
 	}
-	logger.Log(logger.Trace, "GetTagDate "+tag+" : "+date.Format("2006-01-02 15:04:05")+" from db")
+	// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+date.Format("2006-01-02 15:04:05")+" from db")
 	return value, nil
 }
 
@@ -118,7 +118,7 @@ func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, co
 			dateFrom := from.Add(time.Duration(tmDiff*float64(i)) * time.Second)
 			if s.cache != nil {
 				if val, err := (*s.cache).Get(t, dateFrom); err == nil {
-					logger.Log(logger.Trace, "GetTagDate "+t+" : "+dateFrom.Format("2006-01-02 15:04:05")+" from cache")
+					// logger.Log(logger.Trace, "GetTagDate "+t+" : "+dateFrom.Format("2006-01-02 15:04:05")+" from cache")
 					resDt[dateFrom] = s.Round(val)
 					continue
 				}
@@ -148,7 +148,7 @@ func (s *BaseStoreImpl) GetTagFromTo(tag string, from time.Time, to time.Time) (
 			dateFrom := from.Add(time.Duration(time.Second * time.Duration((i))))
 			if s.cache != nil {
 				if val, err := (*s.cache).Get(tag, dateFrom); err == nil {
-					logger.Log(logger.Trace, "GetTagDate "+tag+" : "+dateFrom.Format("2006-01-02 15:04:05")+" from cache")
+					// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+dateFrom.Format("2006-01-02 15:04:05")+" from cache")
 					resDt[dateFrom] = s.Round(val)
 					continue
 				}

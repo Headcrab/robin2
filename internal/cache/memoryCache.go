@@ -1,8 +1,8 @@
 package cache
 
 import (
+	// "errors"
 	"errors"
-	"fmt"
 	"robin2/pkg/logger"
 	"sync"
 	"time"
@@ -54,7 +54,7 @@ func (c *MemoryCacheImpl) Set(tag string, date time.Time, value float32) error {
 		c.cache[tag] = make(map[time.Time]float32)
 		c.cache[tag][date] = value
 	}
-	logger.Log(logger.Trace, fmt.Sprintf("MemoryCacheImpl.Set tag[%d][%d] ", len(c.cache), len(c.cache[tag])))
+	// logger.Log(logger.Trace, fmt.Sprintf("MemoryCacheImpl.Set tag[%d][%d] ", len(c.cache), len(c.cache[tag])))
 	return nil
 }
 
