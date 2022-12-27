@@ -80,17 +80,23 @@ func (a *App) init() {
 	a.cache = *cache.NewCacheFactory().NewCache(a.config.GetString("app.cache.type"))
 	a.store = *store.NewStoreFactory().NewStore(a.config.GetString("app.db.type"))
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
-		"/":               a.handleHome,
-		"/logger.Info/":   a.handleInfo,
-		"/uptime/":        a.handleUptime,
-		"/reload_config/": a.handleReloadConfig,
-		"/get/example/":   a.handleGetExample,
-		"/get/tag/":       a.handleGetTag,
-		"/get/tag/list/":  a.handleGetTagList,
+		// "/robin/":               a.handleHome,
+		// "/info/":   a.handleInfo,
+		// "/uptime/":        a.handleUptime,
+		// "/reload_config/": a.handleReloadConfig,
+		// "/get/example/":   a.handleGetExample,
+		"/get/tag/":      a.handleGetTag,
+		"/get/tag/list/": a.handleGetTagList,
+		// "/favicon.ico":    a.handleFavicon,
 	}
 	for path, handler := range handlers {
 		http.HandleFunc(path, handler)
 	}
+}
+
+func (a *App) handleFavicon(w http.ResponseWriter, r *http.Request) {
+	logger.Log(logger.Debug, "favicon")
+	http.ServeFile(w, r, "../website/favicon.ico")
 }
 
 func (a *App) handleReloadConfig(w http.ResponseWriter, r *http.Request) {

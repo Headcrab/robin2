@@ -2,7 +2,7 @@ FROM golang:1.19 AS builder
 WORKDIR /app
 COPY ../ ./
 RUN go mod download
-RUN go build -o /bin/robin2 ./cmd/robin2/
+RUN go build -o /bin/robin2 ./cmd/
 # FROM gcr.io/distroless/base-debian11 AS runner
 FROM ubuntu:20.04 AS runner
 # FROM alpine:latest AS runner

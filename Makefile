@@ -5,7 +5,7 @@ MODULE_NAME=robin2
 
 .PHONY: build
 build:
-	@go build -o bin/$(PROJECT_NAME).exe ./cmd/$(PROJECT_NAME)
+	@go build -o bin/$(PROJECT_NAME).exe ./cmd
 
 .PHONY: fmt
 fmt:
