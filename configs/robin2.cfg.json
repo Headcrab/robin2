@@ -2,8 +2,8 @@
     "app": {
         "port": 8008,
         "db": {
-            "type": "mysql",
-            "name": "mysql_docker"
+            "type": "clickhouse",
+            "name": "clickhouse_localhost"
         },
         "round": "2",
         "cache": {
@@ -46,13 +46,17 @@
                 "get_tag_count2": "select '{from}', avg(h.Value) value from history h where h.TagName ='{tag}' AND h.[DateTime] >= '{from}' AND h.[DateTime] < '{to}' group by h.TagName"
             }
         },
-        "appSrv01": {
+        "appsrv": {
             "host": "172.26.207.211",
             "port": "3306",
             "user": "nav",
             "password": "navnav123",
             "database": "runtime",
             "timeout": 30,
+            "max_idle_conns": 1,
+            "max_open_conns": 2,
+            "conn_max_idle_time": 10,
+            "conn_max_lifetime": 10,
             "connection_string": "{user}:{password}@tcp({host}:{port})/{database}?charset=utf8&parseTime=True&loc=Local",
             "query": {
                 "get_tag_date": "select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec(timediff(timediff(tt.DataTime, ft.DataTime),timediff(tt.DataTime,'{date}')))/time_to_sec(timediff(tt.DataTime,ft.DataTime))*(tt.Value-ft.Value)+ft.Value else ft.Value end as t from (select h.Value, h.TagName, h.DataTime from history h where h.TagName = '{tag}' and h.DataTime <= '{date}' order by h.DataTime desc limit 1) ft join( select h.Value, h.TagName, h.DataTime from history h where h.TagName = '{tag}' and h.DataTime >= '{date}' order by h.DataTime asc limit 1) tt on ft.TagName = tt.TagName",
@@ -72,6 +76,10 @@
             "password": "iamyourroot",
             "database": "runtime",
             "timeout": 30,
+            "max_idle_conns": 10,
+            "max_open_conns": 100,
+            "conn_max_idle_time": 1,
+            "conn_max_lifetime": 1,
             "connection_string": "{user}:{password}@tcp({host}:{port})/{database}?charset=utf8&parseTime=True&loc=Local",
             "query": {
                 "get_tag_date": "select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec(timediff(timediff(tt.DataTime, ft.DataTime),timediff(tt.DataTime,'{date}')))/time_to_sec(timediff(tt.DataTime,ft.DataTime))*(tt.Value-ft.Value)+ft.Value else ft.Value end as t from (select h.Value, h.TagName, h.DataTime from history h where h.TagName = '{tag}' and h.DataTime <= '{date}' order by h.DataTime desc limit 1) ft join( select h.Value, h.TagName, h.DataTime from history h where h.TagName = '{tag}' and h.DataTime >= '{date}' order by h.DataTime asc limit 1) tt on ft.TagName = tt.TagName",
@@ -87,22 +95,44 @@
         "mysql_docker": {
             "host": "host.docker.internal",
             "port": "3306",
-            "user": "root",
-            "password": "iamyourroot",
+            "user": "novikov",
+            "password": "Nousers1!",
             "database": "runtime",
             "timeout": 30,
+            "max_idle_conns": 2,
+            "max_open_conns": 5,
+            "conn_max_idle_time": 1,
+            "conn_max_lifetime": 1,
             "connection_string": "{user}:{password}@tcp({host}:{port})/{database}?charset=utf8&parseTime=True",
+            "setup_strings":["SET time_zone = '+06:00'"],
             "query": {
-                "get_tag_date": "select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec(timediff(timediff(tt.DataTime, ft.DataTime),timediff(tt.DataTime,'{date}')))/time_to_sec(timediff(tt.DataTime,ft.DataTime))*(tt.Value-ft.Value)+ft.Value else ft.Value end as t from (select h.Value, h.TagName, h.DataTime from history h where h.TagName = '{tag}' and h.DataTime <= '{date}' order by h.DataTime desc limit 1) ft join( select h.Value, h.TagName, h.DataTime from history h where h.TagName = '{tag}' and h.DataTime >= '{date}' order by h.DataTime asc limit 1) tt on ft.TagName = tt.TagName",
+                "get_tag_date": "select h.Value from history h where h.TagName = '{tag}' and h.DataTime <= '{date}' order by h.DataTime desc limit 1",
                 "get_tag_from_to": "select h.DataTime, h.Value from history h where h.TagName ='{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}'",
                 "get_tag_from_to_group": "select {group}(h.Value) from history h where h.TagName ='{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}' group by h.TagName",
-                "get_tag_from_to_dif": "select (ht.t-hf.t) value from (select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{from}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where h.TagName = '{tag}' and h.DataTime <= '{from}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where h.TagName = '{tag}' and h.DataTime >= '{from}' limit 1 ) tt on ft.TagName = tt.TagName) hf, (select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{to}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where h.TagName = '{tag}' and h.DataTime <= '{to}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where h.TagName = '{tag}' and h.DataTime >= '{to}' limit 1 ) tt on ft.TagName = tt.TagName) ht",
+                "get_tag_from_to_dif": "select (ht.t-hf.t) value from (select h.Value from history h where h.TagName = '{tag}' and h.DataTime <= '{from}' order by h.DataTime desc limit 1) hf, (select h.Value from history h where h.TagName = '{tag}' and h.DataTime <= '{to}' order by h.DataTime desc limit 1) ht",
                 "get_tag_from_to_count": "select count(h.v) value from historian h where h.t ='{tag}' AND h.d >= '{from}' AND h.d < '{to}'",
-                "get_tag_list": "select t.tagname from tagname t where t.tagname like '{tag}' order by t.tagname",
-                "get_tag_count": "select '{from}' date, avg(h.Value) value from history h where h.TagName ='{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}' group by h.TagName",
-                "get_tag_count2": "select '{date}' date, case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{date}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where h.TagName = '{tag}' and h.DataTime <= '{date}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where h.TagName = '{tag}' and h.DataTime >= '{date}' limit 1 ) tt on ft.TagName = tt.TagName"
+                "get_tag_list": "select t.tagname from tagname t where t.tagname like '{tag}' order by t.tagname"
             }
         },
+        "clickhouse_localhost": {
+            "host": "localhost",
+            "port": "9000",
+            "user":"admin",
+            "password":"password123",
+            "database": "default",
+            "timeout": 30,
+            "connection_string": "clickhouse://{host}:{port}?username={user}&password={password}",
+            "query" :{
+                "get_tag_date": "select h.value from history h where h.tag_name = '{tag}' and h.date between timeStampSub(hour, 1 , toDateTime('{date}')) and toDateTime('{date}') order by h.date desc limit 1",
+                "get_tag_date2": "select h.value from history h where h.tag_name = '{tag}' and h.date <= '{date}' order by h.date desc limit 1",
+                "get_tag_from_to": "select h.DataTime, h.Value from history h where h.TagName ='{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}'",
+                "get_tag_from_to_group": "select {group}(h.value) from history h where h.tag_name ='{tag}' AND h.date >= '{from}' AND h.date < '{to}' group by h.tag_name",
+                "get_tag_from_to_dif": "select (ht.t-hf.t) value from (select h.Value from history h where h.TagName = '{tag}' and h.DataTime <= '{from}' order by h.DataTime desc limit 1) hf, (select h.Value from history h where h.TagName = '{tag}' and h.DataTime <= '{to}' order by h.DataTime desc limit 1) ht",
+                "get_tag_from_to_count": "select count(h.v) value from historian h where h.t ='{tag}' AND h.d >= '{from}' AND h.d < '{to}'",
+                "get_tag_list": "select distinct t.tag_name from history t where t.tag_name like '{tag}' order by t.tag_name"
+            }
+        },
+
         "redis.localhost": {
             "active": "false",
             "host": "127.0.0.1",

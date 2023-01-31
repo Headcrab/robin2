@@ -58,14 +58,14 @@ func (c *MemoryCacheImpl) Set(tag string, date time.Time, value float32) error {
 	return nil
 }
 
-// func (c *MemoryCacheImpl) Remove(key string) logger.Error {
+// func (c *MemoryCacheImpl) Remove(key string) error {
 // 	MemoryCacheLock.Lock()
 // 	defer MemoryCacheLock.Unlock()
 // 	delete(c.cache, key)
 // 	return nil
 // }
 
-// func (c *MemoryCacheImpl) RemoveAll() logger.Error {
+// func (c *MemoryCacheImpl) RemoveAll() error {
 // 	MemoryCacheLock.Lock()
 // 	defer MemoryCacheLock.Unlock()
 // 	logger.Log(logger.Debug, "MemoryCacheImpl.RemoveAll size="+fmt.Sprintf("%d", len(c.cache)))

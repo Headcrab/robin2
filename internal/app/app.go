@@ -161,12 +161,12 @@ func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 	if tag != "" && date != "" {
 		dateTime, err := a.excelTimeToTime(date)
 		if err != nil {
-			w.Write([]byte("#logger.Error: " + err.Error()))
+			w.Write([]byte("#Error: " + err.Error()))
 			return
 		}
 		tagValue_f, err := a.store.GetTagDate(tag, dateTime)
 		if err != nil {
-			w.Write([]byte("#logger.Error: " + err.Error()))
+			w.Write([]byte("#Error: " + err.Error()))
 			return
 		}
 		if format == "raw" {
@@ -195,12 +195,12 @@ func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 			}
 			v, err := a.store.GetTagCount(tag, fromT, toT, countT)
 			if err != nil {
-				w.Write([]byte("#logger.Error: " + err.Error()))
+				w.Write([]byte("#Error: " + err.Error()))
 				return
 			} else {
 				tagValue, err := json.MarshalIndent(v, "", "  ")
 				if err != nil {
-					w.Write([]byte("#logger.Error: " + err.Error()))
+					w.Write([]byte("#Error: " + err.Error()))
 					return
 				}
 				w.Write([]byte(tagValue))
@@ -210,12 +210,12 @@ func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 			if group == "" {
 				v, err := a.store.GetTagFromTo(tag, fromT, toT)
 				if err != nil {
-					w.Write([]byte("#logger.Error: " + err.Error()))
+					w.Write([]byte("#Error: " + err.Error()))
 					return
 				} else {
 					tagValue, err := json.MarshalIndent(v, "", "  ")
 					if err != nil {
-						w.Write([]byte("#logger.Error: " + err.Error()))
+						w.Write([]byte("#Error: " + err.Error()))
 						return
 					}
 					w.Write([]byte(tagValue))
@@ -251,19 +251,19 @@ func (a *App) handleGetTagList(w http.ResponseWriter, r *http.Request) {
 	like := r.URL.Query().Get("like")
 	tags, err := a.store.GetTagList(like)
 	if err != nil {
-		w.Write([]byte("#logger.Error: " + err.Error()))
+		w.Write([]byte("#Error: " + err.Error()))
 		return
 	}
 	j, err := json.MarshalIndent(tags, "", "  ")
 	if err != nil {
-		// logger.Log(logger.Debug, err.logger.Error())
-		w.Write([]byte("#logger.Error: " + err.Error()))
+		// logger.Log(logger.Debug, err.error())
+		w.Write([]byte("#Error: " + err.Error()))
 		return
 	}
 	w.Write(j)
 }
 
-// return time.Time and logger.Error
+// return time.Time and error
 func (a *App) excelTimeToTime(timeStr string) (time.Time, error) {
 	if timeStr == "" {
 		return time.Time{}, errors.ErrEmptyDate
@@ -294,12 +294,12 @@ func (a *App) excelTimeToTime(timeStr string) (time.Time, error) {
 }
 
 func (a *App) tryParseDate(date string) (time.Time, error) {
-	// if date is empty, return logger.Error
+	// if date is empty, return error
 	if date == "" {
 		return time.Time{}, errors.ErrEmptyDate
 	}
 	// if date is not empty, try to parse it to time.Time
-	// if date is not valid, return logger.Error
+	// if date is not valid, return error
 	cfg := a.config.GetStringSlice("app.date_formats")
 	for fm := range cfg {
 		t, err := time.ParseInLocation(cfg[fm], date, time.Local)

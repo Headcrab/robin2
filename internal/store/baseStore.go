@@ -71,18 +71,19 @@ func (s *BaseStoreImpl) replaceTemplate(repMap map[string]string, query string) 
 func (s *BaseStoreImpl) GetTagDate(tag string, date time.Time) (float32, error) {
 	// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+date.Format("2006-01-02 15:04:05"))
 	if date.IsZero() {
-		return 0, errors.New("date logger.Error")
+		return 0, errors.New("date error")
 	}
-	if time.Until(date).Seconds() > 0 {
-		return 0, errors.New("no fate")
-	}
+	// if time.Until(date).Seconds() > 0 {
+	// 	return 0, errors.New("no fate")
+	// }
 	if s.db == nil {
 		return 0, errors.New("db connection failed")
 	}
 	if s.cache != nil {
 		if val, err := (*s.cache).Get(tag, date); err == nil {
 			// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+date.Format("2006-01-02 15:04:05")+" from cache")
-			return s.Round(val), nil
+			// return s.Round(val), nil
+			return val, nil
 		}
 	}
 	query := s.config.GetString("db." + s.config.GetString("app.db.name") + ".query.get_tag_date")
@@ -90,6 +91,7 @@ func (s *BaseStoreImpl) GetTagDate(tag string, date time.Time) (float32, error) 
 
 	var value float32
 	err := s.db.QueryRow(query).Scan(&value)
+	// defer s.db.Close()
 	if err != nil {
 		return 0, err
 	}
@@ -184,15 +186,31 @@ func (s *BaseStoreImpl) GetTagFromToGroup(tag string, from time.Time, to time.Ti
 	}
 	fromStr := from.Format("2006-01-02 15:04:05")
 	toStr := to.Format("2006-01-02 15:04:05")
+
+	// todo: cache
+	// if s.cache != nil {
+	// 	if val, err := (*s.cache).Get(tag, date); err == nil {
+	// 		return val, nil
+	// 	}
+	// }
+
 	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{from}": fromStr, "{to}": toStr, "{group}": group}, query)
 	if query == "" {
-		return "#logger.Error: group logger.Error"
+		return "#Error: group error"
 	}
 	var value float32
 	err := s.db.QueryRow(query).Scan(&value)
 	if err != nil {
-		return "#logger.Error: tag or date not found"
+		return "#Error: tag or date not found (" + err.Error() + ")"
 	}
+
+	// todo: cache
+	// if s.cache != nil {
+	// 	(*s.cache).Set(tag, date, value)
+	// }
+
+	// sleep 5 seconds
+	// time.Sleep(2 * time.Second)
 	return s.RoundAndFormat(value)
 }
 

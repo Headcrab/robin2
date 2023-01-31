@@ -45,7 +45,7 @@ func Test_tryParseDate(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			date, err := app.tryParseDate(test.date)
 			if err != test.err {
-				t.Errorf("Test '%s' failed: expected logger.Error '%v', got '%v'", test.name, test.err, err)
+				t.Errorf("Test '%s' failed: expected error '%v', got '%v'", test.name, test.err, err)
 			}
 			if date != test.expected {
 				t.Errorf("Test '%s' failed: expected date '%v', got '%v'", test.name, test.expected, date)
@@ -92,7 +92,7 @@ func Test_excelTimeToTime(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			date, err := app.excelTimeToTime(test.time)
 			if err != test.err {
-				t.Errorf("Test '%s' failed: expected logger.Error '%v', got '%v'", test.name, test.err, err)
+				t.Errorf("Test '%s' failed: expected error '%v', got '%v'", test.name, test.err, err)
 			}
 			if date != test.expected {
 				t.Errorf("Test '%s' failed: expected '%v', got '%v'", test.name, test.expected, date)

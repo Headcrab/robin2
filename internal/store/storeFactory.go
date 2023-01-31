@@ -23,6 +23,9 @@ func (f *FactoryImpl) NewStore(dbName string) *BaseStore {
 	case "mssql":
 		logger.Log(logger.Debug, "NewStoreFactory.NewStore.mssql")
 		return NewMsSqlStore()
+	case "clickhouse":
+		logger.Log(logger.Debug, "NewStoreFactory.NewStore.clickhouse")
+		return NewClickHouseStore()
 	default:
 		logger.Log(logger.Error, "NewStoreFactory.NewStore.default: "+dbName)
 		return nil
