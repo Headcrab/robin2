@@ -18,7 +18,7 @@ type RedisCacheImpl struct {
 	config config.Config
 }
 
-func NewRedisCache() *BaseCache {
+func NewRedisCache() BaseCache {
 	t := BaseCache(&RedisCacheImpl{
 		config: *config.GetConfig(),
 	})
@@ -27,7 +27,7 @@ func NewRedisCache() *BaseCache {
 		logger.Log(logger.Error, err.Error())
 	}
 	logger.Log(logger.Trace, "NewRedisCache")
-	return &t
+	return t
 }
 
 func (c *RedisCacheImpl) Connect() error {

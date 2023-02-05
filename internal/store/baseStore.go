@@ -18,7 +18,7 @@ import (
 /*------------------------------------------------------------------*/
 
 type BaseStore interface {
-	Connect(cache *cache.BaseCache) error
+	Connect(cache cache.BaseCache) error
 	GetTagDate(tag string, date time.Time) (float32, error)
 	GetTagCount(tag string, from time.Time, to time.Time, strCount int) (map[string]map[time.Time]float32, error)
 	GetTagFromTo(tag string, from time.Time, to time.Time) (map[string]map[time.Time]float32, error)
@@ -33,7 +33,7 @@ type BaseStoreImpl struct {
 	BaseStore
 	db     *sql.DB
 	config config.Config
-	cache  *cache.BaseCache
+	cache  cache.BaseCache
 }
 
 /*------------------------------------------------------------------*/
@@ -80,7 +80,7 @@ func (s *BaseStoreImpl) GetTagDate(tag string, date time.Time) (float32, error) 
 		return 0, errors.New("db connection failed")
 	}
 	if s.cache != nil {
-		if val, err := (*s.cache).Get(tag, date); err == nil {
+		if val, err := s.cache.Get(tag, date); err == nil {
 			// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+date.Format("2006-01-02 15:04:05")+" from cache")
 			// return s.Round(val), nil
 			return val, nil
@@ -96,7 +96,7 @@ func (s *BaseStoreImpl) GetTagDate(tag string, date time.Time) (float32, error) 
 		return 0, err
 	}
 	if s.cache != nil {
-		(*s.cache).Set(tag, date, value)
+		s.cache.Set(tag, date, value)
 	}
 	// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+date.Format("2006-01-02 15:04:05")+" from db")
 	return value, nil
@@ -119,7 +119,7 @@ func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, co
 		for i := 0; i < count; i++ {
 			dateFrom := from.Add(time.Duration(tmDiff*float64(i)) * time.Second)
 			if s.cache != nil {
-				if val, err := (*s.cache).Get(t, dateFrom); err == nil {
+				if val, err := s.cache.Get(t, dateFrom); err == nil {
 					// logger.Log(logger.Trace, "GetTagDate "+t+" : "+dateFrom.Format("2006-01-02 15:04:05")+" from cache")
 					resDt[dateFrom] = s.Round(val)
 					continue
@@ -131,7 +131,7 @@ func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, co
 			}
 			resDt[dateFrom] = s.Round(val)
 			if s.cache != nil {
-				(*s.cache).Set(t, dateFrom, val)
+				s.cache.Set(t, dateFrom, val)
 			}
 		}
 		res[t] = resDt
@@ -149,7 +149,7 @@ func (s *BaseStoreImpl) GetTagFromTo(tag string, from time.Time, to time.Time) (
 		for i := 0; i < count; i++ {
 			dateFrom := from.Add(time.Duration(time.Second * time.Duration((i))))
 			if s.cache != nil {
-				if val, err := (*s.cache).Get(tag, dateFrom); err == nil {
+				if val, err := s.cache.Get(tag, dateFrom); err == nil {
 					// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+dateFrom.Format("2006-01-02 15:04:05")+" from cache")
 					resDt[dateFrom] = s.Round(val)
 					continue
@@ -161,7 +161,7 @@ func (s *BaseStoreImpl) GetTagFromTo(tag string, from time.Time, to time.Time) (
 			}
 			resDt[dateFrom] = s.Round(val)
 			if s.cache != nil {
-				(*s.cache).Set(tag, dateFrom, val)
+				s.cache.Set(tag, dateFrom, val)
 			}
 		}
 		res[t] = resDt

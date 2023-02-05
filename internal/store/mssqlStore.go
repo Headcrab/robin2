@@ -27,7 +27,7 @@ func NewMsSqlStore() *BaseStore {
 	return &t
 }
 
-func (s *MsSqlStoreImpl) Connect(cache *cache.BaseCache) error {
+func (s *MsSqlStoreImpl) Connect(cache cache.BaseCache) error {
 	logger.Log(logger.Debug, "MsSqlStoreImpl.Connect")
 	var err error
 	base := s.MsSqlStore.(*BaseStoreImpl)

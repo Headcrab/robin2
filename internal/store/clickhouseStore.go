@@ -27,7 +27,7 @@ func NewClickHouseStore() *BaseStore {
 	return &t
 }
 
-func (s *ClickHouseStoreImpl) Connect(cache *cache.BaseCache) error {
+func (s *ClickHouseStoreImpl) Connect(cache cache.BaseCache) error {
 	logger.Log(logger.Debug, "ClickHouseStoreImpl.Connect")
 	var err error
 	base := s.ClickHouseStore.(*BaseStoreImpl)

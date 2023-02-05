@@ -5,7 +5,7 @@ import (
 )
 
 type Factory interface {
-	NewCache(string) *BaseCache
+	NewCache(string) BaseCache
 }
 
 func NewCacheFactory() Factory {
@@ -17,8 +17,11 @@ type FactoryImpl struct {
 	Factory
 }
 
-func (f *FactoryImpl) NewCache(cacheName string) *BaseCache {
+func (f *FactoryImpl) NewCache(cacheName string) BaseCache {
 	switch cacheName {
+	case "none":
+		// logger.Log(logger.Info, "no cache selected")
+		return nil
 	case "memory":
 		// logger.Log(logger.Info, "memory cache selected")
 		return NewMemoryCache()

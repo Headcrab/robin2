@@ -21,13 +21,13 @@ type MemoryCacheImpl struct {
 	cache Memcache
 }
 
-func NewMemoryCache() *BaseCache {
+func NewMemoryCache() BaseCache {
 	t := BaseCache(&MemoryCacheImpl{
 		cache: make(Memcache),
 	})
 	t.Connect()
 	logger.Log(logger.Trace, "NewMemoryCache")
-	return &t
+	return t
 }
 
 func (c *MemoryCacheImpl) Connect() error {

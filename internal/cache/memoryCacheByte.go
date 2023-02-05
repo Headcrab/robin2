@@ -20,12 +20,12 @@ type MemoryCacheBytesImpl struct {
 	cache map[hash]float32
 }
 
-func NewMemoryCacheByte() *BaseCache {
+func NewMemoryCacheByte() BaseCache {
 	t := BaseCache(&MemoryCacheBytesImpl{
 		cache: make(map[hash]float32),
 	})
 	logger.Log(logger.Debug, "NewMemoryCacheByte")
-	return &t
+	return t
 }
 
 func (c *MemoryCacheBytesImpl) Connect() error {

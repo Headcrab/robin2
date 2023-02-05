@@ -28,7 +28,7 @@ func NewMySqlStore() *BaseStore {
 	return &t
 }
 
-func (s *MySqlStoreImpl) Connect(cache *cache.BaseCache) error {
+func (s *MySqlStoreImpl) Connect(cache cache.BaseCache) error {
 	logger.Log(logger.Debug, "MySqlStoreImpl.Connect")
 	var err error
 	base := s.MySqlStore.(*BaseStoreImpl)

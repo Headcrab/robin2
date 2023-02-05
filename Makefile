@@ -29,8 +29,9 @@ docker:
 
 .PHONY: deploy
 deploy:
-	@kubectl apply -f deployments/app-deployment.yaml
+	@docker rm -f $(PROJECT_NAME)
+	@docker run -it -v x:/configs/$(PROJECT_NAME):/bin/configs -d -p 8008:8008 --name $(PROJECT_NAME) $(PROJECT_NAME):latest
 
 .PHONY: undeploy
 undeploy:
-	@kubectl delete -f deployments/app-deployment.yaml
+	@docker rm -f $(PROJECT_NAME)

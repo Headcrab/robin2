@@ -43,7 +43,7 @@ func (a *App) Run() {
 	a.startTime = time.Now()
 	logger.Log(logger.Info, a.name+" "+a.version+" is running")
 	a.init()
-	err := a.store.Connect(&a.cache)
+	err := a.store.Connect(a.cache)
 	if err != nil {
 		logger.Log(logger.Fatal, err.Error())
 	}
@@ -77,7 +77,7 @@ func getLocalhostIpAdresses() []string {
 func (a *App) init() {
 	logger.Log(logger.Debug, "initializing app")
 	a.config = *config.GetConfig()
-	a.cache = *cache.NewCacheFactory().NewCache(a.config.GetString("app.cache.type"))
+	a.cache = cache.NewCacheFactory().NewCache(a.config.GetString("app.cache.type"))
 	a.store = *store.NewStoreFactory().NewStore(a.config.GetString("app.db.type"))
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
 		// "/robin/":               a.handleHome,

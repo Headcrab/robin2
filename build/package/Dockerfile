@@ -1,12 +1,12 @@
-FROM golang:1.19 AS builder
+FROM golang:1.20-alpine AS builder
 WORKDIR /app
 COPY ../ ./
 RUN go mod tidy && \
 go mod download && \
 go build -o /bin/robin2 ./cmd/
 
-# FROM alpine:latest AS runner
-FROM ubuntu:latest AS runner
+FROM alpine:latest AS runner
+# FROM ubuntu:latest AS runner
 # FROM scratch AS runner
 # ENV TZ=Asia/Almaty
 # ENV TZ=UTC
