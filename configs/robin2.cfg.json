@@ -112,7 +112,7 @@
             }
         },
          "clickhouse": {
-            "host": "host.docker.internal",
+            "host": "localhost",
             "port": "9000",
             "user":"admin",
             "password":"password123",

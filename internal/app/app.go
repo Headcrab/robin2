@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"strings"
 
 	"io"
-	"math"
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"robin2/internal/cache"
@@ -275,9 +274,10 @@ func (a *App) excelTimeToTime(timeStr string) (time.Time, error) {
 		if err != nil {
 			return time.Time{}, errors.ErrNotAFloat
 		}
-		timeInSecs := int64(math.Round(timeFloat * 24 * 60 * 60))
-		result = time.Date(1899, 12, 30, 0, 0, 0, 0, time.Local).Add(time.Duration(timeInSecs) * time.Second)
-		result.In(time.Local)
+		unixTime := (timeFloat - 25569) * 86400
+		utcTime := time.Unix(int64(unixTime), 0).UTC()
+		locTime := time.Date(utcTime.Year(), utcTime.Month(), utcTime.Day(), utcTime.Hour(), utcTime.Minute(), utcTime.Second(), 0, time.Local)
+		result = locTime
 	} else {
 		res, err := a.tryParseDate(timeStr)
 		if err != nil {
