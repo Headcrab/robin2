@@ -7,8 +7,9 @@
         },
         "round": "2",
         "cache": {
-            "type": "memory",
-            "name": "redis.docker"
+            "type": "redis",
+            "name": "redis.localhost",
+            "ttl": 1
         },
         "date_formats": [
             "2006-01-02 15:04:05",
@@ -111,23 +112,26 @@
                 "get_tag_count2": "select '{date}' date, case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{date}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where h.TagName = '{tag}' and h.DataTime <= '{date}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where h.TagName = '{tag}' and h.DataTime >= '{date}' limit 1 ) tt on ft.TagName = tt.TagName"
             }
         },
-         "clickhouse": {
+        "clickhouse": {
+            "host_d": "host.docker.internal",
             "host": "localhost",
             "port": "9000",
-            "user":"admin",
-            "password":"password123",
+            "user": "admin",
+            "password": "password123",
             "database": "runtime",
             "timeout": 30,
-            "connection_string": "tcp://{user}:{password}@{host}:{port}/{database}",
-            "connection_string0": "clickhouse://{host}:{port}?username={user}&password={password}",
-            "query" :{
-                "get_tag_date2": "select h.Value from history h where h.TagName = '{tag}' and h.DateTime between timeStampSub(hour, 1 , toDateTime('{date}')) and toDateTime('{date}') order by h.DateTime desc limit 1",
-                "get_tag_date": "select h.Value from history h where h.TagName = '{tag}' and h.DateTime <= '{date}' order by h.DateTime desc limit 1",
+            "connection_string": "clickhouse://{host}:{port}/{database}?username={user}&password={password}",
+            "query": {
+                "get_tag_date2": "select h.Value from history h where h.TagName = '{tag}' and h.DateTime between timeStampSub(minute, 5 , toDateTime('{date}')) and toDateTime('{date}') order by h.DateTime desc limit 1",
+                "get_tag_date": "select if(toDateTime('{date}','Asia/Almaty') > (select max(max) from runtime.max), -1, h.Value) as Value from history h where h.TagName = '{tag}' and h.DateTime <= '{date}' order by h.DateTime desc limit 1",
+                "get_tag_date3": "select h.Value from history h where h.TagName = '{tag}' and h.DateTime <= '{date}' order by h.DateTime desc limit 1",
                 "get_tag_from_to": "select h.DataTime, h.Value from history h where h.TagName ='{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}'",
                 "get_tag_from_to_group": "select {group}(h.Value) from history h where h.TagName ='{tag}' AND h.DateTime >= '{from}' AND h.DateTime < '{to}' group by h.TagName",
-                "get_tag_from_to_dif": "select (ht.t-hf.t) Value from (select h.Value from history h where h.TagName = '{tag}' and h.DataTime <= '{from}' order by h.DataTime desc limit 1) hf, (select h.Value from history h where h.TagName = '{tag}' and h.DataTime <= '{to}' order by h.DataTime desc limit 1) ht",
-                "get_tag_from_to_count": "select count(h.v) Value from historian h where h.t ='{tag}' AND h.d >= '{from}' AND h.d < '{to}'",
-                "get_tag_list": "select distinct t.TagName from history t where t.TagName like '{tag}' order by t.TagName"
+                "get_tag_from_to_dif": "select (ht.Value-hf.Value) Value from (select h.Value from history h where h.TagName = '{tag}' and h.DateTime <= toDateTime('{from}') order by h.DateTime desc limit 1) as hf, (select h.Value from history h where h.TagName = '{tag}' and h.DateTime <= toDateTime('{to}') order by h.DateTime desc limit 1) as ht",
+                "get_tag_from_to_count": "select count(h.Value) Value from historian h where h.TagName ='{tag}' AND h.DateTime >= '{from}' AND h.DateTime < '{to}'",
+                "get_tag_list": "select distinct t.TagName from history t where t.TagName like '{tag}' order by t.TagName",
+                "get_down_dates": "select v.DT from ( select h.DateTime as DT, h.Value, lagInFrame(h.Value) OVER (ORDER BY DateTime) as was, lagInFrame(h.DateTime) OVER (ORDER BY DateTime) as was_date from runtime.history h where h.TagName = '{tag}' and h.DateTime >= '{from}' and h.DateTime <= '{to}' order by h.DateTime ) v where (Value<>was or was_date = toDateTime('1970-01-01')) and Value=0",
+                "get_up_dates": "select v.DT from ( select h.DateTime as DT, h.Value, lagInFrame(h.Value) OVER (ORDER BY DateTime) as was ,lagInFrame(h.DateTime) OVER (ORDER BY DateTime) as was_date from runtime.history h where h.TagName = '{tag}' and h.DateTime >= '{from}' and h.DateTime <= '{to}' order by h.DateTime ) v where (Value<>was or was_date = toDateTime('1970-01-01')) and Value=1"
             }
         },
        "redis.localhost": {

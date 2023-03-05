@@ -2,8 +2,8 @@ package store
 
 import (
 	"database/sql"
-	"errors"
 	"math"
+	"robin2/internal/errors"
 	"strconv"
 	"strings"
 	"time"
@@ -24,6 +24,8 @@ type BaseStore interface {
 	GetTagFromTo(tag string, from time.Time, to time.Time) (map[string]map[time.Time]float32, error)
 	GetTagFromToGroup(tag string, from time.Time, to time.Time, group string) string
 	GetTagList(like string) (map[string][]string, error)
+	GetDownDates(tag string, from time.Time, to time.Time) ([]time.Time, error)
+	GetUpDates(tag string, from time.Time, to time.Time) ([]time.Time, error)
 
 	RoundAndFormat(val float32) string
 	Round(val float32) float32
@@ -71,44 +73,39 @@ func (s *BaseStoreImpl) replaceTemplate(repMap map[string]string, query string) 
 func (s *BaseStoreImpl) GetTagDate(tag string, date time.Time) (float32, error) {
 	// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+date.Format("2006-01-02 15:04:05"))
 	if date.IsZero() {
-		return 0, errors.New("date error")
+		return 0, errors.ErrInvalidDate
 	}
-	// if time.Until(date).Seconds() > 0 {
-	// 	return 0, errors.New("no fate")
-	// }
 	if s.db == nil {
-		return 0, errors.New("db connection failed")
+		return 0, errors.ErrDbConnectionFailed
 	}
 	if s.cache != nil {
 		if val, err := s.cache.Get(tag, date); err == nil {
-			// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+date.Format("2006-01-02 15:04:05")+" from cache")
-			// return s.Round(val), nil
 			return val, nil
 		}
 	}
 	query := s.config.GetString("db." + s.config.GetString("app.db.name") + ".query.get_tag_date")
 	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{date}": date.Format("2006-01-02 15:04:05")}, query)
 
-	var value float32
-	err := s.db.QueryRow(query).Scan(&value)
+	var val float32
+	err := s.db.QueryRow(query).Scan(&val)
 	// defer s.db.Close()
 	if err != nil {
-		return 0, err
+		return -1, err
 	}
-	if s.cache != nil {
-		s.cache.Set(tag, date, value)
+	if s.cache != nil && val != -1 {
+		s.cache.Set(tag, date, val)
 	}
 	// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+date.Format("2006-01-02 15:04:05")+" from db")
-	return value, nil
+	return val, nil
 }
 
 func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, count int) (map[string]map[time.Time]float32, error) {
 	logger.Log(logger.Debug, "GetTagCount "+tag+" : "+from.Format("2006-01-02 15:04:05")+" - "+to.Format("2006-01-02 15:04:05")+" ("+strconv.Itoa(count)+")")
 	if count == 0 {
-		return nil, errors.New("count is empty")
+		return nil, errors.ErrCountIsEmpty
 	}
 	if count < 1 {
-		return nil, errors.New("count is less than 1")
+		return nil, errors.ErrCountIsLessThanOne
 	}
 
 	tmDiff := (time.Until(to).Seconds() - time.Until(from).Seconds()) / float64(count)
@@ -118,21 +115,21 @@ func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, co
 		resDt := make(map[time.Time]float32, count)
 		for i := 0; i < count; i++ {
 			dateFrom := from.Add(time.Duration(tmDiff*float64(i)) * time.Second)
-			if s.cache != nil {
-				if val, err := s.cache.Get(t, dateFrom); err == nil {
-					// logger.Log(logger.Trace, "GetTagDate "+t+" : "+dateFrom.Format("2006-01-02 15:04:05")+" from cache")
-					resDt[dateFrom] = s.Round(val)
-					continue
-				}
-			}
+			// if s.cache != nil {
+			// 	if val, err := s.cache.Get(t, dateFrom); err == nil {
+			// 		// logger.Log(logger.Trace, "GetTagDate "+t+" : "+dateFrom.Format("2006-01-02 15:04:05")+" from cache")
+			// 		resDt[dateFrom] = s.Round(val)
+			// 		continue
+			// 	}
+			// }
 			val, err := s.GetTagDate(t, dateFrom)
 			if err != nil {
 				val = -1
 			}
 			resDt[dateFrom] = s.Round(val)
-			if s.cache != nil {
-				s.cache.Set(t, dateFrom, val)
-			}
+			// if s.cache != nil && val != -1 {
+			// 	s.cache.Set(t, dateFrom, val)
+			// }
 		}
 		res[t] = resDt
 	}
@@ -148,21 +145,21 @@ func (s *BaseStoreImpl) GetTagFromTo(tag string, from time.Time, to time.Time) (
 		resDt := make(map[time.Time]float32)
 		for i := 0; i < count; i++ {
 			dateFrom := from.Add(time.Duration(time.Second * time.Duration((i))))
-			if s.cache != nil {
-				if val, err := s.cache.Get(tag, dateFrom); err == nil {
-					// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+dateFrom.Format("2006-01-02 15:04:05")+" from cache")
-					resDt[dateFrom] = s.Round(val)
-					continue
-				}
-			}
+			// if s.cache != nil {
+			// 	if val, err := s.cache.Get(tag, dateFrom); err == nil {
+			// 		// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+dateFrom.Format("2006-01-02 15:04:05")+" from cache")
+			// 		resDt[dateFrom] = s.Round(val)
+			// 		continue
+			// 	}
+			// }
 			val, err := s.GetTagDate(t, dateFrom)
 			if err != nil {
 				val = -1
 			}
 			resDt[dateFrom] = s.Round(val)
-			if s.cache != nil {
-				s.cache.Set(tag, dateFrom, val)
-			}
+			// if s.cache != nil && val != -1 {
+			// 	s.cache.Set(tag, dateFrom, val)
+			// }
 		}
 		res[t] = resDt
 	}
@@ -246,4 +243,76 @@ func (s *BaseStoreImpl) GetTagList(like string) (map[string][]string, error) {
 		}
 	}()
 	return tags, nil
+}
+
+func (s *BaseStoreImpl) GetDownDates(tag string, from time.Time, to time.Time) ([]time.Time, error) {
+	logger.Log(logger.Debug, "GetDownDate "+tag+" : "+from.Format("2006-01-02 15:04:05")+" - "+to.Format("2006-01-02 15:04:05"))
+	var query string
+	query = s.config.GetString("db." + s.config.GetString("app.db.name") + ".query.get_down_dates")
+	fromStr := from.Format("2006-01-02 15:04:05")
+	toStr := to.Format("2006-01-02 15:04:05")
+	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{from}": fromStr, "{to}": toStr}, query)
+	if query == "" {
+		return nil, errors.ErrQueryError
+	}
+	var dates []time.Time
+	cur, err := s.db.Query(query)
+	if err != nil {
+		logger.Log(logger.Debug, err.Error())
+		return nil, err
+	} else {
+		for cur.Next() {
+			var date time.Time
+			err := cur.Scan(&date)
+			if err != nil {
+				logger.Log(logger.Debug, err.Error())
+				return nil, err
+			} else {
+				dates = append(dates, date)
+			}
+		}
+	}
+	defer func() {
+		err := cur.Close()
+		if err != nil {
+			logger.Log(logger.Debug, err.Error())
+		}
+	}()
+	return dates, nil
+}
+
+func (s *BaseStoreImpl) GetUpDates(tag string, from time.Time, to time.Time) ([]time.Time, error) {
+	logger.Log(logger.Debug, "GetUpDate "+tag+" : "+from.Format("2006-01-02 15:04:05")+" - "+to.Format("2006-01-02 15:04:05"))
+	var query string
+	query = s.config.GetString("db." + s.config.GetString("app.db.name") + ".query.get_up_dates")
+	fromStr := from.Format("2006-01-02 15:04:05")
+	toStr := to.Format("2006-01-02 15:04:05")
+	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{from}": fromStr, "{to}": toStr}, query)
+	if query == "" {
+		return nil, errors.ErrQueryError
+	}
+	var dates []time.Time
+	cur, err := s.db.Query(query)
+	if err != nil {
+		logger.Log(logger.Debug, err.Error())
+		return nil, err
+	} else {
+		for cur.Next() {
+			var date time.Time
+			err := cur.Scan(&date)
+			if err != nil {
+				logger.Log(logger.Debug, err.Error())
+				return nil, err
+			} else {
+				dates = append(dates, date)
+			}
+		}
+	}
+	defer func() {
+		err := cur.Close()
+		if err != nil {
+			logger.Log(logger.Debug, err.Error())
+		}
+	}()
+	return dates, nil
 }

@@ -1,0 +1,97 @@
+version: "3"
+
+services:
+  robin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: robin2
+    volumes:
+      - /media/alexandr/data/work/configs/robin2:/configs
+    expose:
+      - 8008
+    # ports:
+    #   - "8008:8008"
+    # depends_on:
+    #   clickhouse:
+    #     condition: service_healthy    
+    # wait for clickhouse
+    # command: bash -c "while ! nc -z clickhouse 9000; do sleep 0.1; done; /bin/robin2"
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8008"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "8010:8010"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    # depends_on:
+    #   - robin2:
+    #       condition: service_healthy
+    #   - clickhouse:
+    #       condition: service_healthy
+    #   - grafana:
+    #       condition: service_healthy
+    # wait for robin, clickhouse, grafana
+    # command: bash -c "while ! nc -z robin 8008; do sleep 0.1; done; while ! nc -z clickhouse 9000; do sleep 0.1; done; while ! nc -z grafana 3000; do sleep 0.1; done; nginx -g 'daemon off;'"
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse
+    expose:
+      - 8123
+      - 9000
+    # ports:
+    #   - "8123:8123"
+    #   - "9000:9000"
+    volumes:
+      - type: volume
+        source: clickhouse
+        target: /var/lib/clickhouse
+        volume:
+          nocopy: true
+    environment:
+      - CLICKHOUSE_USER=admin
+      - CLICKHOUSE_PASSWORD=password123
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8123"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+# wait for robin
+    # command: bash -c "while ! nc -z robin 8008; do sleep 0.1; done; /entrypoint.sh"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    expose:
+      - 3000
+    # ports:
+    #   - "3000:3000"
+    volumes:
+      - ./grafana:/var/lib/grafana
+      - /media/alexandr/data/work/configs/grafana/conf:/usr/share/grafana/conf
+    # depends_on:
+    #   - clickhouse:
+    #       condition: service_healthy 
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD = password123
+      - GF_INSTALL_PLUGINS = vertamedia-clickhouse-datasource
+      - GF_SERVER_ROOT_URL = http://localhost:8010/grafana
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:3000"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    # wait for clickhouse
+    # command: bash -c "while ! nc -z clickhouse 9000; do sleep 0.1; done; /run.sh"
+
+volumes:
+  clickhouse:
+    external: true

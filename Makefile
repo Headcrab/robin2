@@ -5,8 +5,11 @@ MODULE_NAME=robin2
 
 .PHONY: build
 build:
-	@go build -o bin/$(PROJECT_NAME).exe ./cmd
-
+ifeq ($(OS),Windows_NT)
+	@go build -ldflags "-s" -o bin/$(PROJECT_NAME).exe ./cmd
+else
+	@go build -ldflags "-s" -o bin/$(PROJECT_NAME) ./cmd
+endif
 .PHONY: fmt
 fmt:
 	@go fmt ./...
@@ -30,8 +33,11 @@ docker:
 .PHONY: deploy
 deploy:
 	@docker rm -f $(PROJECT_NAME)
-	@docker run -it -v x:/configs/$(PROJECT_NAME):/bin/configs -d -p 8008:8008 --name $(PROJECT_NAME) $(PROJECT_NAME):latest
-
+ifeq ($(OS),Windows_NT)
+	docker run -d --name $(PROJECT_NAME) --restart=always -v x:/configs/$(PROJECT_NAME):/bin/configs -v x:/logs/$(PROJECT_NAME):/bin/logs -p 8008:8008 $(PROJECT_NAME):latest
+else
+	docker run -d --name $(PROJECT_NAME) --restart=always -v /media/alexandr/data/work/configs/$(PROJECT_NAME):/bin/configs -v /media/alexandr/data/work/logs/$(PROJECT_NAME):/bin/logs -p 8008:8008 $(PROJECT_NAME):latest
+endif
 .PHONY: undeploy
 undeploy:
 	@docker rm -f $(PROJECT_NAME)

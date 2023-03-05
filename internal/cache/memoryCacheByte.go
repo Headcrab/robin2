@@ -1,8 +1,8 @@
 package cache
 
 import (
-	"errors"
 	"fmt"
+	"robin2/internal/errors"
 	"robin2/pkg/logger"
 	"sync"
 )
@@ -42,7 +42,7 @@ func (c *MemoryCacheBytesImpl) GetHash(key hash) (float32, error) {
 	defer MemoryCacheByteLock.Unlock()
 	t := c.cache[key]
 	if t == 0 {
-		return 0, errors.New("KEY_NOT_FOUND")
+		return 0, errors.ErrKeyNotFound
 	}
 	return t, nil
 }

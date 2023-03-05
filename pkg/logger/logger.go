@@ -6,6 +6,7 @@ package logger
 
 import (
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -134,4 +135,17 @@ func checkFileLog() {
 			consoleLog().Fatal().Err(err).Msg("Error opening log file")
 		}
 	}
+}
+
+// opens 'file *os.File' and returns it
+func GetLogHistory() ([]string, error) {
+	checkFileLog()
+	defer file.Close()
+	f, err := os.ReadFile(file.Name())
+	if err != nil {
+		return nil, err
+	}
+	// split to []string by new line
+	s := strings.Split(string(f), "\n")
+	return s, nil
 }

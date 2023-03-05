@@ -1,6 +1,10 @@
 package robin
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"robin2/internal/errors"
 	"testing"
 	"time"
@@ -30,7 +34,7 @@ func Test_tryParseDate(t *testing.T) {
 			name:     "invalid empty string",
 			date:     "",
 			expected: time.Time{},
-			err:      errors.ErrEmptyDate,
+			err:      errors.ErrInvalidDate,
 		},
 		{
 			name:     "invalid 12.31.2022 00:00:00",
@@ -49,6 +53,56 @@ func Test_tryParseDate(t *testing.T) {
 			}
 			if date != test.expected {
 				t.Errorf("Test '%s' failed: expected date '%v', got '%v'", test.name, test.expected, date)
+			}
+		})
+	}
+}
+
+func Test_endpoint_get_tag_list(t *testing.T) {
+	test_cases := []struct {
+		name     string
+		tag_like string
+		expected string
+	}{
+		{
+			name:     "valid endpoint",
+			tag_like: "A20_WT_01%",
+			expected: "A20_WT_01",
+		},
+		{
+			name:     "invalid endpoint",
+			tag_like: "/api/v1/tags/",
+			expected: "",
+		},
+	}
+	app := NewApp()
+	app.init()
+	for _, test := range test_cases {
+		t.Run(test.name, func(t *testing.T) {
+			// test request, get response
+			request := &http.Request{
+				Method: "GET",
+				URL: &url.URL{
+					Path: "/get/tag/list/?like=" + test.tag_like,
+				},
+			}
+			response := httptest.NewRecorder()
+			app.handleGetTagList(response, request)
+			// check response
+			if response.Code != http.StatusOK {
+				t.Errorf("Test '%s' failed: expected status code '%v', got '%v'", test.name, http.StatusOK, response.Code)
+			}
+			// check response body
+			var tags []string
+			err := json.Unmarshal(response.Body.Bytes(), &tags)
+			if err != nil {
+				t.Errorf("Test '%s' failed: expected valid json, got '%v'", test.name, err)
+			}
+			if len(tags) != 1 {
+				t.Errorf("Test '%s' failed: expected 1 tag, got '%v'", test.name, len(tags))
+			}
+			if tags[0] != test.expected {
+				t.Errorf("Test '%s' failed: expected tag '%v', got '%v'", test.name, test.expected, tags[0])
 			}
 		})
 	}
@@ -77,7 +131,7 @@ func Test_excelTimeToTime(t *testing.T) {
 			name:     "invalid empty string",
 			time:     "",
 			expected: time.Time{},
-			err:      errors.ErrEmptyDate,
+			err:      errors.ErrInvalidDate,
 		},
 		{
 			name:     "invalid 12.31.2022 00:00:00",

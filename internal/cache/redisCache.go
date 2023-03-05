@@ -51,6 +51,9 @@ func (c *RedisCacheImpl) Set(tag string, date time.Time, value float32) error {
 	logger.Log(logger.Trace, "RedisCacheImpl.Set")
 	// RedisCacheLock.Lock()
 	// defer RedisCacheLock.Unlock()
+
+	// устанавливаем TTL
+	c.rds.Expire(tag, time.Duration(c.config.GetInt("app.cache.ttl"))*time.Hour)
 	c.rds.HSet(tag, date.Format("02.01.2006 15:04:05"), value)
 	return nil
 }

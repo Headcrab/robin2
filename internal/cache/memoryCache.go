@@ -1,8 +1,7 @@
 package cache
 
 import (
-	// "errors"
-	"errors"
+	"robin2/internal/errors"
 	"robin2/pkg/logger"
 	"sync"
 	"time"
@@ -40,7 +39,7 @@ func (c *MemoryCacheImpl) Get(tag string, date time.Time) (float32, error) {
 	defer MemoryCacheLock.Unlock()
 	t, ok := c.cache[tag][date]
 	if !ok {
-		return 0, errors.New("KEY_NOT_FOUND")
+		return 0, errors.ErrKeyNotFound
 	}
 	return t, nil
 }

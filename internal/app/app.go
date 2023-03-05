@@ -6,9 +6,7 @@ import (
 	"net"
 	"strings"
 
-	"io"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
@@ -17,12 +15,13 @@ import (
 	"robin2/internal/store"
 	"robin2/pkg/config"
 	"robin2/pkg/logger"
+	// "github.com/PuerkitoBio/goquery"
 )
 
 func NewApp() *App {
 	app := &App{
 		name:    "Robin",
-		version: "2.0.0",
+		version: "2.2.0",
 	}
 	return app
 }
@@ -80,23 +79,26 @@ func (a *App) init() {
 	a.store = *store.NewStoreFactory().NewStore(a.config.GetString("app.db.type"))
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
 		// "/robin/":               a.handleHome,
-		// "/info/":   a.handleInfo,
-		// "/uptime/":        a.handleUptime,
-		// "/reload_config/": a.handleReloadConfig,
+		"/info/":          a.handleInfo,
+		"/uptime/":        a.handleUptime,
+		"/reload_config/": a.handleReloadConfig,
 		// "/get/example/":   a.handleGetExample,
 		"/get/tag/":      a.handleGetTag,
 		"/get/tag/list/": a.handleGetTagList,
+		"/get/tag/up/":   a.handleGetTagUp,
+		"/get/tag/down/": a.handleGetTagDown,
 		// "/favicon.ico":    a.handleFavicon,
+		"/log/": a.handleGetLog,
 	}
 	for path, handler := range handlers {
 		http.HandleFunc(path, handler)
 	}
 }
 
-func (a *App) handleFavicon(w http.ResponseWriter, r *http.Request) {
-	logger.Log(logger.Debug, "favicon")
-	http.ServeFile(w, r, "../website/favicon.ico")
-}
+// func (a *App) handleFavicon(w http.ResponseWriter, r *http.Request) {
+// 	logger.Log(logger.Debug, "favicon")
+// 	http.ServeFile(w, r, "../website/favicon.ico")
+// }
 
 func (a *App) handleReloadConfig(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
@@ -133,11 +135,11 @@ func (a *App) handleInfo(w http.ResponseWriter, r *http.Request) {
 	w.Write(resJson)
 }
 
-func (a *App) handleHome(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	f, _ := os.ReadFile("index.html")
-	w.Write(f)
-}
+// func (a *App) handleHome(w http.ResponseWriter, r *http.Request) {
+// 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+// 	f, _ := os.ReadFile("index.html")
+// 	w.Write(f)
+// }
 
 func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
@@ -229,19 +231,19 @@ func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 }
 
 // send file "tests_book.xls" to client
-func (a *App) handleGetExample(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", "application/vnd.ms-excel")
-	w.Header().Set("Content-Disposition", "attachment;filename=\"tests_book.xlsx\"")
-	file, _ := os.Open("../config/tests_book.xlsx")
-	defer func() {
-		err := file.Close()
-		if err != nil {
-			logger.Log(logger.Error, err.Error())
-		}
-	}()
-	io.Copy(w, file)
-}
+// func (a *App) handleGetExample(w http.ResponseWriter, r *http.Request) {
+// 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+// 	w.Header().Set("Content-Type", "application/vnd.ms-excel")
+// 	w.Header().Set("Content-Disposition", "attachment;filename=\"tests_book.xlsx\"")
+// 	file, _ := os.Open("../config/tests_book.xlsx")
+// 	defer func() {
+// 		err := file.Close()
+// 		if err != nil {
+// 			logger.Log(logger.Error, err.Error())
+// 		}
+// 	}()
+// 	io.Copy(w, file)
+// }
 
 // returns JSON with tags by mask
 func (a *App) handleGetTagList(w http.ResponseWriter, r *http.Request) {
@@ -265,7 +267,7 @@ func (a *App) handleGetTagList(w http.ResponseWriter, r *http.Request) {
 // return time.Time and error
 func (a *App) excelTimeToTime(timeStr string) (time.Time, error) {
 	if timeStr == "" {
-		return time.Time{}, errors.ErrEmptyDate
+		return time.Time{}, errors.ErrInvalidDate
 	}
 	var result = time.Time{}
 	if !strings.Contains(timeStr, ":") {
@@ -288,7 +290,7 @@ func (a *App) excelTimeToTime(timeStr string) (time.Time, error) {
 		result = time.Date(res.Year(), res.Month(), res.Day(), res.Hour(), res.Minute(), res.Second(), 0, time.Local)
 	}
 	if result.IsZero() {
-		return time.Time{}, errors.ErrEmptyDate
+		return time.Time{}, errors.ErrInvalidDate
 	}
 	return result, nil
 }
@@ -296,7 +298,7 @@ func (a *App) excelTimeToTime(timeStr string) (time.Time, error) {
 func (a *App) tryParseDate(date string) (time.Time, error) {
 	// if date is empty, return error
 	if date == "" {
-		return time.Time{}, errors.ErrEmptyDate
+		return time.Time{}, errors.ErrInvalidDate
 	}
 	// if date is not empty, try to parse it to time.Time
 	// if date is not valid, return error
@@ -309,3 +311,145 @@ func (a *App) tryParseDate(date string) (time.Time, error) {
 	}
 	return time.Time{}, errors.ErrInvalidDate
 }
+
+// func (a *App) tryParseDateUTC(date string) (time.Time, error) {
+// 	// if date is empty, return error
+// 	if date == "" {
+// 		return time.Time{}, errors.ErrInvalidDate
+// 	}
+// 	// if date is not empty, try to parse it to time.Time
+// 	// if date is not valid, return error
+// 	cfg := a.config.GetStringSlice("app.date_formats")
+// 	for fm := range cfg {
+// 		t, err := time.ParseInLocation(cfg[fm], date, time.UTC)
+// 		if err == nil {
+// 			return t, nil
+// 		}
+// 	}
+// 	return time.Time{}, errors.ErrInvalidDate
+// }
+
+func (a *App) handleGetTagDown(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	w.Header().Set("Content-Type", "application/json")
+	tag := r.URL.Query().Get("tag")
+	if tag == "" {
+		w.Write([]byte("#Error: tag is empty"))
+		return
+	}
+	from := r.URL.Query().Get("from")
+	to := r.URL.Query().Get("to")
+	countStr := r.URL.Query().Get("count")
+	count, err := strconv.Atoi(countStr)
+	if err != nil {
+		count = 0
+	}
+	fromT, err := a.excelTimeToTime(from)
+	if err != nil {
+		w.Write([]byte("#Error: " + err.Error()))
+		return
+	}
+	toT, err := a.excelTimeToTime(to)
+	if err != nil {
+		w.Write([]byte("#Error: " + err.Error()))
+		return
+	}
+	v, err := a.store.GetDownDates(tag, fromT, toT)
+	if err != nil {
+		w.Write([]byte("#Error: " + err.Error()))
+		return
+	} else {
+		// tagValue, err := json.MarshalIndent(v, "", "  ")
+		if err != nil {
+			w.Write([]byte("#Error: " + err.Error()))
+			return
+		}
+		if (count >= 0) && (count < len(v)) {
+			val := v[count].Format("2006-01-02 15:04:05")
+			w.Write([]byte(val))
+		} else {
+			w.Write([]byte(""))
+		}
+	}
+}
+
+func (a *App) handleGetTagUp(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	w.Header().Set("Content-Type", "application/json")
+	tag := r.URL.Query().Get("tag")
+	if tag == "" {
+		w.Write([]byte("#Error: tag is empty"))
+		return
+	}
+	from := r.URL.Query().Get("from")
+	to := r.URL.Query().Get("to")
+	countStr := r.URL.Query().Get("count")
+	count, err := strconv.Atoi(countStr)
+	if err != nil {
+		count = 0
+	}
+	fromT, err := a.excelTimeToTime(from)
+	if err != nil {
+		w.Write([]byte("#Error: " + err.Error()))
+		return
+	}
+	toT, err := a.excelTimeToTime(to)
+	if err != nil {
+		w.Write([]byte("#Error: " + err.Error()))
+		return
+	}
+	v, err := a.store.GetUpDates(tag, fromT, toT)
+	if err != nil {
+		w.Write([]byte("#Error: " + err.Error()))
+		return
+	} else {
+		// tagValue, err := json.MarshalIndent(v, "", "  ")
+		if err != nil {
+			w.Write([]byte("#Error: " + err.Error()))
+			return
+		}
+
+		if (count >= 0) && (count < len(v)) {
+			val := v[count].Format("2006-01-02 15:04:05")
+			w.Write([]byte(val))
+		} else {
+			w.Write([]byte(""))
+		}
+	}
+}
+
+// output program log
+func (a *App) handleGetLog(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	w.Header().Set("Content-Type", "application/json")
+	logs, err := logger.GetLogHistory()
+	if err != nil {
+		w.Write([]byte("#Error: " + err.Error()))
+		return
+	}
+	tagValue, err := json.MarshalIndent(logs, "", "  ")
+	if err != nil {
+		w.Write([]byte("#Error: " + err.Error()))
+		return
+	}
+	w.Write(tagValue)
+}
+
+// func findUrl(link string) ([]string, error) {
+// 	var urls []string
+// 	resp, err := http.Get(link)
+// 	if err != nil {
+// 		return urls, err
+// 	}
+// 	defer resp.Body.Close()
+// 	doc, err := goquery.NewDocumentFromReader(resp.Body)
+// 	if err != nil {
+// 		return urls, err
+// 	}
+// 	doc.Find("a").Each(func(i int, s *goquery.Selection) {
+// 		href, _ := s.Attr("href")
+// 		urls = append(urls, href)
+// 	})
+
+// 	return urls, nil
+// }
