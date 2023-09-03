@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: robin2
     volumes:
-      - /media/alexandr/data/work/configs/robin2:/configs
+      - /media/alexandr/data/work/configs/robin2:/config
     expose:
       - 8008
     # ports:

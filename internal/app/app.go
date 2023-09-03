@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
+	"path"
+	"runtime"
 	"strings"
 
 	"net/http"
@@ -15,13 +18,14 @@ import (
 	"robin2/internal/store"
 	"robin2/pkg/config"
 	"robin2/pkg/logger"
-	// "github.com/PuerkitoBio/goquery"
+
+	"github.com/joho/godotenv"
 )
 
 func NewApp() *App {
 	app := &App{
-		name:    "Robin",
-		version: "2.2.0",
+		name:    os.Getenv("PROJECT_NAME"),
+		version: os.Getenv("PROJECT_VERSION"),
 	}
 	return app
 }
@@ -84,6 +88,10 @@ func getLocalhostIpAdresses() []string {
 }
 
 func (a *App) init() {
+
+	workDir := getWorkDir()
+	godotenv.Load(workDir+"/.env", workDir+"/app.env")
+
 	logger.Log(logger.Debug, "initializing app")
 	a.config = config.GetConfig()
 	a.cache = cache.NewFactory().NewCache(a.config.GetString("app.cache.type"))
@@ -104,6 +112,20 @@ func (a *App) init() {
 	for path, handler := range handlers {
 		http.HandleFunc(path, handler)
 	}
+}
+
+func getWorkDir() string {
+	_, filename, _, _ := runtime.Caller(0)
+
+	var root string
+	if runtime.GOOS == "windows" {
+		root = ""
+	} else {
+		root = "/"
+	}
+
+	workDir := path.Join(root, path.Dir(filename), "../")
+	return workDir
 }
 
 // func (a *App) handleFavicon(w http.ResponseWriter, r *http.Request) {
@@ -281,6 +303,7 @@ func (a *App) handleGetTagList(w http.ResponseWriter, r *http.Request) {
 
 // return time.Time and error
 func (a *App) excelTimeToTime(timeStr string) (time.Time, error) {
+
 	if timeStr == "" {
 		return time.Time{}, errors.ErrInvalidDate
 	}
@@ -453,22 +476,3 @@ func (a *App) handleGetLog(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(tagValue)
 }
-
-// func findUrl(link string) ([]string, error) {
-// 	var urls []string
-// 	resp, err := http.Get(link)
-// 	if err != nil {
-// 		return urls, err
-// 	}
-// 	defer resp.Body.Close()
-// 	doc, err := goquery.NewDocumentFromReader(resp.Body)
-// 	if err != nil {
-// 		return urls, err
-// 	}
-// 	doc.Find("a").Each(func(i int, s *goquery.Selection) {
-// 		href, _ := s.Attr("href")
-// 		urls = append(urls, href)
-// 	})
-
-// 	return urls, nil
-// }

@@ -42,8 +42,8 @@ func consoleLog() *zerolog.Logger {
 
 		tmp := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "02.01.2006 15:04:05"}).
 			// Level(zerolog.TraceLevel).
-			// Level(zerolog.DebugLevel).
-			Level(zerolog.InfoLevel).
+			Level(zerolog.DebugLevel).
+			// Level(zerolog.InfoLevel).
 			With().Timestamp().Logger()
 		consoleLogPtr = &tmp
 		consoleLogPtr.Debug().Msg("Initializing logger")
@@ -110,7 +110,7 @@ func checkFileLog() {
 	// cp, _ := os.Getwd()
 	// fmt.Println("currPath: " + cp)
 	if file == nil {
-		var logPathes = []string{"../bin/logs/", "../../bin/logs/", "./logs/", "../logs/", "../../logs/"}
+		var logPathes = []string{"../bin/log/", "../../bin/log/", "./log/", "../log/", "../../log/"}
 		for _, path := range logPathes {
 			if isPathExists(path) {
 				logPath = path

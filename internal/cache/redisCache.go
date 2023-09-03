@@ -1,14 +1,15 @@
 package cache
 
 import (
+	"context"
 	"fmt"
 	"robin2/pkg/config"
 	"robin2/pkg/logger"
 	"sync"
 	"time"
 
-	"github.com/go-redis/redis"
-	// _ "github.com/go-redis/redis/v9"
+	_ "github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 )
 
 var RedisCacheLock = &sync.Mutex{}
@@ -51,7 +52,7 @@ func (c *RedisCacheImpl) Connect() error {
 
 func (c *RedisCacheImpl) Get(tag string, date time.Time) (float32, error) {
 	logger.Log(logger.Trace, "RedisCacheImpl.Get")
-	return c.rds.HGet(tag, date.Format("02.01.2006 15:04:05")).Float32()
+	return c.rds.HGet(context.Background(), tag, date.Format("02.01.2006 15:04:05")).Float32()
 }
 
 func (c *RedisCacheImpl) Set(tag string, date time.Time, value float32) error {
@@ -60,7 +61,7 @@ func (c *RedisCacheImpl) Set(tag string, date time.Time, value float32) error {
 	// defer RedisCacheLock.Unlock()
 
 	// устанавливаем TTL
-	c.rds.Expire(tag, time.Duration(c.config.GetInt("app.cache.ttl"))*time.Hour)
-	c.rds.HSet(tag, date.Format("02.01.2006 15:04:05"), value)
+	c.rds.Expire(context.Background(), tag, time.Duration(c.config.GetInt("app.cache.ttl"))*time.Hour)
+	c.rds.HSet(context.Background(), tag, date.Format("02.01.2006 15:04:05"), value)
 	return nil
 }

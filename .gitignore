@@ -30,6 +30,8 @@ go.work
 robin2
 !cmd/robin2
 bin/logs/*
+bin/log/*
 grafana/*
 bin/upx
 go.sum
+.env
