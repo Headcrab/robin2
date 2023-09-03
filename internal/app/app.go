@@ -29,11 +29,11 @@ func NewApp() *App {
 type App struct {
 	name      string
 	version   string
-	config    config.Config
-	cache     cache.BaseCache
 	startTime time.Time
 	round     int
 	opCount   int64
+	config    config.Config
+	cache     cache.BaseCache
 	store     store.BaseStore
 }
 
@@ -55,28 +55,39 @@ func (a *App) Run() {
 }
 
 func getLocalhostIpAdresses() []string {
-	var loclocalhostIpAdresses []string
-	addrs, err := net.InterfaceAddrs()
+	localhostIPs := []string{"127.0.0.1"}
+	interfaces, err := net.Interfaces()
 	if err != nil {
 		logger.Log(logger.Error, err.Error())
+		return localhostIPs
 	}
-	loclocalhostIpAdresses = append(loclocalhostIpAdresses, "127.0.0.1")
-	for _, address := range addrs {
-		// check the address type and if it is not a loopback the display it
-		if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				loclocalhostIpAdresses = append(loclocalhostIpAdresses, ipnet.IP.String())
+	for _, iface := range interfaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			logger.Log(logger.Error, err.Error())
+			continue
+		}
+		for _, addr := range addrs {
+			ipnet, ok := addr.(*net.IPNet)
+			if !ok {
+				continue
+			}
+			if ipnet.IP.IsLoopback() {
+				continue
+			}
+			if ip4 := ipnet.IP.To4(); ip4 != nil {
+				localhostIPs = append(localhostIPs, ip4.String())
 			}
 		}
 	}
-	return loclocalhostIpAdresses
+	return localhostIPs
 }
 
 func (a *App) init() {
 	logger.Log(logger.Debug, "initializing app")
-	a.config = *config.GetConfig()
-	a.cache = cache.NewCacheFactory().NewCache(a.config.GetString("app.cache.type"))
-	a.store = *store.NewStoreFactory().NewStore(a.config.GetString("app.db.type"))
+	a.config = config.GetConfig()
+	a.cache = cache.NewFactory().NewCache(a.config.GetString("app.cache.type"))
+	a.store = store.NewFactory().NewStore(a.config.GetString("app.db.type"))
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
 		// "/robin/":               a.handleHome,
 		"/info/":          a.handleInfo,
@@ -141,6 +152,10 @@ func (a *App) handleInfo(w http.ResponseWriter, r *http.Request) {
 // 	w.Write(f)
 // }
 
+// handleGetTag handles GET requests for a tag and outputs the corresponding
+// value. The tag can be filtered by date, or by a time range. The output can
+// be formatted as raw or rounded. The function takes in an http.ResponseWriter
+// and an http.Request as parameters, and returns nothing.
 func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
@@ -269,29 +284,33 @@ func (a *App) excelTimeToTime(timeStr string) (time.Time, error) {
 	if timeStr == "" {
 		return time.Time{}, errors.ErrInvalidDate
 	}
-	var result = time.Time{}
+
+	var result time.Time
+
 	if !strings.Contains(timeStr, ":") {
 		timeStr = strings.Replace(timeStr, ",", ".", 1)
 		timeFloat, err := strconv.ParseFloat(timeStr, 64)
 		if err != nil {
 			return time.Time{}, errors.ErrNotAFloat
 		}
+
 		unixTime := (timeFloat - 25569) * 86400
 		utcTime := time.Unix(int64(unixTime), 0).UTC()
-		locTime := time.Date(utcTime.Year(), utcTime.Month(), utcTime.Day(), utcTime.Hour(), utcTime.Minute(), utcTime.Second(), 0, time.Local)
+		locTime := utcTime.Local()
 		result = locTime
 	} else {
 		res, err := a.tryParseDate(timeStr)
 		if err != nil {
-			res = time.Time{}
-			// logger.Log(logger.Warn, err.logger.Error())
 			return time.Time{}, err
 		}
-		result = time.Date(res.Year(), res.Month(), res.Day(), res.Hour(), res.Minute(), res.Second(), 0, time.Local)
+
+		result = res.Local()
 	}
+
 	if result.IsZero() {
 		return time.Time{}, errors.ErrInvalidDate
 	}
+
 	return result, nil
 }
 

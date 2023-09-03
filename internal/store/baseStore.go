@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"fmt"
 	"math"
 	"robin2/internal/errors"
 	"strconv"
@@ -33,9 +34,10 @@ type BaseStore interface {
 
 type BaseStoreImpl struct {
 	BaseStore
-	db     *sql.DB
-	config config.Config
-	cache  cache.BaseCache
+	db            *sql.DB
+	config        config.Config
+	cache         cache.BaseCache
+	roundConstant float64
 }
 
 /*------------------------------------------------------------------*/
@@ -71,7 +73,6 @@ func (s *BaseStoreImpl) replaceTemplate(repMap map[string]string, query string) 
 }
 
 func (s *BaseStoreImpl) GetTagDate(tag string, date time.Time) (float32, error) {
-	// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+date.Format("2006-01-02 15:04:05"))
 	if date.IsZero() {
 		return 0, errors.ErrInvalidDate
 	}
@@ -88,19 +89,17 @@ func (s *BaseStoreImpl) GetTagDate(tag string, date time.Time) (float32, error) 
 
 	var val float32
 	err := s.db.QueryRow(query).Scan(&val)
-	// defer s.db.Close()
 	if err != nil {
 		return -1, err
 	}
 	if s.cache != nil && val != -1 {
 		s.cache.Set(tag, date, val)
 	}
-	// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+date.Format("2006-01-02 15:04:05")+" from db")
 	return val, nil
 }
 
 func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, count int) (map[string]map[time.Time]float32, error) {
-	logger.Log(logger.Debug, "GetTagCount "+tag+" : "+from.Format("2006-01-02 15:04:05")+" - "+to.Format("2006-01-02 15:04:05")+" ("+strconv.Itoa(count)+")")
+	logger.Log(logger.Debug, fmt.Sprintf("GetTagCount %s : %s - %s (%d)", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05"), count))
 	if count == 0 {
 		return nil, errors.ErrCountIsEmpty
 	}
@@ -108,28 +107,18 @@ func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, co
 		return nil, errors.ErrCountIsLessThanOne
 	}
 
-	tmDiff := (time.Until(to).Seconds() - time.Until(from).Seconds()) / float64(count)
+	tmDiff := to.Sub(from).Seconds() / float64(count)
 	tags := strings.Split(tag, ",")
 	res := make(map[string]map[time.Time]float32, len(tags))
 	for _, t := range tags {
 		resDt := make(map[time.Time]float32, count)
 		for i := 0; i < count; i++ {
 			dateFrom := from.Add(time.Duration(tmDiff*float64(i)) * time.Second)
-			// if s.cache != nil {
-			// 	if val, err := s.cache.Get(t, dateFrom); err == nil {
-			// 		// logger.Log(logger.Trace, "GetTagDate "+t+" : "+dateFrom.Format("2006-01-02 15:04:05")+" from cache")
-			// 		resDt[dateFrom] = s.Round(val)
-			// 		continue
-			// 	}
-			// }
 			val, err := s.GetTagDate(t, dateFrom)
 			if err != nil {
 				val = -1
 			}
 			resDt[dateFrom] = s.Round(val)
-			// if s.cache != nil && val != -1 {
-			// 	s.cache.Set(t, dateFrom, val)
-			// }
 		}
 		res[t] = resDt
 	}
@@ -137,29 +126,26 @@ func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, co
 }
 
 func (s *BaseStoreImpl) GetTagFromTo(tag string, from time.Time, to time.Time) (map[string]map[time.Time]float32, error) {
-	logger.Log(logger.Debug, "GetTagFromTo "+tag+" : "+from.Format("2006-01-02 15:04:05")+" - "+to.Format("2006-01-02 15:04:05"))
-	count := int(time.Until(to).Seconds() - time.Until(from).Seconds())
+	logger.Log(logger.Debug, fmt.Sprintf("GetTagFromTo %s : %s - %s", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05")))
+	count := int(to.Sub(from).Seconds())
 	tags := strings.Split(tag, ",")
 	res := make(map[string]map[time.Time]float32, len(tags))
 	for _, t := range tags {
-		resDt := make(map[time.Time]float32)
+		resDt := make(map[time.Time]float32, count)
 		for i := 0; i < count; i++ {
-			dateFrom := from.Add(time.Duration(time.Second * time.Duration((i))))
-			// if s.cache != nil {
-			// 	if val, err := s.cache.Get(tag, dateFrom); err == nil {
-			// 		// logger.Log(logger.Trace, "GetTagDate "+tag+" : "+dateFrom.Format("2006-01-02 15:04:05")+" from cache")
-			// 		resDt[dateFrom] = s.Round(val)
-			// 		continue
-			// 	}
-			// }
-			val, err := s.GetTagDate(t, dateFrom)
-			if err != nil {
-				val = -1
+			dateFrom := from.Add(time.Duration(i) * time.Second)
+			if val, err := s.cache.Get(tag, dateFrom); err == nil {
+				resDt[dateFrom] = s.Round(val)
+			} else {
+				val, err := s.GetTagDate(t, dateFrom)
+				if err != nil {
+					val = -1
+				}
+				resDt[dateFrom] = s.Round(val)
+				if val != -1 {
+					s.cache.Set(tag, dateFrom, val)
+				}
 			}
-			resDt[dateFrom] = s.Round(val)
-			// if s.cache != nil && val != -1 {
-			// 	s.cache.Set(tag, dateFrom, val)
-			// }
 		}
 		res[t] = resDt
 	}
@@ -167,47 +153,37 @@ func (s *BaseStoreImpl) GetTagFromTo(tag string, from time.Time, to time.Time) (
 }
 
 func (s *BaseStoreImpl) GetTagFromToGroup(tag string, from time.Time, to time.Time, group string) string {
-	logger.Log(logger.Debug, "GetTagFromTo "+tag+" : "+from.Format("2006-01-02 15:04:05")+" - "+to.Format("2006-01-02 15:04:05")+" ("+group+")")
-	var query string
+	logger.Log(logger.Debug, fmt.Sprintf("GetTagFromTo %s: %s - %s (%s)", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05"), group))
+
 	group = strings.ToLower(group)
-	if group == "avg" || group == "sum" || group == "min" || group == "max" {
-		query = s.config.GetString("db." + s.config.GetString("app.db.name") + ".query.get_tag_from_to_group")
+	var query string
+
+	switch group {
+	case "avg", "sum", "min", "max":
+		query = s.config.GetString(fmt.Sprintf("db.%s.query.get_tag_from_to_group", s.config.GetString("app.db.name")))
+	case "dif":
+		query = s.config.GetString(fmt.Sprintf("db.%s.query.get_tag_from_to_dif", s.config.GetString("app.db.name")))
+	case "count":
+		query = s.config.GetString(fmt.Sprintf("db.%s.query.get_tag_from_to_count", s.config.GetString("app.db.name")))
+	default:
+		return "#Error: group error"
 	}
 
-	if group == "dif" {
-		query = s.config.GetString("db." + s.config.GetString("app.db.name") + ".query.get_tag_from_to_dif")
-	}
-
-	if group == "count" {
-		query = s.config.GetString("db." + s.config.GetString("app.db.name") + ".query.get_tag_from_to_count")
-	}
-	fromStr := from.Format("2006-01-02 15:04:05")
-	toStr := to.Format("2006-01-02 15:04:05")
-
-	// todo: cache
-	// if s.cache != nil {
-	// 	if val, err := (*s.cache).Get(tag, date); err == nil {
-	// 		return val, nil
-	// 	}
-	// }
+	fromStr, toStr := from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05")
 
 	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{from}": fromStr, "{to}": toStr, "{group}": group}, query)
+
 	if query == "" {
 		return "#Error: group error"
 	}
+
 	var value float32
 	err := s.db.QueryRow(query).Scan(&value)
+
 	if err != nil {
-		return "#Error: tag or date not found (" + err.Error() + ")"
+		return fmt.Sprintf("#Error: tag or date not found (%s)", err.Error())
 	}
 
-	// todo: cache
-	// if s.cache != nil {
-	// 	(*s.cache).Set(tag, date, value)
-	// }
-
-	// sleep 5 seconds
-	// time.Sleep(2 * time.Second)
 	return s.RoundAndFormat(value)
 }
 

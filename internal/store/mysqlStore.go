@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"math"
 	"robin2/internal/cache"
 	"robin2/pkg/config"
 	"robin2/pkg/logger"
@@ -18,14 +19,17 @@ type MySqlStoreImpl struct {
 	MySqlStore
 }
 
-func NewMySqlStore() *BaseStore {
+func NewMySqlStore() BaseStore {
 	logger.Log(logger.Debug, "NewMySqlStore")
-	t := BaseStore(&MySqlStoreImpl{
+	conf := config.GetConfig()
+	round := conf.GetInt("app.round")
+	p := math.Pow(10, float64(round))
+	return BaseStore(&MySqlStoreImpl{
 		MySqlStore: &BaseStoreImpl{
-			config: *config.GetConfig(),
+			roundConstant: p,
+			config:        config.GetConfig(),
 		},
 	})
-	return &t
 }
 
 func (s *MySqlStoreImpl) Connect(cache cache.BaseCache) error {

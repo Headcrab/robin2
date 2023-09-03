@@ -2,6 +2,7 @@ package store
 
 import (
 	"database/sql"
+	"math"
 	"robin2/internal/cache"
 	"robin2/pkg/config"
 	"robin2/pkg/logger"
@@ -17,14 +18,17 @@ type MsSqlStoreImpl struct {
 	MsSqlStore
 }
 
-func NewMsSqlStore() *BaseStore {
+func NewMsSqlStore() BaseStore {
 	logger.Log(logger.Debug, "NewMsSqlStore")
-	t := BaseStore(&MsSqlStoreImpl{
+	conf := config.GetConfig()
+	round := conf.GetInt("app.round")
+	p := math.Pow(10, float64(round))
+	return BaseStore(&MsSqlStoreImpl{
 		MsSqlStore: &BaseStoreImpl{
-			config: *config.GetConfig(),
+			roundConstant: p,
+			config:        conf,
 		},
 	})
-	return &t
 }
 
 func (s *MsSqlStoreImpl) Connect(cache cache.BaseCache) error {

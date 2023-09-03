@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"robin2/pkg/config"
 	"robin2/pkg/logger"
 	"sync"
@@ -20,7 +21,7 @@ type RedisCacheImpl struct {
 
 func NewRedisCache() BaseCache {
 	t := BaseCache(&RedisCacheImpl{
-		config: *config.GetConfig(),
+		config: config.GetConfig(),
 	})
 	err := t.Connect()
 	if err != nil {
@@ -31,14 +32,20 @@ func NewRedisCache() BaseCache {
 }
 
 func (c *RedisCacheImpl) Connect() error {
-	a := "db." + c.config.GetString("app.cache.name") + "."
+	cacheName := c.config.GetString("app.cache.name")
+	host := c.config.GetString("db." + cacheName + ".host")
+	port := c.config.GetString("db." + cacheName + ".port")
+	password := c.config.GetString("db." + cacheName + ".password")
+	db := c.config.GetInt("db." + cacheName + ".db")
+
 	logger.Log(logger.Trace, "RedisCacheImpl.Connect")
 	c.rds = redis.NewClient(&redis.Options{
-		Addr:     c.config.GetString(a+"host") + ":" + c.config.GetString(a+"port"),
-		Password: c.config.GetString(a + "password"),
-		DB:       c.config.GetInt(a + "db"),
+		Addr:     fmt.Sprintf("%s:%s", host, port),
+		Password: password,
+		DB:       db,
 	})
-	logger.Log(logger.Info, "cache connected to redis on "+c.config.GetString(a+"host")+":"+c.config.GetString(a+"port"))
+	logger.Log(logger.Info, fmt.Sprintf("cache connected to redis on %s:%s", host, port))
+
 	return nil
 }
 

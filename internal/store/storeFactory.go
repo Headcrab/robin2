@@ -3,10 +3,10 @@ package store
 import "robin2/pkg/logger"
 
 type Factory interface {
-	NewStore(string) *BaseStore
+	NewStore(string) BaseStore
 }
 
-func NewStoreFactory() Factory {
+func NewFactory() Factory {
 	logger.Log(logger.Debug, "NewStoreFactory")
 	return &FactoryImpl{}
 }
@@ -15,7 +15,7 @@ type FactoryImpl struct {
 	Factory
 }
 
-func (f *FactoryImpl) NewStore(dbName string) *BaseStore {
+func (f *FactoryImpl) NewStore(dbName string) BaseStore {
 	switch dbName {
 	case "mysql":
 		logger.Log(logger.Debug, "NewStoreFactory.NewStore.mysql")

@@ -13,12 +13,12 @@ type Config struct {
 var config *Config
 var lock = &sync.Mutex{}
 
-func GetConfig() *Config {
+func GetConfig() Config {
 	if config == nil {
 		config = &Config{}
 		config.Init()
 	}
-	return config
+	return *config
 }
 
 func (c *Config) Init() {

@@ -8,7 +8,7 @@ type Factory interface {
 	NewCache(string) BaseCache
 }
 
-func NewCacheFactory() Factory {
+func NewFactory() Factory {
 	logger.Log(logger.Debug, "NewCacheFactory")
 	return &FactoryImpl{}
 }

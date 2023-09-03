@@ -7,7 +7,7 @@
         },
         "round": "2",
         "cache": {
-            "type": "redis",
+            "type": "memory",
             "name": "redis.localhost",
             "ttl": 1
         },
