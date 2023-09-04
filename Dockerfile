@@ -35,6 +35,7 @@ COPY /config config
 # RUN chmod a+rwx /$PROJECT_NAME/log
 RUN chmod a+rwx ./log
 RUN chmod a+rwx ./config
+RUN chmod a+rx ./web
 
 EXPOSE $PORT
 USER root:root

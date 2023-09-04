@@ -9,7 +9,7 @@ type Factory interface {
 }
 
 func NewFactory() Factory {
-	logger.Log(logger.Debug, "NewCacheFactory")
+	logger.Debug("NewCacheFactory")
 	return &FactoryImpl{}
 }
 
@@ -20,19 +20,19 @@ type FactoryImpl struct {
 func (f *FactoryImpl) NewCache(cacheName string) BaseCache {
 	switch cacheName {
 	case "none":
-		// logger.Log(logger.Info, "no cache selected")
+		// logger.Info("no cache selected")
 		return nil
 	case "memory":
-		// logger.Log(logger.Info, "memory cache selected")
+		// logger.Info("memory cache selected")
 		return NewMemoryCache()
 	case "memoryBytes":
-		// logger.Log(logger.Info, "memoryBytes cache selected")
+		// logger.Info("memoryBytes cache selected")
 		return NewMemoryCacheByte()
 	case "redis":
-		// logger.Log(logger.Info, "redis cache selected")
+		// logger.Info("redis cache selected")
 		return NewRedisCache()
 	default:
-		logger.Log(logger.Info, "no cache selected")
+		logger.Info("no cache selected")
 		return nil
 	}
 }

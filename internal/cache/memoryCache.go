@@ -25,12 +25,12 @@ func NewMemoryCache() BaseCache {
 		cache: make(Memcache),
 	})
 	t.Connect()
-	logger.Log(logger.Trace, "NewMemoryCache")
+	logger.Trace("NewMemoryCache")
 	return t
 }
 
 func (c *MemoryCacheImpl) Connect() error {
-	logger.Log(logger.Trace, "cache connected to memory")
+	logger.Trace("cache connected to memory")
 	return nil
 }
 
@@ -53,7 +53,7 @@ func (c *MemoryCacheImpl) Set(tag string, date time.Time, value float32) error {
 		c.cache[tag] = make(map[time.Time]float32)
 		c.cache[tag][date] = value
 	}
-	// logger.Log(logger.Trace, fmt.Sprintf("MemoryCacheImpl.Set tag[%d][%d] ", len(c.cache), len(c.cache[tag])))
+	// logger.Trace(fmt.Sprintf("MemoryCacheImpl.Set tag[%d][%d] ", len(c.cache), len(c.cache[tag])))
 	return nil
 }
 
@@ -67,7 +67,7 @@ func (c *MemoryCacheImpl) Set(tag string, date time.Time, value float32) error {
 // func (c *MemoryCacheImpl) RemoveAll() error {
 // 	MemoryCacheLock.Lock()
 // 	defer MemoryCacheLock.Unlock()
-// 	logger.Log(logger.Debug, "MemoryCacheImpl.RemoveAll size="+fmt.Sprintf("%d", len(c.cache)))
+// 	logger.Debug("MemoryCacheImpl.RemoveAll size="+fmt.Sprintf("%d", len(c.cache)))
 // 	c.cache = make(map[string]string)
 // 	return nil
 // }

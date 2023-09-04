@@ -3,10 +3,10 @@ package robin
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net"
 	"os"
-	"path"
-	"runtime"
+	"path/filepath"
 	"strings"
 
 	"net/http"
@@ -23,10 +23,7 @@ import (
 )
 
 func NewApp() *App {
-	app := &App{
-		name:    os.Getenv("PROJECT_NAME"),
-		version: os.Getenv("PROJECT_VERSION"),
-	}
+	app := &App{}
 	return app
 }
 
@@ -34,6 +31,7 @@ type App struct {
 	name      string
 	version   string
 	startTime time.Time
+	workDir   string
 	round     int
 	opCount   int64
 	config    config.Config
@@ -43,18 +41,18 @@ type App struct {
 
 func (a *App) Run() {
 	a.startTime = time.Now()
-	logger.Log(logger.Info, a.name+" "+a.version+" is running")
 	a.init()
+	logger.Info(a.name + " " + a.version + " is running")
 	err := a.store.Connect(a.cache)
 	if err != nil {
-		logger.Log(logger.Fatal, err.Error())
+		logger.Fatal(err.Error())
 	}
 	for _, ip := range getLocalhostIpAdresses() {
-		logger.Log(logger.Info, "listening on http://"+ip+":"+a.config.GetString("app.port"))
+		logger.Info("listening on http://" + ip + ":" + a.config.GetString("app.port"))
 	}
 	err = http.ListenAndServe(":"+a.config.GetString("app.port"), nil)
 	if err != nil {
-		logger.Log(logger.Fatal, err.Error())
+		logger.Fatal(err.Error())
 	}
 }
 
@@ -62,13 +60,13 @@ func getLocalhostIpAdresses() []string {
 	localhostIPs := []string{"127.0.0.1"}
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		logger.Log(logger.Error, err.Error())
+		logger.Error(err.Error())
 		return localhostIPs
 	}
 	for _, iface := range interfaces {
 		addrs, err := iface.Addrs()
 		if err != nil {
-			logger.Log(logger.Error, err.Error())
+			logger.Error(err.Error())
 			continue
 		}
 		for _, addr := range addrs {
@@ -89,15 +87,17 @@ func getLocalhostIpAdresses() []string {
 
 func (a *App) init() {
 
-	workDir := getWorkDir()
-	godotenv.Load(workDir+"/.env", workDir+"/app.env")
+	a.workDir = getWorkDir()
+	godotenv.Load(a.workDir+"/.env", a.workDir+"/app.env")
+	a.name = os.Getenv("PROJECT_NAME")
+	a.version = os.Getenv("PROJECT_VERSION")
 
-	logger.Log(logger.Debug, "initializing app")
+	logger.Debug("initializing app")
 	a.config = config.GetConfig()
 	a.cache = cache.NewFactory().NewCache(a.config.GetString("app.cache.type"))
 	a.store = store.NewFactory().NewStore(a.config.GetString("app.db.type"))
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
-		// "/robin/":               a.handleHome,
+		"/":               a.handleHome,
 		"/info/":          a.handleInfo,
 		"/uptime/":        a.handleUptime,
 		"/reload_config/": a.handleReloadConfig,
@@ -106,8 +106,10 @@ func (a *App) init() {
 		"/get/tag/list/": a.handleGetTagList,
 		"/get/tag/up/":   a.handleGetTagUp,
 		"/get/tag/down/": a.handleGetTagDown,
-		// "/favicon.ico":    a.handleFavicon,
-		"/log/": a.handleGetLog,
+		"/favicon.ico":   a.handleFavicon,
+		"/log/":          a.handleGetLog,
+		"/images/":       a.handleImages,
+		"/scripts/":      a.handleScripts,
 	}
 	for path, handler := range handlers {
 		http.HandleFunc(path, handler)
@@ -115,30 +117,24 @@ func (a *App) init() {
 }
 
 func getWorkDir() string {
-	_, filename, _, _ := runtime.Caller(0)
-
-	var root string
-	if runtime.GOOS == "windows" {
-		root = ""
-	} else {
-		root = "/"
+	executablePath, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		logger.Trace(err.Error())
+		return ""
 	}
 
-	workDir := path.Join(root, path.Dir(filename), "../")
-	return workDir
-}
+	dir := filepath.Dir(executablePath)
+	logger.Trace("working dir set to: " + dir)
 
-// func (a *App) handleFavicon(w http.ResponseWriter, r *http.Request) {
-// 	logger.Log(logger.Debug, "favicon")
-// 	http.ServeFile(w, r, "../website/favicon.ico")
-// }
+	return dir
+}
 
 func (a *App) handleReloadConfig(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	logger.Log(logger.Info, "reloading config file")
+	logger.Info("reloading config file")
 	err := a.config.Reload()
 	if err != nil {
-		logger.Log(logger.Fatal, "Failed to read config file")
+		logger.Fatal("Failed to read config file")
 	}
 	w.Write([]byte("ok"))
 
@@ -149,7 +145,7 @@ func (a *App) handleUptime(w http.ResponseWriter, r *http.Request) {
 	uptime := time.Since(a.startTime).Round(time.Second)
 	_, err := w.Write([]byte(uptime.String()))
 	if err != nil {
-		logger.Log(logger.Error, err.Error())
+		logger.Error(err.Error())
 	}
 }
 
@@ -276,7 +272,7 @@ func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 // 	defer func() {
 // 		err := file.Close()
 // 		if err != nil {
-// 			logger.Log(logger.Error, err.Error())
+// 			logger.Error(err.Error())
 // 		}
 // 	}()
 // 	io.Copy(w, file)
@@ -294,7 +290,7 @@ func (a *App) handleGetTagList(w http.ResponseWriter, r *http.Request) {
 	}
 	j, err := json.MarshalIndent(tags, "", "  ")
 	if err != nil {
-		// logger.Log(logger.Debug, err.error())
+		// logger.Debug(err.error())
 		w.Write([]byte("#Error: " + err.Error()))
 		return
 	}
@@ -475,4 +471,50 @@ func (a *App) handleGetLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Write(tagValue)
+}
+func (a *App) handleFavicon(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, a.workDir+"/web/images/icon3.png")
+}
+
+func (a *App) handleHome(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	w.Header().Set("Content-Type", "text/html")
+	// get template file
+	t, err := template.ParseFiles(a.workDir + "/web/templates/index.html")
+	if err != nil {
+		w.Write([]byte("#Error: " + err.Error()))
+		return
+	}
+	type Page struct {
+		Name    string
+		Version string
+	}
+	// execute template
+	t.Execute(w, Page{a.name, a.version})
+	// f, _ := os.ReadFile(a.workDir + "/web/index.html")
+	// w.Write(f)
+}
+
+func (a *App) handleScripts(w http.ResponseWriter, r *http.Request) {
+	basePath := filepath.Join(a.workDir, "web", "scripts")
+	filePath := filepath.Join(basePath, r.URL.Path[len("/images/"):])
+	if !strings.HasPrefix(filePath, basePath) {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	logger.Debug(filePath)
+	http.ServeFile(w, r, filePath)
+}
+
+func (a *App) handleImages(w http.ResponseWriter, r *http.Request) {
+	basePath := filepath.Join(a.workDir, "web", "images")
+	filePath := filepath.Join(basePath, r.URL.Path[len("/images/"):])
+	if !strings.HasPrefix(filePath, basePath) {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	logger.Debug(filePath)
+	http.ServeFile(w, r, filePath)
 }

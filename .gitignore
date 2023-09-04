@@ -35,3 +35,4 @@ grafana/*
 bin/upx
 go.sum
 .env
+log/*

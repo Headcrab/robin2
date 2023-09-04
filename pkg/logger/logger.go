@@ -26,14 +26,14 @@ var (
 
 type LogLevel int
 
-const (
-	Trace = iota
-	Debug
-	Info
-	Warn
-	Error
-	Fatal
-)
+// const (
+// 	Trace = iota
+// 	Debug
+// 	Info
+// 	Warn
+// 	Error
+// 	Fatal
+// )
 
 func consoleLog() *zerolog.Logger {
 	// lock.Lock()
@@ -41,8 +41,8 @@ func consoleLog() *zerolog.Logger {
 	once.Do(func() {
 
 		tmp := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "02.01.2006 15:04:05"}).
-			// Level(zerolog.TraceLevel).
-			Level(zerolog.DebugLevel).
+			Level(zerolog.TraceLevel).
+			// Level(zerolog.DebugLevel).
 			// Level(zerolog.InfoLevel).
 			With().Timestamp().Logger()
 		consoleLogPtr = &tmp
@@ -79,29 +79,34 @@ func isPathExists(s string) bool {
 	return true
 }
 
-func Log(level LogLevel, msg string) {
-	checkFileLog()
-	defer file.Close()
-	switch level {
-	case Trace:
-		consoleLog().Trace().Msg(msg)
-		fileLog().Trace().Msg(msg)
-	case Debug:
-		consoleLog().Debug().Msg(msg)
-		fileLog().Debug().Msg(msg)
-	case Info:
-		consoleLog().Info().Msg(msg)
-		fileLog().Info().Msg(msg)
-	case Warn:
-		consoleLog().Warn().Msg(msg)
-		fileLog().Warn().Msg(msg)
-	case Error:
-		consoleLog().Error().Msg(msg)
-		fileLog().Error().Msg(msg)
-	case Fatal:
-		consoleLog().Fatal().Msg(msg)
-		fileLog().Fatal().Msg(msg)
-	}
+func Trace(msg string) {
+	consoleLog().Trace().Msg(msg)
+	fileLog().Trace().Msg(msg)
+}
+
+func Debug(msg string) {
+	consoleLog().Debug().Msg(msg)
+	fileLog().Debug().Msg(msg)
+}
+
+func Info(msg string) {
+	consoleLog().Info().Msg(msg)
+	fileLog().Info().Msg(msg)
+}
+
+func Warn(msg string) {
+	consoleLog().Warn().Msg(msg)
+	fileLog().Warn().Msg(msg)
+}
+
+func Error(msg string) {
+	consoleLog().Error().Msg(msg)
+	fileLog().Error().Msg(msg)
+}
+
+func Fatal(msg string) {
+	consoleLog().Fatal().Msg(msg)
+	fileLog().Fatal().Msg(msg)
 }
 
 func checkFileLog() {

@@ -26,9 +26,9 @@ func NewRedisCache() BaseCache {
 	})
 	err := t.Connect()
 	if err != nil {
-		logger.Log(logger.Error, err.Error())
+		logger.Error(err.Error())
 	}
-	logger.Log(logger.Trace, "NewRedisCache")
+	logger.Trace("NewRedisCache")
 	return t
 }
 
@@ -39,24 +39,24 @@ func (c *RedisCacheImpl) Connect() error {
 	password := c.config.GetString("db." + cacheName + ".password")
 	db := c.config.GetInt("db." + cacheName + ".db")
 
-	logger.Log(logger.Trace, "RedisCacheImpl.Connect")
+	logger.Trace("RedisCacheImpl.Connect")
 	c.rds = redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", host, port),
 		Password: password,
 		DB:       db,
 	})
-	logger.Log(logger.Info, fmt.Sprintf("cache connected to redis on %s:%s", host, port))
+	logger.Info(fmt.Sprintf("cache connected to redis on %s:%s", host, port))
 
 	return nil
 }
 
 func (c *RedisCacheImpl) Get(tag string, date time.Time) (float32, error) {
-	logger.Log(logger.Trace, "RedisCacheImpl.Get")
+	logger.Trace("RedisCacheImpl.Get")
 	return c.rds.HGet(context.Background(), tag, date.Format("02.01.2006 15:04:05")).Float32()
 }
 
 func (c *RedisCacheImpl) Set(tag string, date time.Time, value float32) error {
-	logger.Log(logger.Trace, "RedisCacheImpl.Set")
+	logger.Trace("RedisCacheImpl.Set")
 	// RedisCacheLock.Lock()
 	// defer RedisCacheLock.Unlock()
 

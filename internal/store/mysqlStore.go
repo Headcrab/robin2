@@ -20,7 +20,7 @@ type MySqlStoreImpl struct {
 }
 
 func NewMySqlStore() BaseStore {
-	logger.Log(logger.Debug, "NewMySqlStore")
+	logger.Debug("NewMySqlStore")
 	conf := config.GetConfig()
 	round := conf.GetInt("app.round")
 	p := math.Pow(10, float64(round))
@@ -33,19 +33,19 @@ func NewMySqlStore() BaseStore {
 }
 
 func (s *MySqlStoreImpl) Connect(cache cache.BaseCache) error {
-	logger.Log(logger.Debug, "MySqlStoreImpl.Connect")
+	logger.Debug("MySqlStoreImpl.Connect")
 	var err error
 	base := s.MySqlStore.(*BaseStoreImpl)
 	if base.db != nil {
 		err = base.db.Close()
 		if err != nil {
-			logger.Log(logger.Error, err.Error())
+			logger.Error(err.Error())
 		}
 	}
 	base.cache = cache
 	base.db, err = sql.Open(base.config.GetString("app.db.type"), base.marshalConnectionString())
 	if err != nil {
-		logger.Log(logger.Error, err.Error())
+		logger.Error(err.Error())
 		return err
 	}
 	base.db.SetMaxIdleConns(base.config.GetInt("db." + base.config.GetString("app.db.name") + ".max_idle_conns"))
@@ -56,18 +56,18 @@ func (s *MySqlStoreImpl) Connect(cache cache.BaseCache) error {
 	for _, v := range base.config.GetStringSlice("db." + base.config.GetString("app.db.name") + ".setup_strings") {
 		_, err = base.db.Exec(v)
 		if err != nil {
-			logger.Log(logger.Error, err.Error())
+			logger.Error(err.Error())
 			return err
 		}
 	}
 	// defer base.db.Close()
 	err = base.db.Ping()
 	if err != nil {
-		logger.Log(logger.Error, err.Error())
+		logger.Error(err.Error())
 		return err
 	}
-	logger.Log(logger.Info, "connected to "+base.config.GetString("app.db.type")+" database on "+
-		base.config.GetString("db."+base.config.GetString("app.db.name")+".host")+":"+
+	logger.Info("connected to " + base.config.GetString("app.db.type") + " database on " +
+		base.config.GetString("db."+base.config.GetString("app.db.name")+".host") + ":" +
 		base.config.GetString("db."+base.config.GetString("app.db.name")+".port"))
 	return nil
 }

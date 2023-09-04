@@ -20,7 +20,7 @@ type ClickHouseStoreImpl struct {
 }
 
 func NewClickHouseStore() BaseStore {
-	logger.Log(logger.Debug, "NewClickHouseStore")
+	logger.Debug("NewClickHouseStore")
 	conf := config.GetConfig()
 	round := conf.GetInt("app.round")
 	p := math.Pow(10, float64(round))
@@ -33,12 +33,12 @@ func NewClickHouseStore() BaseStore {
 }
 
 func (s *ClickHouseStoreImpl) Connect(cache cache.BaseCache) error {
-	logger.Log(logger.Debug, "ClickHouseStoreImpl.Connect")
+	logger.Debug("ClickHouseStoreImpl.Connect")
 
 	base := s.ClickHouseStore.(*BaseStoreImpl)
 	if base.db != nil {
 		if err := base.db.Close(); err != nil {
-			logger.Log(logger.Error, err.Error())
+			logger.Error(err.Error())
 			return err
 		}
 	}
@@ -50,18 +50,18 @@ func (s *ClickHouseStoreImpl) Connect(cache cache.BaseCache) error {
 
 	db, err := sql.Open(dbType, base.marshalConnectionString())
 	if err != nil {
-		logger.Log(logger.Error, err.Error())
+		logger.Error(err.Error())
 		return err
 	}
 
 	if err = db.Ping(); err != nil {
-		logger.Log(logger.Error, err.Error())
+		logger.Error(err.Error())
 		return err
 	}
 
 	base.db = db
 
-	logger.Log(logger.Info, fmt.Sprintf("connected to %s database on %s:%s", dbType,
+	logger.Info(fmt.Sprintf("connected to %s database on %s:%s", dbType,
 		base.config.GetString("db."+dbName+".host"), base.config.GetString("db."+dbName+".port")))
 
 	return nil

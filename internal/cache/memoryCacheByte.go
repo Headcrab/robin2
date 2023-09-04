@@ -24,12 +24,12 @@ func NewMemoryCacheByte() BaseCache {
 	t := BaseCache(&MemoryCacheBytesImpl{
 		cache: make(map[hash]float32),
 	})
-	logger.Log(logger.Debug, "NewMemoryCacheByte")
+	logger.Debug("NewMemoryCacheByte")
 	return t
 }
 
 func (c *MemoryCacheBytesImpl) Connect() error {
-	logger.Log(logger.Debug, "cache connected to memoryByte ")
+	logger.Debug("cache connected to memoryByte ")
 	return nil
 }
 
@@ -51,7 +51,7 @@ func (c *MemoryCacheBytesImpl) SetHash(key hash, value float32) error {
 	MemoryCacheByteLock.Lock()
 	defer MemoryCacheByteLock.Unlock()
 	c.cache[key] = value
-	logger.Log(logger.Debug, "MemoryCacheByteImpl.Set size="+fmt.Sprintf("%d", len(c.cache)))
+	logger.Debug("MemoryCacheByteImpl.Set size=" + fmt.Sprintf("%d", len(c.cache)))
 	return nil
 }
 

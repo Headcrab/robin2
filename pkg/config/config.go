@@ -22,7 +22,7 @@ func GetConfig() Config {
 }
 
 func (c *Config) Init() {
-	logger.Log(logger.Debug, "Initializing config...")
+	logger.Debug("Initializing config...")
 	lock.Lock()
 	defer lock.Unlock()
 	viper.SetConfigName("Robin.json")
@@ -34,7 +34,7 @@ func (c *Config) Init() {
 	viper.SetConfigType("json")
 	err := viper.ReadInConfig()
 	if err != nil {
-		logger.Log(logger.Error, "error reading config file")
+		logger.Error("error reading config file")
 	}
 }
 
@@ -59,12 +59,12 @@ func (c *Config) GetAllSettings() map[string]interface{} {
 }
 
 func (c *Config) Reload() (err error) {
-	logger.Log(logger.Debug, "Reloading config...")
+	logger.Debug("Reloading config...")
 	lock.Lock()
 	defer lock.Unlock()
 	err = viper.ReadInConfig()
 	if err != nil {
-		logger.Log(logger.Error, "logger.Error reading config file")
+		logger.Error("logger.Error reading config file")
 	}
 	return err
 }
