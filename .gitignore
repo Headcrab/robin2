@@ -36,3 +36,4 @@ bin/upx
 go.sum
 .env
 log/*
+vendor/*

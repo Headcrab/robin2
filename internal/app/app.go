@@ -164,12 +164,6 @@ func (a *App) handleInfo(w http.ResponseWriter, r *http.Request) {
 	w.Write(resJson)
 }
 
-// func (a *App) handleHome(w http.ResponseWriter, r *http.Request) {
-// 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-// 	f, _ := os.ReadFile("index.html")
-// 	w.Write(f)
-// }
-
 // handleGetTag handles GET requests for a tag and outputs the corresponding
 // value. The tag can be filtered by date, or by a time range. The output can
 // be formatted as raw or rounded. The function takes in an http.ResponseWriter
@@ -263,21 +257,6 @@ func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// send file "tests_book.xls" to client
-// func (a *App) handleGetExample(w http.ResponseWriter, r *http.Request) {
-// 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-// 	w.Header().Set("Content-Type", "application/vnd.ms-excel")
-// 	w.Header().Set("Content-Disposition", "attachment;filename=\"tests_book.xlsx\"")
-// 	file, _ := os.Open("../config/tests_book.xlsx")
-// 	defer func() {
-// 		err := file.Close()
-// 		if err != nil {
-// 			logger.Error(err.Error())
-// 		}
-// 	}()
-// 	io.Copy(w, file)
-// }
-
 // returns JSON with tags by mask
 func (a *App) handleGetTagList(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
@@ -349,23 +328,6 @@ func (a *App) tryParseDate(date string) (time.Time, error) {
 	}
 	return time.Time{}, errors.ErrInvalidDate
 }
-
-// func (a *App) tryParseDateUTC(date string) (time.Time, error) {
-// 	// if date is empty, return error
-// 	if date == "" {
-// 		return time.Time{}, errors.ErrInvalidDate
-// 	}
-// 	// if date is not empty, try to parse it to time.Time
-// 	// if date is not valid, return error
-// 	cfg := a.config.GetStringSlice("app.date_formats")
-// 	for fm := range cfg {
-// 		t, err := time.ParseInLocation(cfg[fm], date, time.UTC)
-// 		if err == nil {
-// 			return t, nil
-// 		}
-// 	}
-// 	return time.Time{}, errors.ErrInvalidDate
-// }
 
 func (a *App) handleGetTagDown(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))

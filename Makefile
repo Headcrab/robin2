@@ -28,7 +28,7 @@ endif
 
 update_version:
 	@update_env -f app.env -p PROJECT_VERSION  -v $(NEW_VERSION)
-	@echo $(PROJECT_NAME) v.$(NEW_VERSION)
+	@echo $(PROJECT_NAME) v:$(NEW_VERSION)
 
 test:
 	go test ./...
@@ -51,8 +51,8 @@ ifeq ($(OS),Windows_NT)
 	@docker run -d \
 	--name $(PROJECT_NAME_LOW) \
 	--restart=always \
-	-v x:/configs/$(PROJECT_NAME):/$(PROJECT_NAME)/config \
-	-v x:/logs/$(PROJECT_NAME):/$(PROJECT_NAME)/log \
+	-v x:/configs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/config \
+	-v x:/logs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/log \
 	-p $(PORT):$(PORT) \
 	--add-host=host.docker.internal:host-gateway \
 	$(PROJECT_NAME_LOW):${NEW_VERSION}
@@ -60,8 +60,8 @@ else
 	@docker run -d \
 	--name $(PROJECT_NAME_LOW) \
 	--restart=always \
-	-v /media/alexandr/data/work/configs/$(PROJECT_NAME):/$(PROJECT_NAME)/config \
-	-v /media/alexandr/data/work/logs/$(PROJECT_NAME):/$(PROJECT_NAME)/log \
+	-v /media/alexandr/data/work/configs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/config \
+	-v /media/alexandr/data/work/logs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/log \
 	-p $(PORT):$(PORT) \
 	--add-host=host.docker.internal:host-gateway \
 	$(PROJECT_NAME_LOW):${NEW_VERSION}

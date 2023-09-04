@@ -3,16 +3,30 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Моя веб-страница</title>
-    <!-- <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.7/dist/tailwind.min.css" rel="stylesheet"> -->
-    <link href="/scripts/tailwind.min.css" rel="stylesheet">
+    <title>Система получения данных АСУТП</title>
+    <link href="../scripts/bootstrap.min.css" rel="stylesheet">
 </head>
 
-<body class="flex h-screen justify-center items-center bg-gray-300">
-    <div class="text-center max-w-lg mx-auto">
-        <img src="/images/icon3.png" class="mx-auto my-auto bg-transparent w-full max-w-md" alt="Robin">
-        <h1 class="text-2xl font-bold mt-4">Система получения данных АСУТП</h1>
-        <p class="text-xl mt-2">{{.Name}} v:{{.Version}}</p>
+<body class="bg-light d-flex">
+    <nav class="navbar flex-column bg-light border-right" style="width: 150px; height :200px">
+
+        <a class="nav-item nav-link btn btn-primary" style="width: 100px;" href="/">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house-door"
+                viewBox="0 0 16 16">
+                <path d="M8 1.293l6 6V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7.293l6-6a1 1 0 0 1 1.414 0z" />
+                <path d="M13 2.5a.5.5 0 0 1 .5.5V7h-1V3a.5.5 0 0 1 .5-.5z" />
+            </svg>
+            Домой
+        </a>
+        <a class="nav-item nav-link btn btn-primary" style="width: 100px;" href="/log">Лог</a>
+        <a class="nav-item nav-link btn btn-primary" style="width: 100px;" href="/info">Инфо</a>
+        <a class="nav-item nav-link btn btn-primary" style="width: 100px;" href="/health">Здоровье</a>
+    </nav>
+
+    <div class="text-center mt-4 mx-auto" style="max-width: 800px;">
+        <img src="../images/icon3.png" class="mx-auto w-100" style="max-width: 512px;" alt="Robin">
+        <h4 class="font-weight-bold mt-4">Система получения данных АСУТП</h4>
+        <p class="mt-2">{{.Name}} v:{{.Version}}</p>
     </div>
 </body>
 
