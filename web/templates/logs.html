@@ -1,0 +1,14 @@
+<div class="container mt-5">
+  <h2>Логи системы</h2>
+  <ul class="list-group">
+      {{range .}}
+      <li class="list-group-item">
+          {{.}}
+      </li>
+      {{else}}
+      <li class="list-group-item">
+          Нет логов для отображения.
+      </li>
+      {{end}}
+  </ul>
+</div>
