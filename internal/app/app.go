@@ -1,6 +1,7 @@
 package robin
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -37,6 +38,7 @@ type App struct {
 	config    config.Config
 	cache     cache.BaseCache
 	store     store.BaseStore
+	template  *template.Template
 }
 
 func (a *App) Run() {
@@ -97,23 +99,30 @@ func (a *App) init() {
 	a.cache = cache.NewFactory().NewCache(a.config.GetString("app.cache.type"))
 	a.store = store.NewFactory().NewStore(a.config.GetString("app.db.type"))
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
-		"/":               a.handleHome,
-		"/info/":          a.handleInfo,
-		"/uptime/":        a.handleUptime,
-		"/reload_config/": a.handleReloadConfig,
-		// "/get/example/":   a.handleGetExample,
 		"/get/tag/":      a.handleGetTag,
 		"/get/tag/list/": a.handleGetTagList,
 		"/get/tag/up/":   a.handleGetTagUp,
 		"/get/tag/down/": a.handleGetTagDown,
 		"/favicon.ico":   a.handleFavicon,
-		"/log/":          a.handleGetLog,
-		"/images/":       a.handleImages,
-		"/scripts/":      a.handleScripts,
-		"/css/":          a.handleCss,
+		"/api/info/":     a.handleInfo,
+		"/api/uptime/":   a.handleUptime,
+		"/api/reload/":   a.handleReloadConfig,
+		"/api/log/":      a.handleGetLog,
+		"/":              a.handleHome,
+		"/log/":          a.handleLog,
+		"/images/":       a.handleDirectory("images"),
+		"/scripts/":      a.handleDirectory("scripts"),
+		"/css/":          a.handleDirectory("css"),
 	}
 	for path, handler := range handlers {
 		http.HandleFunc(path, handler)
+	}
+
+	var err error
+	a.template, err = template.ParseGlob(filepath.Join(a.workDir, "web", "templates", "*.html"))
+	if err != nil {
+		logger.Fatal(err.Error())
+		panic(err)
 	}
 }
 
@@ -131,6 +140,7 @@ func getWorkDir() string {
 }
 
 func (a *App) handleReloadConfig(w http.ResponseWriter, r *http.Request) {
+	logger.Trace("reloading config file")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	logger.Info("reloading config file")
 	err := a.config.Reload()
@@ -142,6 +152,7 @@ func (a *App) handleReloadConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleUptime(w http.ResponseWriter, r *http.Request) {
+	logger.Trace("rendered uptime page")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	uptime := time.Since(a.startTime).Round(time.Second)
 	_, err := w.Write([]byte(uptime.String()))
@@ -151,6 +162,7 @@ func (a *App) handleUptime(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleInfo(w http.ResponseWriter, r *http.Request) {
+	logger.Trace("rendered info page")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	inf := make(map[string]interface{})
 	inf["name"] = a.name
@@ -421,6 +433,7 @@ func (a *App) handleGetTagUp(w http.ResponseWriter, r *http.Request) {
 
 // output program log
 func (a *App) handleGetLog(w http.ResponseWriter, r *http.Request) {
+	logger.Trace("rendered log page")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
 	logs, err := logger.GetLogHistory()
@@ -435,71 +448,78 @@ func (a *App) handleGetLog(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write(tagValue)
 }
+
 func (a *App) handleFavicon(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, a.workDir+"/web/images/icon3.png")
 }
 
+func (a *App) handleDirectory(d string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// http.ServeFile(w, r, filepath.Join(a.workDir, d))
+		basePath := filepath.Join(a.workDir, "web", d)
+		filePath := filepath.Join(basePath, r.URL.Path[len("/"+d+"/"):])
+		if !strings.HasPrefix(filePath, basePath) {
+			http.Error(w, "Access denied", http.StatusForbidden)
+			return
+		}
+		logger.Trace(filePath)
+		http.ServeFile(w, r, filePath)
+	}
+}
+
 func (a *App) handleHome(w http.ResponseWriter, r *http.Request) {
+	logger.Trace("rendered home page")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "text/html")
-	// get template file
-	t := template.Must(template.ParseFiles(
-		a.workDir+"/web/templates/base.html",
-		a.workDir+"/web/templates/header.html",
-		a.workDir+"/web/templates/navigation.html",
-		a.workDir+"/web/templates/content.html",
-		a.workDir+"/web/templates/footer.html",
-	))
 
-	// t, err := template.ParseFiles(a.workDir + "/web/templates/base.html")
-	// if err != nil {
-	// 	w.Write([]byte("#Error: " + err.Error()))
-	// 	return
-	// }
-	// type Page struct {
-	// 	Name    string
-	// 	Version string
-	// }
-	// execute template
-	t.ExecuteTemplate(w, "base.html",
-		map[string]interface{}{"Name": a.name, "Version": a.version})
+	page := "home.html"
 
-	// f, _ := os.ReadFile(a.workDir + "/web/index.html")
-	// w.Write(f)
-}
-
-func (a *App) handleScripts(w http.ResponseWriter, r *http.Request) {
-	basePath := filepath.Join(a.workDir, "web", "scripts")
-	filePath := filepath.Join(basePath, r.URL.Path[len("/scripts/"):])
-	if !strings.HasPrefix(filePath, basePath) {
-		http.Error(w, "Access denied", http.StatusForbidden)
+	contentBuffer := new(bytes.Buffer)
+	if err := a.template.ExecuteTemplate(contentBuffer, page, nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	logger.Debug(filePath)
-	http.ServeFile(w, r, filePath)
+	data := map[string]interface{}{
+		"content": template.HTML(contentBuffer.String()),
+		"App":     map[string]interface{}{"Name": a.name, "Version": a.version},
+	}
+
+	err := a.template.ExecuteTemplate(w, "base.html", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		logger.Error(err.Error())
+	}
 }
 
-func (a *App) handleCss(w http.ResponseWriter, r *http.Request) {
-	basePath := filepath.Join(a.workDir, "web", "css")
-	filePath := filepath.Join(basePath, r.URL.Path[len("/css/"):])
-	if !strings.HasPrefix(filePath, basePath) {
-		http.Error(w, "Access denied", http.StatusForbidden)
+func (a *App) handleLog(w http.ResponseWriter, r *http.Request) {
+	logger.Trace("rendered log page")
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	w.Header().Set("Content-Type", "text/html")
+
+	page := "logs.html"
+
+	logData, err := logger.GetLogHistory()
+	if err != nil {
+		w.Write([]byte("#Error: " + err.Error()))
+		logger.Error(err.Error())
 		return
 	}
 
-	logger.Debug(filePath)
-	http.ServeFile(w, r, filePath)
-}
-
-func (a *App) handleImages(w http.ResponseWriter, r *http.Request) {
-	basePath := filepath.Join(a.workDir, "web", "images")
-	filePath := filepath.Join(basePath, r.URL.Path[len("/images/"):])
-	if !strings.HasPrefix(filePath, basePath) {
-		http.Error(w, "Access denied", http.StatusForbidden)
+	contentBuffer := new(bytes.Buffer)
+	if err := a.template.ExecuteTemplate(contentBuffer, page, logData); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	logger.Debug(filePath)
-	http.ServeFile(w, r, filePath)
+	data := map[string]interface{}{
+		"content": template.HTML(contentBuffer.String()),
+		"App":     map[string]interface{}{"Name": a.name, "Version": a.version},
+	}
+
+	err = a.template.ExecuteTemplate(w, "base.html", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		logger.Error(err.Error())
+	}
 }
