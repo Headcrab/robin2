@@ -1,33 +1,140 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="ru">
 
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8" />
     <title>Система получения данных АСУТП</title>
-    <link href="../scripts/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous" />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
+        crossorigin="anonymous"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .flat-btn {
+            background-color: #007BFF;
+            border: none;
+            color: white;
+            text-align: left;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 150px;
+            height: 40px;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            margin-bottom: 5px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .flat-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .flat-btn img {
+            margin-left: 5px;
+            width: 32px;
+            height: 32px;
+        }
+
+        .navbar {
+            top: 10;
+            left: 0;
+            width: 170px;
+            height: 100%;
+            padding: 10px;
+            padding-top: 70px;
+            background-color: #f8f9fa;
+        }
+
+        .fixed-top,
+        .fixed-bottom {
+            background-color: #f8f9fa;
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .text-center {
+            max-width: 800px;
+            margin: auto;
+            padding-top: 70px;
+        }
+
+        .text-center img {
+            max-width: 512px;
+        }
+
+        .text-center h4 {
+            font-size: 24px;
+            margin-top: 20px;
+        }
+
+        .text-center p {
+            font-size: 16px;
+        }
+
+        .resize-handle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 5px;
+            height: 100%;
+            cursor: ew-resize;
+        }
+    </style>
 </head>
 
 <body class="bg-light d-flex">
-    <nav class="navbar flex-column bg-light border-right" style="width: 150px; height :200px">
-
-        <a class="nav-item nav-link btn btn-primary" style="width: 100px;" href="/">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house-door"
-                viewBox="0 0 16 16">
-                <path d="M8 1.293l6 6V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7.293l6-6a1 1 0 0 1 1.414 0z" />
-                <path d="M13 2.5a.5.5 0 0 1 .5.5V7h-1V3a.5.5 0 0 1 .5-.5z" />
-            </svg>
-            Домой
-        </a>
-        <a class="nav-item nav-link btn btn-primary" style="width: 100px;" href="/log">Лог</a>
-        <a class="nav-item nav-link btn btn-primary" style="width: 100px;" href="/info">Инфо</a>
-        <a class="nav-item nav-link btn btn-primary" style="width: 100px;" href="/health">Здоровье</a>
-    </nav>
-
-    <div class="text-center mt-4 mx-auto" style="max-width: 800px;">
-        <img src="../images/icon3.png" class="mx-auto w-100" style="max-width: 512px;" alt="Robin">
-        <h4 class="font-weight-bold mt-4">Система получения данных АСУТП</h4>
-        <p class="mt-2">{{.Name}} v:{{.Version}}</p>
+    <div class="fixed-top">
+        <p>Awesome</p>
     </div>
+
+    <div class="navbar">
+        <a class="nav-item nav-link flat-btn text-left ml-3" href="/"><img src="../images/home.png"> Домой</a>
+        <a class="nav-item nav-link flat-btn text-left ml-3" href="/log"><img src="../images/log.png"> Лог</a>
+        <a class="nav-item nav-link flat-btn text-left ml-3" href="/info"><img src="../images/news.png"> Инфо</a>
+        <a class="nav-item nav-link flat-btn text-left ml-3" href="/uptime"><img src="../images/cross.png"> Здоровье</a>
+        <div class="resize-handle"></div>
+    </div>
+
+    <div class="text-center">
+        <img src="../images/icon3.png" class="mx-auto w-100" alt="Robin">
+        <h4>Robin</h4>
+        <p>Система получения данных АСУТП</p>
+    </div>
+
+    <div class="fixed-bottom">
+        <p>{{.Name}} v:{{.Version}} 2023</p>
+    </div>
+
+    <script>
+        const navbar = document.querySelector('.navbar');
+        const resizeHandle = document.querySelector('.resize-handle');
+
+        let isResizing = false;
+
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            navbar.style.width = `${e.clientX}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            isResizing = false;
+        });
+    </script>
 </body>
 
 </html>
