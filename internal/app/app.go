@@ -443,17 +443,27 @@ func (a *App) handleHome(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "text/html")
 	// get template file
-	t, err := template.ParseFiles(a.workDir + "/web/templates/index.html")
-	if err != nil {
-		w.Write([]byte("#Error: " + err.Error()))
-		return
-	}
-	type Page struct {
-		Name    string
-		Version string
-	}
+	t := template.Must(template.ParseFiles(
+		a.workDir+"/web/templates/base.html",
+		a.workDir+"/web/templates/header.html",
+		a.workDir+"/web/templates/navigation.html",
+		a.workDir+"/web/templates/content.html",
+		a.workDir+"/web/templates/footer.html",
+	))
+
+	// t, err := template.ParseFiles(a.workDir + "/web/templates/base.html")
+	// if err != nil {
+	// 	w.Write([]byte("#Error: " + err.Error()))
+	// 	return
+	// }
+	// type Page struct {
+	// 	Name    string
+	// 	Version string
+	// }
 	// execute template
-	t.Execute(w, Page{a.name, a.version})
+	t.ExecuteTemplate(w, "base.html",
+		map[string]interface{}{"Name": a.name, "Version": a.version})
+
 	// f, _ := os.ReadFile(a.workDir + "/web/index.html")
 	// w.Write(f)
 }
