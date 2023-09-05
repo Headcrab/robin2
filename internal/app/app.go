@@ -110,6 +110,7 @@ func (a *App) init() {
 		"/log/":          a.handleGetLog,
 		"/images/":       a.handleImages,
 		"/scripts/":      a.handleScripts,
+		"/css/":          a.handleCss,
 	}
 	for path, handler := range handlers {
 		http.HandleFunc(path, handler)
@@ -459,7 +460,19 @@ func (a *App) handleHome(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) handleScripts(w http.ResponseWriter, r *http.Request) {
 	basePath := filepath.Join(a.workDir, "web", "scripts")
-	filePath := filepath.Join(basePath, r.URL.Path[len("/images/"):])
+	filePath := filepath.Join(basePath, r.URL.Path[len("/scripts/"):])
+	if !strings.HasPrefix(filePath, basePath) {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	logger.Debug(filePath)
+	http.ServeFile(w, r, filePath)
+}
+
+func (a *App) handleCss(w http.ResponseWriter, r *http.Request) {
+	basePath := filepath.Join(a.workDir, "web", "css")
+	filePath := filepath.Join(basePath, r.URL.Path[len("/css/"):])
 	if !strings.HasPrefix(filePath, basePath) {
 		http.Error(w, "Access denied", http.StatusForbidden)
 		return
