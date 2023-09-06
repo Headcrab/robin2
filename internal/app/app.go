@@ -118,12 +118,27 @@ func (a *App) init() {
 		http.HandleFunc(path, handler)
 	}
 
+	funcMap := template.FuncMap{
+		"splitText": func(input string) template.HTML {
+			st := strings.Split(input, " ")
+			if len(st) > 1 {
+				st[0] = "<span class='date'>" + st[0]
+				st[1] = st[1] + "</span>"
+				st[2] = "<span class='level " + st[2] + "'>" + st[2] + "</span> <span class='level other'>"
+			}
+			return template.HTML(strings.Join(st, " ") + "</span>")
+		},
+	}
+
+	a.template = template.New("tmpl").Funcs(funcMap)
+
 	var err error
-	a.template, err = template.ParseGlob(filepath.Join(a.workDir, "web", "templates", "*.html"))
+	a.template, err = a.template.ParseGlob(filepath.Join(a.workDir, "web", "templates", "*.html"))
 	if err != nil {
 		logger.Fatal(err.Error())
 		panic(err)
 	}
+
 }
 
 func getWorkDir() string {
