@@ -23,9 +23,9 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// NewApp creates a new instance of the App struct and returns a pointer to it.
 func NewApp() *App {
-	app := &App{}
-	return app
+	return &App{}
 }
 
 type App struct {
@@ -88,16 +88,23 @@ func getLocalhostIpAdresses() []string {
 }
 
 func (a *App) init() {
-
+	// Set the working directory of the App object
 	a.workDir = getWorkDir()
+
+	// Load environment variables from .env and app.env files
 	godotenv.Load(a.workDir+"/.env", a.workDir+"/app.env")
+
+	// Set the name and version fields of the App object
 	a.name = os.Getenv("PROJECT_NAME")
 	a.version = os.Getenv("PROJECT_VERSION")
 
+	// Configure the logger
 	logger.Debug("initializing app")
 	a.config = config.GetConfig()
 	a.cache = cache.NewFactory().NewCache(a.config.GetString("app.cache.type"))
 	a.store = store.NewFactory().NewStore(a.config.GetString("app.db.type"))
+
+	// Define HTTP request handlers
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
 		"/get/tag/":      a.handleGetTag,
 		"/get/tag/list/": a.handleGetTagList,
@@ -114,10 +121,13 @@ func (a *App) init() {
 		"/scripts/":      a.handleDirectory("scripts"),
 		"/css/":          a.handleDirectory("css"),
 	}
+
+	// Register HTTP request handlers
 	for path, handler := range handlers {
 		http.HandleFunc(path, handler)
 	}
 
+	// Define custom template function
 	funcMap := template.FuncMap{
 		"splitText": func(input string) template.HTML {
 			st := strings.Split(input, " ")
@@ -130,15 +140,14 @@ func (a *App) init() {
 		},
 	}
 
+	// Create template object and parse HTML templates
 	a.template = template.New("tmpl").Funcs(funcMap)
-
 	var err error
 	a.template, err = a.template.ParseGlob(filepath.Join(a.workDir, "web", "templates", "*.html"))
 	if err != nil {
 		logger.Fatal(err.Error())
 		panic(err)
 	}
-
 }
 
 func getWorkDir() string {
@@ -158,12 +167,12 @@ func (a *App) handleReloadConfig(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("reloading config file")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	logger.Info("reloading config file")
-	err := a.config.Reload()
-	if err != nil {
+
+	if err := a.config.Reload(); err != nil {
 		logger.Fatal("Failed to read config file")
 	}
-	w.Write([]byte("ok"))
 
+	w.Write([]byte("ok"))
 }
 
 func (a *App) handleUptime(w http.ResponseWriter, r *http.Request) {
@@ -179,59 +188,70 @@ func (a *App) handleUptime(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleInfo(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("rendered info page")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	inf := make(map[string]interface{})
-	inf["name"] = a.name
-	inf["version"] = a.version
-	inf["uptime"] = time.Since(a.startTime).Round(time.Second).String()
-	inf["op_count"] = a.opCount
-	// todo: add more logger.Info
-	// inf["config_file_path"] = a.config.ConfigFileUsed()
-	// inf["config_file"] = a.config.ConfigFileUsed()
-	// inf["config"] = a.config.AllSettings() //todo hide passwords
-	resJson, _ := json.MarshalIndent(inf, "", "  ")
-	w.Write(resJson)
+	inf := map[string]interface{}{
+		"name":     a.name,
+		"version":  a.version,
+		"uptime":   time.Since(a.startTime).Round(time.Second).String(),
+		"op_count": a.opCount,
+	}
+
+	if err := json.NewEncoder(w).Encode(inf); err != nil {
+		logger.Error(err.Error())
+	}
 }
 
-// handleGetTag handles GET requests for a tag and outputs the corresponding
-// value. The tag can be filtered by date, or by a time range. The output can
-// be formatted as raw or rounded. The function takes in an http.ResponseWriter
-// and an http.Request as parameters, and returns nothing.
+// handleGetTag handles GET requests for a tag and outputs the corresponding value.
+// The tag can be filtered by date, or by a time range. The output can be formatted
+// as raw or rounded. The function takes in an http.ResponseWriter and an http.Request
+// as parameters, and returns nothing.
 func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", "application/json")
+	// Set response headers
+	headers := w.Header()
+	headers.Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	headers.Set("Content-Type", "application/json")
+
+	// Increment operation count
 	a.opCount++
-	tag := r.URL.Query().Get("tag")
-	date := r.URL.Query().Get("date")
-	from := r.URL.Query().Get("from")
-	to := r.URL.Query().Get("to")
-	group := r.URL.Query().Get("group")
-	round := r.URL.Query().Get("round")
-	count := r.URL.Query().Get("count")
-	format := r.URL.Query().Get("format")
-	// fmt.Println("tag:", r.URL.Query()["tag"])
+
+	// Parse query parameters
+	query := r.URL.Query()
+	tag := query.Get("tag")
+	date := query.Get("date")
+	from := query.Get("from")
+	to := query.Get("to")
+	group := query.Get("group")
+	round := query.Get("round")
+	count := query.Get("count")
+	format := query.Get("format")
+
+	// Set round field of App struct
+	a.round = 2
 	if round != "" {
 		a.round, _ = strconv.Atoi(round)
-	} else {
-		a.round = 2
 	}
+
+	// Handle tag and date parameters
 	if tag != "" && date != "" {
 		dateTime, err := a.excelTimeToTime(date)
 		if err != nil {
 			w.Write([]byte("#Error: " + err.Error()))
 			return
 		}
-		tagValue_f, err := a.store.GetTagDate(tag, dateTime)
+		tagValue, err := a.store.GetTagDate(tag, dateTime)
 		if err != nil {
 			w.Write([]byte("#Error: " + err.Error()))
 			return
 		}
 		if format == "raw" {
-			w.Write([]byte(fmt.Sprintf("%f", tagValue_f)))
+			w.Write([]byte(fmt.Sprintf("%f", tagValue)))
 		} else {
-			w.Write([]byte(a.store.RoundAndFormat(tagValue_f)))
+			w.Write([]byte(a.store.RoundAndFormat(tagValue)))
 		}
 		return
-	} else if tag != "" && from != "" && to != "" {
+	}
+
+	// Handle tag, from, and to parameters
+	if tag != "" && from != "" && to != "" {
 		fromT, err := a.excelTimeToTime(from)
 		if err != nil {
 			w.Write([]byte(err.Error()))
@@ -242,65 +262,71 @@ func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(err.Error()))
 			return
 		}
-		var tagValue string
-		if count != "" {
+
+		switch {
+		case count != "":
 			countT, err := strconv.Atoi(count)
 			if err != nil {
 				w.Write([]byte(err.Error()))
 				return
 			}
-			v, err := a.store.GetTagCount(tag, fromT, toT, countT)
+			tagValue, err := a.store.GetTagCount(tag, fromT, toT, countT)
 			if err != nil {
 				w.Write([]byte("#Error: " + err.Error()))
 				return
-			} else {
-				tagValue, err := json.MarshalIndent(v, "", "  ")
-				if err != nil {
-					w.Write([]byte("#Error: " + err.Error()))
-					return
-				}
-				w.Write([]byte(tagValue))
+			}
+			tagValueJSON, err := json.MarshalIndent(tagValue, "", "  ")
+			if err != nil {
+				w.Write([]byte("#Error: " + err.Error()))
 				return
 			}
-		} else {
-			if group == "" {
-				v, err := a.store.GetTagFromTo(tag, fromT, toT)
-				if err != nil {
-					w.Write([]byte("#Error: " + err.Error()))
-					return
-				} else {
-					tagValue, err := json.MarshalIndent(v, "", "  ")
-					if err != nil {
-						w.Write([]byte("#Error: " + err.Error()))
-						return
-					}
-					w.Write([]byte(tagValue))
-					return
-				}
-			} else {
-				tagValue = a.store.GetTagFromToGroup(tag, fromT, toT, group)
+			w.Write(tagValueJSON)
+			return
+		case group == "":
+			tagValue, err := a.store.GetTagFromTo(tag, fromT, toT)
+			if err != nil {
+				w.Write([]byte("#Error: " + err.Error()))
+				return
 			}
+			tagValueJSON, err := json.MarshalIndent(tagValue, "", "  ")
+			if err != nil {
+				w.Write([]byte("#Error: " + err.Error()))
+				return
+			}
+			w.Write(tagValueJSON)
+			return
+		default:
+			tagValue := a.store.GetTagFromToGroup(tag, fromT, toT, group)
+			w.Write([]byte(tagValue))
 		}
-		w.Write([]byte(tagValue))
 	}
 }
 
 // returns JSON with tags by mask
 func (a *App) handleGetTagList(w http.ResponseWriter, r *http.Request) {
+	// Set response headers
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
+
+	// Extract query parameter
 	like := r.URL.Query().Get("like")
+
+	// Retrieve list of tags
 	tags, err := a.store.GetTagList(like)
 	if err != nil {
 		w.Write([]byte("#Error: " + err.Error()))
 		return
 	}
+
+	// Marshal tags into JSON string
 	j, err := json.MarshalIndent(tags, "", "  ")
 	if err != nil {
 		// logger.Debug(err.error())
 		w.Write([]byte("#Error: " + err.Error()))
 		return
 	}
+
+	// Write JSON string to response
 	w.Write(j)
 }
 
@@ -404,11 +430,13 @@ func (a *App) handleGetTagDown(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleGetTagUp(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
+
 	tag := r.URL.Query().Get("tag")
 	if tag == "" {
 		w.Write([]byte("#Error: tag is empty"))
 		return
 	}
+
 	from := r.URL.Query().Get("from")
 	to := r.URL.Query().Get("to")
 	countStr := r.URL.Query().Get("count")
@@ -416,33 +444,30 @@ func (a *App) handleGetTagUp(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		count = 0
 	}
+
 	fromT, err := a.excelTimeToTime(from)
 	if err != nil {
 		w.Write([]byte("#Error: " + err.Error()))
 		return
 	}
+
 	toT, err := a.excelTimeToTime(to)
 	if err != nil {
 		w.Write([]byte("#Error: " + err.Error()))
 		return
 	}
+
 	v, err := a.store.GetUpDates(tag, fromT, toT)
 	if err != nil {
 		w.Write([]byte("#Error: " + err.Error()))
 		return
-	} else {
-		// tagValue, err := json.MarshalIndent(v, "", "  ")
-		if err != nil {
-			w.Write([]byte("#Error: " + err.Error()))
-			return
-		}
+	}
 
-		if (count >= 0) && (count < len(v)) {
-			val := v[count].Format("2006-01-02 15:04:05")
-			w.Write([]byte(val))
-		} else {
-			w.Write([]byte(""))
-		}
+	if count >= 0 && count < len(v) {
+		val := v[count].Format("2006-01-02 15:04:05")
+		w.Write([]byte(val))
+	} else {
+		w.Write([]byte(""))
 	}
 }
 
@@ -521,8 +546,33 @@ func (a *App) handleLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logPerPage := 20
+	pageNumStr := r.URL.Query().Get("page")
+	if page == "" {
+		pageNumStr = "1"
+	}
+	pageNum, err := strconv.Atoi(pageNumStr)
+	if err != nil {
+		pageNum = 1
+	}
+	if pageNum < 1 {
+		pageNum = 1
+	}
+	pagesTotal := len(logData) / logPerPage
+	if pageNum > pagesTotal+1 {
+		pageNum = pagesTotal + 1
+	}
+
+	pageSwicher := template.HTML("<span class='text-center'>Страница " + strconv.Itoa(pageNum) + " из " + strconv.Itoa(pagesTotal+1) + "<br>")
+	for i := 1; i <= pagesTotal+1; i++ {
+		pageSwicher += template.HTML("<a href='/log?page=" + strconv.Itoa(i) + "'>" + strconv.Itoa(i) + "</a> ")
+	}
+	pageSwicher += "</span><br>"
+
+	logData = logData[(pageNum-1)*logPerPage : min((pageNum)*logPerPage, len(logData))]
+
 	contentBuffer := new(bytes.Buffer)
-	if err := a.template.ExecuteTemplate(contentBuffer, page, logData); err != nil {
+	if err := a.template.ExecuteTemplate(contentBuffer, page, map[string]interface{}{"Logs": logData, "Page": pageSwicher}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

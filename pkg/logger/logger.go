@@ -151,6 +151,6 @@ func GetLogHistory() ([]string, error) {
 		return nil, err
 	}
 	// split to []string by new line
-	s := strings.Split(string(f), "\n")
+	s := strings.Split(strings.TrimSuffix(string(f), "\n"), "\n")
 	return s, nil
 }
