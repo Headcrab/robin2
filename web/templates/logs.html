@@ -3,7 +3,7 @@
     <ul class="list-group">
         {{range .Logs}}
         <li class="text-list-item">
-            {{splitText .}}
+            {{colorizeLogString .}}
         </li>
         {{else}}
         <li class="text-list-item">

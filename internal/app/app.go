@@ -111,12 +111,13 @@ func (a *App) init() {
 		"/get/tag/up/":   a.handleGetTagUp,
 		"/get/tag/down/": a.handleGetTagDown,
 		"/favicon.ico":   a.handleFavicon,
-		"/api/info/":     a.handleInfo,
-		"/api/uptime/":   a.handleUptime,
-		"/api/reload/":   a.handleReloadConfig,
-		"/api/log/":      a.handleGetLog,
+		"/api/info/":     a.handleApiInfo,
+		"/api/uptime/":   a.handleApiUptime,
+		"/api/reload/":   a.handleApiReloadConfig,
+		"/api/log/":      a.handleApiGetLog,
 		"/":              a.handleHome,
 		"/log/":          a.handleLog,
+		"/info/":         a.handleInfo,
 		"/images/":       a.handleDirectory("images"),
 		"/scripts/":      a.handleDirectory("scripts"),
 		"/css/":          a.handleDirectory("css"),
@@ -129,9 +130,9 @@ func (a *App) init() {
 
 	// Define custom template function
 	funcMap := template.FuncMap{
-		"splitText": func(input string) template.HTML {
+		"colorizeLogString": func(input string) template.HTML {
 			st := strings.Split(input, " ")
-			if len(st) > 1 {
+			if len(st) > 2 {
 				st[0] = "<span class='date'>" + st[0]
 				st[1] = st[1] + "</span>"
 				st[2] = "<span class='level " + st[2] + "'>" + st[2] + "</span> <span class='level other'>"
@@ -163,7 +164,7 @@ func getWorkDir() string {
 	return dir
 }
 
-func (a *App) handleReloadConfig(w http.ResponseWriter, r *http.Request) {
+func (a *App) handleApiReloadConfig(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("reloading config file")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	logger.Info("reloading config file")
@@ -175,7 +176,7 @@ func (a *App) handleReloadConfig(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
 }
 
-func (a *App) handleUptime(w http.ResponseWriter, r *http.Request) {
+func (a *App) handleApiUptime(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("rendered uptime page")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	uptime := time.Since(a.startTime).Round(time.Second)
@@ -185,7 +186,7 @@ func (a *App) handleUptime(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *App) handleInfo(w http.ResponseWriter, r *http.Request) {
+func (a *App) handleApiInfo(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("rendered info page")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	inf := map[string]interface{}{
@@ -472,7 +473,7 @@ func (a *App) handleGetTagUp(w http.ResponseWriter, r *http.Request) {
 }
 
 // output program log
-func (a *App) handleGetLog(w http.ResponseWriter, r *http.Request) {
+func (a *App) handleApiGetLog(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("rendered log page")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
@@ -541,38 +542,31 @@ func (a *App) handleLog(w http.ResponseWriter, r *http.Request) {
 
 	logData, err := logger.GetLogHistory()
 	if err != nil {
-		w.Write([]byte("#Error: " + err.Error()))
-		logger.Error(err.Error())
+		errorMsg := "#Error: " + err.Error()
+		w.Write([]byte(errorMsg))
+		logger.Error(errorMsg)
 		return
 	}
 
-	logPerPage := 20
+	logPerPage := 23
 	pageNumStr := r.URL.Query().Get("page")
 	if page == "" {
 		pageNumStr = "1"
 	}
+
 	pageNum, err := strconv.Atoi(pageNumStr)
+	if err != nil || pageNum < 1 {
+		pageNum = 1
+	}
+
+	pageContent, err := getPage(logData, pageNum, logPerPage)
 	if err != nil {
-		pageNum = 1
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	if pageNum < 1 {
-		pageNum = 1
-	}
-	pagesTotal := len(logData) / logPerPage
-	if pageNum > pagesTotal+1 {
-		pageNum = pagesTotal + 1
-	}
-
-	pageSwicher := template.HTML("<span class='text-center'>Страница " + strconv.Itoa(pageNum) + " из " + strconv.Itoa(pagesTotal+1) + "<br>")
-	for i := 1; i <= pagesTotal+1; i++ {
-		pageSwicher += template.HTML("<a href='/log?page=" + strconv.Itoa(i) + "'>" + strconv.Itoa(i) + "</a> ")
-	}
-	pageSwicher += "</span><br>"
-
-	logData = logData[(pageNum-1)*logPerPage : min((pageNum)*logPerPage, len(logData))]
 
 	contentBuffer := new(bytes.Buffer)
-	if err := a.template.ExecuteTemplate(contentBuffer, page, map[string]interface{}{"Logs": logData, "Page": pageSwicher}); err != nil {
+	if err := a.template.ExecuteTemplate(contentBuffer, page, pageContent); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -582,9 +576,73 @@ func (a *App) handleLog(w http.ResponseWriter, r *http.Request) {
 		"App":     map[string]interface{}{"Name": a.name, "Version": a.version},
 	}
 
-	err = a.template.ExecuteTemplate(w, "base.html", data)
-	if err != nil {
+	if err := a.template.ExecuteTemplate(w, "base.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		logger.Error(err.Error())
+	}
+}
+
+func getPage(logData []string, pageNum, logPerPage int) (map[string]interface{}, error) {
+	pagesTotal := len(logData) / logPerPage
+	if pageNum > pagesTotal+1 {
+		pageNum = pagesTotal + 1
+	}
+
+	var pageSwicher template.HTML
+	pageSwicher += template.HTML("<span class='text-center'>Страница " + strconv.Itoa(pageNum) + " из " + strconv.Itoa(pagesTotal+1) + "<br>")
+	for i := 1; i <= pagesTotal+1; i++ {
+		pageSwicher += template.HTML("<a href='/log?page=" + strconv.Itoa(i) + "'>" + strconv.Itoa(i) + "</a> ")
+	}
+	pageSwicher += "</span><br>"
+
+	logData = logData[(pageNum-1)*logPerPage : min(pageNum*logPerPage, len(logData))]
+
+	data := map[string]interface{}{
+		"Logs": logData,
+		"Page": pageSwicher,
+	}
+
+	return data, nil
+}
+
+func (a *App) handleInfo(w http.ResponseWriter, r *http.Request) {
+
+	page := "info.html"
+
+	uptime := time.Since(a.startTime).Round(time.Second).String()
+
+	data := map[string]interface{}{
+		"App": map[string]interface{}{
+			"Name":    a.name,
+			"Version": a.version,
+			"Uptime":  uptime,
+		},
+	}
+
+	a.handleAnyPage(page, data)(w, r)
+
+}
+
+func (a *App) handleAnyPage(page string, data map[string]interface{}) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		logger.Trace("rendered " + page + " page")
+		w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+		w.Header().Set("Content-Type", "text/html")
+
+		contentBuffer := new(bytes.Buffer)
+		if err := a.template.ExecuteTemplate(contentBuffer, page, data); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		data = map[string]interface{}{
+			"content": template.HTML(contentBuffer.String()),
+			// "App":     map[string]interface{}{"Name": a.name, "Version": a.version},
+		}
+
+		if err := a.template.ExecuteTemplate(w, "base.html", data); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			logger.Error(err.Error())
+		}
 	}
 }
