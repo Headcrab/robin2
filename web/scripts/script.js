@@ -1,17 +1,26 @@
-const navbar = document.querySelector('.navbar');
-const resizeHandle = document.querySelector('.resize-handle');
+function loadPage(url) {
+    const loaderElement = document.getElementById('loader');
+    
+    if (!loaderElement) {
+        console.error('Element with ID "loader" not found.');
+        return;
+    }
 
-let isResizing = false;
+    // Показываем анимацию загрузки
+    loaderElement.style.display = 'flex';
 
-resizeHandle.addEventListener('mousedown', (e) => {
-    isResizing = true;
-});
+    // Загружаем новую страницу
+    fetch(url)
+        .then(response => response.text())
+        .then(data => {
+            // Скрываем анимацию загрузки и отображаем новую страницу
+            loaderElement.style.display = 'none';
+            document.body.innerHTML = data;
 
-document.addEventListener('mousemove', (e) => {
-    if (!isResizing) return;
-    navbar.style.width = `${e.clientX}px`;
-});
-
-document.addEventListener('mouseup', () => {
-    isResizing = false;
-});
+            // Обновляем URL в адресной строке
+            history.pushState(null, '', url);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}

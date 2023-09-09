@@ -115,9 +115,10 @@ func (a *App) init() {
 		"/api/uptime/":   a.handleApiUptime,
 		"/api/reload/":   a.handleApiReloadConfig,
 		"/api/log/":      a.handleApiGetLog,
-		"/":              a.handleHome,
-		"/log/":          a.handleLog,
+		"/":              a.handleAnyPage("home", nil),
+		"/logs/":         a.handleLog,
 		"/info/":         a.handleInfo,
+		"/health/":       a.handleHealth,
 		"/images/":       a.handleDirectory("images"),
 		"/scripts/":      a.handleDirectory("scripts"),
 		"/css/":          a.handleDirectory("css"),
@@ -508,37 +509,13 @@ func (a *App) handleDirectory(d string) http.HandlerFunc {
 	}
 }
 
-func (a *App) handleHome(w http.ResponseWriter, r *http.Request) {
-	logger.Trace("rendered home page")
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", "text/html")
+// func (a *App) handleHome(w http.ResponseWriter, r *http.Request) {
+// 	a.handleAnyPage("home.html", map[string]interface{}{})(w, r)
 
-	page := "home.html"
-
-	contentBuffer := new(bytes.Buffer)
-	if err := a.template.ExecuteTemplate(contentBuffer, page, nil); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	data := map[string]interface{}{
-		"content": template.HTML(contentBuffer.String()),
-		"App":     map[string]interface{}{"Name": a.name, "Version": a.version},
-	}
-
-	err := a.template.ExecuteTemplate(w, "base.html", data)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logger.Error(err.Error())
-	}
-}
+// }
 
 func (a *App) handleLog(w http.ResponseWriter, r *http.Request) {
-	logger.Trace("rendered log page")
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", "text/html")
-
-	page := "logs.html"
+	page := "logs"
 
 	logData, err := logger.GetLogHistory()
 	if err != nil {
@@ -550,7 +527,7 @@ func (a *App) handleLog(w http.ResponseWriter, r *http.Request) {
 
 	logPerPage := 23
 	pageNumStr := r.URL.Query().Get("page")
-	if page == "" {
+	if pageNumStr == "" {
 		pageNumStr = "1"
 	}
 
@@ -559,64 +536,38 @@ func (a *App) handleLog(w http.ResponseWriter, r *http.Request) {
 		pageNum = 1
 	}
 
-	pageContent, err := getPage(logData, pageNum, logPerPage)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	a.handleAnyPage(page, getOnePage(page, logData, pageNum, logPerPage))(w, r)
 
-	contentBuffer := new(bytes.Buffer)
-	if err := a.template.ExecuteTemplate(contentBuffer, page, pageContent); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	data := map[string]interface{}{
-		"content": template.HTML(contentBuffer.String()),
-		"App":     map[string]interface{}{"Name": a.name, "Version": a.version},
-	}
-
-	if err := a.template.ExecuteTemplate(w, "base.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logger.Error(err.Error())
-	}
 }
 
-func getPage(logData []string, pageNum, logPerPage int) (map[string]interface{}, error) {
-	pagesTotal := len(logData) / logPerPage
+func getOnePage(name string, data []string, pageNum, linesPerPage int) map[string]interface{} {
+	pagesTotal := len(data) / linesPerPage
 	if pageNum > pagesTotal+1 {
 		pageNum = pagesTotal + 1
 	}
 
 	var pageSwicher template.HTML
-	pageSwicher += template.HTML("<span class='text-center'>Страница " + strconv.Itoa(pageNum) + " из " + strconv.Itoa(pagesTotal+1) + "<br>")
+	pageSwicher += template.HTML("<span class='text-center list-group text-list-item'>Страница " + strconv.Itoa(pageNum) + " из " + strconv.Itoa(pagesTotal+1) + "<br>")
 	for i := 1; i <= pagesTotal+1; i++ {
-		pageSwicher += template.HTML("<a href='/log?page=" + strconv.Itoa(i) + "'>" + strconv.Itoa(i) + "</a> ")
+		pageSwicher += template.HTML("<span class='level other' style='background-color: rgba(0, 123, 255, 0.10); cursor=pointer;'><a href='#' onclick='loadPage(\"/" + name + "?page=" + strconv.Itoa(i) + "\")'>" + strconv.Itoa(i) + "</a></span> ")
+		// pageSwicher += template.HTML("<a href='/" + name + "?page=" + strconv.Itoa(i) + "'>" + strconv.Itoa(i) + "</a> ")
 	}
 	pageSwicher += "</span><br>"
 
-	logData = logData[(pageNum-1)*logPerPage : min(pageNum*logPerPage, len(logData))]
+	data = data[(pageNum-1)*linesPerPage : min(pageNum*linesPerPage, len(data))]
 
-	data := map[string]interface{}{
-		"Logs": logData,
-		"Page": pageSwicher,
+	return map[string]interface{}{
+		name:   data,
+		"page": pageSwicher,
 	}
-
-	return data, nil
 }
 
 func (a *App) handleInfo(w http.ResponseWriter, r *http.Request) {
 
-	page := "info.html"
-
-	uptime := time.Since(a.startTime).Round(time.Second).String()
+	page := "info"
 
 	data := map[string]interface{}{
-		"App": map[string]interface{}{
-			"Name":    a.name,
-			"Version": a.version,
-			"Uptime":  uptime,
-		},
+		"Uptime": time.Since(a.startTime).Round(time.Second).String(),
 	}
 
 	a.handleAnyPage(page, data)(w, r)
@@ -630,14 +581,14 @@ func (a *App) handleAnyPage(page string, data map[string]interface{}) func(w htt
 		w.Header().Set("Content-Type", "text/html")
 
 		contentBuffer := new(bytes.Buffer)
-		if err := a.template.ExecuteTemplate(contentBuffer, page, data); err != nil {
+		if err := a.template.ExecuteTemplate(contentBuffer, page+".html", data); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		data = map[string]interface{}{
 			"content": template.HTML(contentBuffer.String()),
-			// "App":     map[string]interface{}{"Name": a.name, "Version": a.version},
+			"App":     map[string]interface{}{"Name": a.name, "Version": a.version},
 		}
 
 		if err := a.template.ExecuteTemplate(w, "base.html", data); err != nil {
@@ -645,4 +596,28 @@ func (a *App) handleAnyPage(page string, data map[string]interface{}) func(w htt
 			logger.Error(err.Error())
 		}
 	}
+}
+
+func (a *App) handleHealth(w http.ResponseWriter, r *http.Request) {
+	page := "health"
+
+	var data []string
+	for i := 0; i < 100000; i++ {
+		data = append(data, "Test line "+strconv.Itoa(i)+" --------- ")
+	}
+
+	linesPerPage := 23
+	pageNumStr := r.URL.Query().Get("page")
+	if pageNumStr == "" {
+		pageNumStr = "1"
+	}
+
+	pageNum, err := strconv.Atoi(pageNumStr)
+	if err != nil || pageNum < 1 {
+		pageNum = 1
+	}
+
+	a.handleAnyPage(page, getOnePage(page, data, pageNum, linesPerPage))(w, r)
+
+	w.Write([]byte("OK"))
 }

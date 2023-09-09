@@ -1,7 +1,7 @@
 <div class="container text-center">
     <h4>Логи системы</h4>
     <ul class="list-group">
-        {{range .Logs}}
+        {{range .logs}}
         <li class="text-list-item">
             {{colorizeLogString .}}
         </li>
@@ -11,5 +11,5 @@
         </li>
         {{end}}
     </ul>
-    {{.Page}}
+    {{.page}}
 </div>
