@@ -23,6 +23,14 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// generic thernary operator
+func thenIf[T any](condition bool, ifTrue T, ifFalse T) T {
+	if condition {
+		return ifTrue
+	}
+	return ifFalse
+}
+
 // NewApp creates a new instance of the App struct and returns a pointer to it.
 func NewApp() *App {
 	return &App{}
@@ -115,6 +123,7 @@ func (a *App) init() {
 		"/api/uptime/":   a.handleApiUptime,
 		"/api/reload/":   a.handleApiReloadConfig,
 		"/api/log/":      a.handleApiGetLog,
+		"/api/status/":   a.handleApiServerStatus,
 		"/":              a.handleAnyPage("home", nil),
 		"/logs/":         a.handleLog,
 		"/info/":         a.handleInfo,
@@ -173,8 +182,6 @@ func (a *App) handleApiReloadConfig(w http.ResponseWriter, r *http.Request) {
 	if err := a.config.Reload(); err != nil {
 		logger.Fatal("Failed to read config file")
 	}
-
-	w.Write([]byte("ok"))
 }
 
 func (a *App) handleApiUptime(w http.ResponseWriter, r *http.Request) {
@@ -185,6 +192,26 @@ func (a *App) handleApiUptime(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Error(err.Error())
 	}
+}
+
+func (a *App) handleApiServerStatus(w http.ResponseWriter, r *http.Request) {
+	version, dbuptimeStr, err := a.store.GetStatus()
+	dbstatus := "green"
+	if err != nil {
+		dbstatus = "red"
+	}
+
+	dbname := a.config.GetString("app.db.name")
+	dbuptime, err := time.ParseDuration(thenIf(dbuptimeStr != "", dbuptimeStr+"s", "0s"))
+	if err != nil {
+		logger.Error(err.Error())
+	}
+	dbuptimeStr = dbuptime.String()
+
+	appUptime := time.Since(a.startTime).Round(time.Second).String()
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"dbserver": "%s", "dbversion": "%s", "dbuptime": "%s", "dbstatus": "%s", "appuptime": "%s"}`, dbname, version, dbuptimeStr, dbstatus, appUptime)
 }
 
 func (a *App) handleApiInfo(w http.ResponseWriter, r *http.Request) {
@@ -509,11 +536,6 @@ func (a *App) handleDirectory(d string) http.HandlerFunc {
 	}
 }
 
-// func (a *App) handleHome(w http.ResponseWriter, r *http.Request) {
-// 	a.handleAnyPage("home.html", map[string]interface{}{})(w, r)
-
-// }
-
 func (a *App) handleLog(w http.ResponseWriter, r *http.Request) {
 	page := "logs"
 
@@ -549,8 +571,8 @@ func getOnePage(name string, data []string, pageNum, linesPerPage int) map[strin
 	var pageSwicher template.HTML
 	pageSwicher += template.HTML("<span class='text-center list-group text-list-item'>Страница " + strconv.Itoa(pageNum) + " из " + strconv.Itoa(pagesTotal+1) + "<br>")
 	for i := 1; i <= pagesTotal+1; i++ {
-		pageSwicher += template.HTML("<span class='level other' style='background-color: rgba(0, 123, 255, 0.10); cursor=pointer;'><a href='#' onclick='loadPage(\"/" + name + "?page=" + strconv.Itoa(i) + "\")'>" + strconv.Itoa(i) + "</a></span> ")
-		// pageSwicher += template.HTML("<a href='/" + name + "?page=" + strconv.Itoa(i) + "'>" + strconv.Itoa(i) + "</a> ")
+		pageSwicher += template.HTML("<span><a class='page-number " + thenIf(i == pageNum, "page-number-current", "") + "' href='#' onclick='loadPage(\"/" + name + "?page=" + strconv.Itoa(i) + "\")'>" + strconv.Itoa(i) + "</a> </span>")
+		// pageSwicher += template.HTML("<span class='page-number " + thenIf(i == pageNum, "page-number-current", "") + "'><a href='#' onclick='loadPage(\"/" + name + "?page=" + strconv.Itoa(i) + "\")'>" + strconv.Itoa(i) + "</a></span> ")
 	}
 	pageSwicher += "</span><br>"
 
@@ -586,9 +608,10 @@ func (a *App) handleAnyPage(page string, data map[string]interface{}) func(w htt
 			return
 		}
 
+		apiserver := "http://" + r.Host
 		data = map[string]interface{}{
 			"content": template.HTML(contentBuffer.String()),
-			"App":     map[string]interface{}{"Name": a.name, "Version": a.version},
+			"app":     map[string]interface{}{"name": a.name, "version": a.version, "apiserver": apiserver},
 		}
 
 		if err := a.template.ExecuteTemplate(w, "base.html", data); err != nil {
@@ -618,6 +641,4 @@ func (a *App) handleHealth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a.handleAnyPage(page, getOnePage(page, data, pageNum, linesPerPage))(w, r)
-
-	w.Write([]byte("OK"))
 }

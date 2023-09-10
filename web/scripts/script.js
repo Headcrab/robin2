@@ -24,3 +24,26 @@ function loadPage(url) {
             console.error('Error:', error);
         });
 }
+
+function fetchStatus() {
+    if (!document.getElementById('apiserver')) {
+        return;
+    }
+    api = document.getElementById('apiserver').textContent
+    fetch(api+'/api/status/')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('dbserver').textContent = data.dbserver;
+            document.getElementById('dbversion').textContent = data.dbversion;
+            document.getElementById('dbuptime').textContent = data.dbuptime;
+            document.getElementById('appuptime').textContent = data.appuptime;
+
+            const statusElement = document.getElementById('dbstatus');
+            statusElement.className = 'status ' + data.dbstatus;
+            statusElement.textContent = '';
+        })
+        .catch(error => console.error('Ошибка:', error));
+}
+
+setInterval(fetchStatus, 1000);
+fetchStatus();

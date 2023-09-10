@@ -27,6 +27,7 @@ type BaseStore interface {
 	GetTagList(like string) (map[string][]string, error)
 	GetDownDates(tag string, from time.Time, to time.Time) ([]time.Time, error)
 	GetUpDates(tag string, from time.Time, to time.Time) ([]time.Time, error)
+	GetStatus() (string, string, error)
 
 	RoundAndFormat(val float32) string
 	Round(val float32) float32
@@ -70,6 +71,15 @@ func (s *BaseStoreImpl) replaceTemplate(repMap map[string]string, query string) 
 		query = strings.ReplaceAll(query, k, v)
 	}
 	return query
+}
+
+func (s *BaseStoreImpl) GetStatus() (string, string, error) {
+	var version, uptime string
+	err := s.db.QueryRow("SELECT version(), uptime()").Scan(&version, &uptime)
+	if err != nil {
+		return "", "", err
+	}
+	return version, uptime, nil
 }
 
 func (s *BaseStoreImpl) GetTagDate(tag string, date time.Time) (float32, error) {

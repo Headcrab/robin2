@@ -1,3 +1,10 @@
 <div class="fixed-bottom">
-  <p style="padding-right: 16px;">{{.App.Name}} v:{{.App.Version}} 2023</p>
+  <span class="status-text">{{.app.name}} v:{{.app.version}}</span>
+  <span id="appuptime">...</span>
+  <span> (</span>
+  <span id="dbserver">...</span>
+  <span> v: <span id="dbversion">...</span></span>
+  <span class="status" id="dbstatus">...</span>
+  <span id="dbuptime">...</span>
+  <span>)</span>
 </div>

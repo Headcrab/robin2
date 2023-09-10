@@ -1,15 +1,15 @@
-<div class="container text-center">
-  <h4>Тест системы</h4>
-  <ul class="list-group">
-      {{range .health}}
-      <li class="text-list-item">
-          {{.}}
-      </li>
-      {{else}}
-      <li class="text-list-item">
-          <b>Нет логов для отображения.</b>
-      </li>
-      {{end}}
-  </ul>
-  {{.page}}
+<div class="text-center">
+    <h4>Тест системы</h4>
+    <ul class="list-group">
+        {{range .health}}
+        <li class="text-list-item">
+            {{.}}
+        </li>
+        {{else}}
+        <li class="text-list-item">
+            <b>Нет логов для отображения.</b>
+        </li>
+        {{end}}
+    </ul>
+    {{.page}}
 </div>
