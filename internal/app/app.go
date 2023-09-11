@@ -536,26 +536,30 @@ func (a *App) handleDirectory(d string) http.HandlerFunc {
 	}
 }
 
+var logData []string
+
 func (a *App) handleLog(w http.ResponseWriter, r *http.Request) {
 	page := "logs"
-
-	logData, err := logger.GetLogHistory()
-	if err != nil {
-		errorMsg := "#Error: " + err.Error()
-		w.Write([]byte(errorMsg))
-		logger.Error(errorMsg)
-		return
-	}
-
 	logPerPage := 23
 	pageNumStr := r.URL.Query().Get("page")
 	if pageNumStr == "" {
 		pageNumStr = "1"
+		logData = nil
 	}
 
 	pageNum, err := strconv.Atoi(pageNumStr)
 	if err != nil || pageNum < 1 {
 		pageNum = 1
+	}
+
+	if logData == nil {
+		logData, err = logger.GetLogHistory()
+		if err != nil {
+			errorMsg := "#Error: " + err.Error()
+			w.Write([]byte(errorMsg))
+			logger.Error(errorMsg)
+			return
+		}
 	}
 
 	a.handleAnyPage(page, getOnePage(page, logData, pageNum, logPerPage))(w, r)
@@ -568,28 +572,90 @@ func getOnePage(name string, data []string, pageNum, linesPerPage int) map[strin
 		pageNum = pagesTotal + 1
 	}
 
-	var pageSwicher template.HTML
-	pageSwicher += template.HTML("<span class='text-center list-group text-list-item'>Страница " + strconv.Itoa(pageNum) + " из " + strconv.Itoa(pagesTotal+1) + "<br>")
-	for i := 1; i <= pagesTotal+1; i++ {
-		pageSwicher += template.HTML("<span><a class='page-number " + thenIf(i == pageNum, "page-number-current", "") + "' href='#' onclick='loadPage(\"/" + name + "?page=" + strconv.Itoa(i) + "\")'>" + strconv.Itoa(i) + "</a> </span>")
-		// pageSwicher += template.HTML("<span class='page-number " + thenIf(i == pageNum, "page-number-current", "") + "'><a href='#' onclick='loadPage(\"/" + name + "?page=" + strconv.Itoa(i) + "\")'>" + strconv.Itoa(i) + "</a></span> ")
-	}
-	pageSwicher += "</span><br>"
+	pageSwicher := generatePageSwitcherHTML(name, pageNum, pagesTotal+1)
 
-	data = data[(pageNum-1)*linesPerPage : min(pageNum*linesPerPage, len(data))]
+	dataL := getDataSubset(data, pageNum, linesPerPage)
 
 	return map[string]interface{}{
-		name:   data,
+		name:   dataL,
 		"page": pageSwicher,
 	}
+}
+
+// generatePageSwitcherHTML generates the HTML for the page switcher component.
+func generatePageSwitcherHTML(name string, pageNum, pagesTotal int) template.HTML {
+	// pageSwitcher := fmt.Sprintf("<span class='text-center list-group text-list-item'>Страница %d из %d <br>", pageNum, pagesTotal)
+	pageSwitcher := "<span class='text-center fixed-bottom2'>"
+	// show 10 pages only, current must be in list
+	if pagesTotal < 1 {
+		return template.HTML(pageSwitcher)
+	}
+
+	pageSwitcher += getFormattedPageNumber(name, 1, pageNum == 1, "")
+
+	pageLimit := 11
+	if pagesTotal <= pageLimit {
+		for i := 2; i < pagesTotal; i++ {
+			pageSwitcher += getFormattedPageNumber(name, i, pageNum == i, "")
+		}
+	} else {
+		if pageNum < pageLimit-1 {
+			for i := 2; i < pageLimit-1; i++ {
+				pageSwitcher += getFormattedPageNumber(name, i, pageNum == i, "")
+			}
+			pageSwitcher += getFormattedPageNumber(name, pageNum+1, false, "»")
+		} else if pageNum > pagesTotal-pageLimit+3 {
+			pageSwitcher += getFormattedPageNumber(name, pageNum-1, false, "«")
+			for i := pagesTotal - pageLimit + 3; i < pagesTotal; i++ {
+				pageSwitcher += getFormattedPageNumber(name, i, pageNum == i, "")
+			}
+		} else {
+			pageSwitcher += getFormattedPageNumber(name, pageNum-1, false, "«")
+			for i := pageNum - (pageLimit-4)/2; i <= pageNum+(pageLimit-4)/2; i++ {
+				pageSwitcher += getFormattedPageNumber(name, i, pageNum == i, "")
+			}
+			pageSwitcher += getFormattedPageNumber(name, pageNum+1, false, "»")
+		}
+	}
+
+	pageSwitcher += getFormattedPageNumber(name, pagesTotal, pageNum == pagesTotal, "")
+
+	pageSwitcher += "</span><br>"
+	return template.HTML(pageSwitcher)
+}
+
+func getFormattedPageNumber(name string, pageNum int, isCurr bool, pagerName string) string {
+	if pagerName == "" {
+		return fmt.Sprintf(`<button class='page-number %s' href='#' onclick='loadPage("/%s?page=%d")'>%d</button>`,
+			thenIf(isCurr, "page-number-current", ""), name, pageNum, pageNum)
+	}
+	return fmt.Sprintf(`<button class='page-number %s' href='#' onclick='loadPage("/%s?page=%d")'>%s</button>`,
+		thenIf(isCurr, "page-number-current", ""), name, pageNum, pagerName)
+}
+
+// getDataSubset determines the subset of data to be displayed on the requested page.
+func getDataSubset(data []string, pageNum, linesPerPage int) []string {
+	startIndex := (pageNum - 1) * linesPerPage
+	endIndex := min(pageNum*linesPerPage, len(data))
+
+	return data[startIndex:endIndex]
 }
 
 func (a *App) handleInfo(w http.ResponseWriter, r *http.Request) {
 
 	page := "info"
 
+	if tagList == nil {
+		tags, err := a.store.GetTagList("")
+		if err != nil {
+			w.Write([]byte("#Error: " + err.Error()))
+			return
+		}
+		tagList = append(tagList, tags["tags"]...)
+	}
+
 	data := map[string]interface{}{
-		"Uptime": time.Since(a.startTime).Round(time.Second).String(),
+		"tags": tagList,
 	}
 
 	a.handleAnyPage(page, data)(w, r)
@@ -621,17 +687,15 @@ func (a *App) handleAnyPage(page string, data map[string]interface{}) func(w htt
 	}
 }
 
+var tagList []string
+
 func (a *App) handleHealth(w http.ResponseWriter, r *http.Request) {
 	page := "health"
-
-	var data []string
-	for i := 0; i < 100000; i++ {
-		data = append(data, "Test line "+strconv.Itoa(i)+" --------- ")
-	}
-
 	linesPerPage := 23
+
 	pageNumStr := r.URL.Query().Get("page")
 	if pageNumStr == "" {
+		tagList = nil
 		pageNumStr = "1"
 	}
 
@@ -640,5 +704,16 @@ func (a *App) handleHealth(w http.ResponseWriter, r *http.Request) {
 		pageNum = 1
 	}
 
-	a.handleAnyPage(page, getOnePage(page, data, pageNum, linesPerPage))(w, r)
+	if tagList == nil {
+		tags, err := a.store.GetTagList("")
+		if err != nil {
+			w.Write([]byte("#Error: " + err.Error()))
+			return
+		}
+		tagList = append(tagList, tags["tags"]...)
+		// for _, tag := range tags["tags"] {
+		// 	tagList = append(tagList, fmt.Sprintf("<div>%s</div>", tag))
+		// }
+	}
+	a.handleAnyPage(page, getOnePage(page, tagList, pageNum, linesPerPage))(w, r)
 }

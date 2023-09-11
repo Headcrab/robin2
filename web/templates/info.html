@@ -1,5 +1,16 @@
+<div id="tags" style="display: none;">{{.tags}}</div>
+
 <div class="text-center">
-  <h4>Robin</h4>
-  <img src="../images/icon3.png" class="img-resize" alt="Robin">
-  <p>{{.Uptime}}</p>
+  <h4>Получить данные</h4>
+  <div>
+
+    <div style="display: flex; align-items: center;">
+      <input type="text" id="searchInput" placeholder="Input Tag">
+      <input type="datetime-local" id="dateFrom" name="dateFrom" value="2022-09-01T20:00:00" placeholder="Дата начала">
+      <input type="datetime-local" id="dateFrom" name="dateFrom" value="2022-09-01T20:00:00" placeholder="Дата окончания">
+      <button class="flat-btn flat-btn-medium" id="searchBtn">Поиск</button>
+    </div>
+
+
+  </div>
 </div>
