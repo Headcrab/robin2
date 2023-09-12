@@ -1,6 +1,6 @@
 function loadPage(url) {
     const loaderElement = document.getElementById('loader');
-    
+
     if (!loaderElement) {
         console.error('Element with ID "loader" not found.');
         return;
@@ -30,7 +30,7 @@ function fetchStatus() {
         return;
     }
     api = document.getElementById('apiserver').textContent
-    fetch(api+'/api/status/')
+    fetch(api + '/api/status/')
         .then(response => response.json())
         .then(data => {
             document.getElementById('dbserver').textContent = data.dbserver;
@@ -47,3 +47,34 @@ function fetchStatus() {
 
 setInterval(fetchStatus, 1000);
 fetchStatus();
+
+function getTagOnDate() {
+    // Получаем значения полей ввода
+    var tag = document.getElementById("searchInput").value;
+    var dateFrom = document.getElementById("dateFrom").value;
+    var dateTo = document.getElementById("dateTo").value;
+
+    // Формируем URL с параметрами
+    if (!document.getElementById('apiserver')) {
+        return;
+    }
+    api = document.getElementById('apiserver').textContent
+    var url = api+"/info?tag=" + tag + "&from=" + dateFrom + "&to=" + dateTo;
+    // + "&group=avg";
+
+    // go to url
+    loadPage(url);
+
+    // Отправляем GET-запрос
+    // fetch(url)
+    //     .then(function (response) {
+    //         return response.text();
+    //     })
+    //     .then(function (data) {
+    //         // Выводим результат на страницу
+    //         document.getElementById("results").textContent = data;
+    //     })
+    //     .catch(function (error) {
+    //         console.log("Произошла ошибка: " + error);
+    //     });
+}

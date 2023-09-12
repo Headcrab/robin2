@@ -587,7 +587,7 @@ func generatePageSwitcherHTML(name string, pageNum, pagesTotal int) template.HTM
 	// pageSwitcher := fmt.Sprintf("<span class='text-center list-group text-list-item'>Страница %d из %d <br>", pageNum, pagesTotal)
 	pageSwitcher := "<span class='text-center fixed-bottom2'>"
 	// show 10 pages only, current must be in list
-	if pagesTotal < 1 {
+	if pagesTotal < 2 {
 		return template.HTML(pageSwitcher)
 	}
 
@@ -645,20 +645,43 @@ func (a *App) handleInfo(w http.ResponseWriter, r *http.Request) {
 
 	page := "info"
 
-	if tagList == nil {
-		tags, err := a.store.GetTagList("")
+	linesPerPage := 23
+
+	q := r.URL.Query()
+	pageNumStr := q.Get("page")
+	if pageNumStr == "" {
+		tagList = nil
+		pageNumStr = "1"
+	}
+
+	pageNum, err := strconv.Atoi(pageNumStr)
+	if err != nil || pageNum < 1 {
+		pageNum = 1
+	}
+
+	tags := map[string]map[time.Time]float32{}
+	if q.Get("tag") != "" && q.Get("from") != "" && q.Get("to") != "" {
+		from, _ := time.Parse("2006-01-02T15:04", q.Get("from"))
+		to, _ := time.Parse("2006-01-02T15:04", q.Get("to"))
+		tags, err = a.store.GetTagFromTo(q.Get("tag"), from, to)
 		if err != nil {
-			w.Write([]byte("#Error: " + err.Error()))
+			fmt.Println("Ошибка при чтении ответа:", err)
 			return
 		}
-		tagList = append(tagList, tags["tags"]...)
 	}
 
-	data := map[string]interface{}{
-		"tags": tagList,
+	infoData := []string{}
+	for _, tag := range tags {
+		for d, v := range tag {
+			infoData = append(infoData, fmt.Sprintf("%s: %f", d, v))
+		}
 	}
 
-	a.handleAnyPage(page, data)(w, r)
+	// data :=map[string]interface{}{
+	// 	page: infoData,
+	// }
+
+	a.handleAnyPage(page, getOnePage(page, infoData, pageNum, linesPerPage))(w, r)
 
 }
 
@@ -674,13 +697,16 @@ func (a *App) handleAnyPage(page string, data map[string]interface{}) func(w htt
 			return
 		}
 
+		c := contentBuffer.String()
+		t := template.HTML(c)
+		// fmt.Printf("%s", t)
 		apiserver := "http://" + r.Host
-		data = map[string]interface{}{
-			"content": template.HTML(contentBuffer.String()),
+		dataFull := map[string]interface{}{
+			"content": t,
 			"app":     map[string]interface{}{"name": a.name, "version": a.version, "apiserver": apiserver},
 		}
 
-		if err := a.template.ExecuteTemplate(w, "base.html", data); err != nil {
+		if err := a.template.ExecuteTemplate(w, "base.html", dataFull); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			logger.Error(err.Error())
 		}
