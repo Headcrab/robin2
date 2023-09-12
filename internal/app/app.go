@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"net/http"
@@ -641,6 +642,8 @@ func getDataSubset(data []string, pageNum, linesPerPage int) []string {
 	return data[startIndex:endIndex]
 }
 
+var tags map[string]map[time.Time]float32
+
 func (a *App) handleInfo(w http.ResponseWriter, r *http.Request) {
 
 	page := "info"
@@ -650,7 +653,7 @@ func (a *App) handleInfo(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	pageNumStr := q.Get("page")
 	if pageNumStr == "" {
-		tagList = nil
+		tags = nil
 		pageNumStr = "1"
 	}
 
@@ -659,21 +662,30 @@ func (a *App) handleInfo(w http.ResponseWriter, r *http.Request) {
 		pageNum = 1
 	}
 
-	tags := map[string]map[time.Time]float32{}
-	if q.Get("tag") != "" && q.Get("from") != "" && q.Get("to") != "" {
-		from, _ := time.Parse("2006-01-02T15:04", q.Get("from"))
-		to, _ := time.Parse("2006-01-02T15:04", q.Get("to"))
-		tags, err = a.store.GetTagFromTo(q.Get("tag"), from, to)
-		if err != nil {
-			fmt.Println("Ошибка при чтении ответа:", err)
-			return
+	if tags == nil {
+		if q.Get("tag") != "" && q.Get("from") != "" && q.Get("to") != "" {
+			from, _ := time.Parse("2006-01-02T15:04", q.Get("from"))
+			to, _ := time.Parse("2006-01-02T15:04", q.Get("to"))
+			// tags, err = a.store.GetTagFromTo(q.Get("tag"), from, to)
+			tags, err = a.store.GetTagCount(q.Get("tag"), from, to, 500)
+			if err != nil {
+				fmt.Println("Ошибка при чтении ответа:", err)
+				return
+			}
 		}
 	}
 
 	infoData := []string{}
 	for _, tag := range tags {
-		for d, v := range tag {
-			infoData = append(infoData, fmt.Sprintf("%s: %f", d, v))
+		times := make([]time.Time, 0)
+		for k := range tag {
+			times = append(times, k)
+		}
+		sort.Slice(times, func(i, j int) bool {
+			return times[i].Before(times[j])
+		})
+		for _, v := range times {
+			infoData = append(infoData, fmt.Sprintf("%s: %f", v, tag[v]))
 		}
 	}
 

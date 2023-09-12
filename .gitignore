@@ -37,3 +37,5 @@ go.sum
 .env
 log/*
 vendor/*
+cmd/robin_2023_09_12_17_58_34.log
+*.log

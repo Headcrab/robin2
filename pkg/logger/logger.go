@@ -41,8 +41,8 @@ func consoleLog() *zerolog.Logger {
 	once.Do(func() {
 
 		tmp := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "02.01.2006 15:04:05"}).
-			Level(zerolog.TraceLevel).
-			// Level(zerolog.DebugLevel).
+			// Level(zerolog.TraceLevel).
+			Level(zerolog.DebugLevel).
 			// Level(zerolog.InfoLevel).
 			With().Timestamp().Logger()
 		consoleLogPtr = &tmp
@@ -58,9 +58,9 @@ func fileLog() *zerolog.Logger {
 		checkFileLog()
 		// defer file.Close()
 		tmp := zerolog.New(zerolog.ConsoleWriter{Out: file, TimeFormat: "02.01.2006 15:04:05", NoColor: true}).
-			Level(zerolog.TraceLevel).
+			// Level(zerolog.TraceLevel).
 			// Level(zerolog.DebugLevel).
-			// Level(zerolog.InfoLevel).
+			Level(zerolog.InfoLevel).
 			With().Timestamp().Logger()
 		fileLogPtr = &tmp
 		// fileLogPtr.Debug().Msg("Initializing file logger")

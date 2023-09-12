@@ -52,6 +52,7 @@ func (c *RedisCacheImpl) Connect() error {
 
 func (c *RedisCacheImpl) Get(tag string, date time.Time) (float32, error) {
 	logger.Trace("RedisCacheImpl.Get")
+	c.rds.Expire(context.Background(), tag, time.Duration(c.config.GetInt("app.cache.ttl"))*time.Hour)
 	return c.rds.HGet(context.Background(), tag, date.Format("02.01.2006 15:04:05")).Float32()
 }
 
