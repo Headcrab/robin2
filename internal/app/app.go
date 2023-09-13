@@ -626,12 +626,9 @@ func generatePageSwitcherHTML(name string, pageNum, pagesTotal int) template.HTM
 }
 
 func getFormattedPageNumber(name string, pageNum int, isCurr bool, pagerName string) string {
-	if pagerName == "" {
-		return fmt.Sprintf(`<button class='page-number %s' href='#' onclick='loadPage("/%s?page=%d")'>%d</button>`,
-			thenIf(isCurr, "page-number-current", ""), name, pageNum, pageNum)
-	}
 	return fmt.Sprintf(`<button class='page-number %s' href='#' onclick='loadPage("/%s?page=%d")'>%s</button>`,
-		thenIf(isCurr, "page-number-current", ""), name, pageNum, pagerName)
+		thenIf(isCurr, "page-number-current", ""), name, pageNum,
+		thenIf(pagerName == "", fmt.Sprintf("%d", pageNum), pagerName))
 }
 
 // getDataSubset determines the subset of data to be displayed on the requested page.
@@ -677,7 +674,7 @@ func (a *App) handleInfo(w http.ResponseWriter, r *http.Request) {
 
 	infoData := []string{}
 	for _, tag := range tags {
-		times := make([]time.Time, 0)
+		times := make([]time.Time, 0, len(tag))
 		for k := range tag {
 			times = append(times, k)
 		}
@@ -688,7 +685,6 @@ func (a *App) handleInfo(w http.ResponseWriter, r *http.Request) {
 			infoData = append(infoData, fmt.Sprintf("%s: %f", v, tag[v]))
 		}
 	}
-
 	// data :=map[string]interface{}{
 	// 	page: infoData,
 	// }
