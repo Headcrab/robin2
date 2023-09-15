@@ -1,3 +1,4 @@
+# todo: add redis
 version: "3"
 
 services:

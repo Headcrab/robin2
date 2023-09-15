@@ -2,6 +2,7 @@
 // todo: log size limit
 // todo: log rotation time
 // todo: log name by start time
+// todo: change to slog
 package logger
 
 import (
