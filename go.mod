@@ -9,8 +9,6 @@ require (
 	github.com/spf13/viper v1.16.0
 )
 
-require google.golang.org/protobuf v1.31.0 // indirect
-
 require (
 	github.com/ClickHouse/ch-go v0.58.2 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
