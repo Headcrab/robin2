@@ -20,16 +20,17 @@ type RedisCacheImpl struct {
 	config config.Config
 }
 
-func NewRedisCache() BaseCache {
+func NewRedisCache() (BaseCache, error) {
 	t := BaseCache(&RedisCacheImpl{
 		config: config.GetConfig(),
 	})
 	err := t.Connect()
 	if err != nil {
 		logger.Error(err.Error())
+		return nil, err
 	}
 	logger.Trace("NewRedisCache")
-	return t
+	return t, nil
 }
 
 func (c *RedisCacheImpl) Connect() error {
@@ -46,7 +47,11 @@ func (c *RedisCacheImpl) Connect() error {
 		DB:       db,
 	})
 	logger.Info(fmt.Sprintf("cache connected to redis on %s:%s", host, port))
-
+	// ping to check connection
+	err := c.rds.Ping(context.Background()).Err()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

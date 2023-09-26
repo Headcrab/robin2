@@ -33,6 +33,7 @@ bin/logs/*
 bin/log/*
 grafana/*
 bin/upx
+docs/*
 go.sum
 .env
 log/*

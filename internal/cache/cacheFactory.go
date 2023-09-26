@@ -30,7 +30,11 @@ func (f *FactoryImpl) NewCache(cacheName string) BaseCache {
 		return NewMemoryCacheByte()
 	case "redis":
 		// logger.Info("redis cache selected")
-		return NewRedisCache()
+		if c, err := NewRedisCache(); err != nil {
+			return nil
+		} else {
+			return c
+		}
 	default:
 		logger.Info("no cache selected")
 		return nil

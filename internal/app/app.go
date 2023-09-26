@@ -1,3 +1,5 @@
+// fix: add swagger descriptions to all endpoints
+// todo: add tests
 package robin
 
 import (
@@ -22,6 +24,10 @@ import (
 	"robin2/pkg/logger"
 
 	"github.com/joho/godotenv"
+
+	_ "robin2/docs"
+
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
 // generic thernary operator
@@ -81,15 +87,10 @@ func getLocalhostIpAdresses() []string {
 			continue
 		}
 		for _, addr := range addrs {
-			ipnet, ok := addr.(*net.IPNet)
-			if !ok {
-				continue
-			}
-			if ipnet.IP.IsLoopback() {
-				continue
-			}
-			if ip4 := ipnet.IP.To4(); ip4 != nil {
-				localhostIPs = append(localhostIPs, ip4.String())
+			if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+				if ip4 := ipnet.IP.To4(); ip4 != nil {
+					localhostIPs = append(localhostIPs, ip4.String())
+				}
 			}
 		}
 	}
@@ -125,10 +126,10 @@ func (a *App) init() {
 		"/api/reload/":   a.handleApiReloadConfig,
 		"/api/log/":      a.handleApiGetLog,
 		"/api/status/":   a.handleApiServerStatus,
-		"/":              a.handleAnyPage("home", nil),
 		"/logs/":         a.handleLog,
 		"/info/":         a.handleInfo,
 		"/health/":       a.handleHealth,
+		"/":              a.handleAnyPage("home", nil),
 		"/images/":       a.handleDirectory("images"),
 		"/scripts/":      a.handleDirectory("scripts"),
 		"/css/":          a.handleDirectory("css"),
@@ -141,15 +142,7 @@ func (a *App) init() {
 
 	// Define custom template function
 	funcMap := template.FuncMap{
-		"colorizeLogString": func(input string) template.HTML {
-			st := strings.Split(input, " ")
-			if len(st) > 2 {
-				st[0] = "<span class='date'>" + st[0]
-				st[1] = st[1] + "</span>"
-				st[2] = "<span class='level " + st[2] + "'>" + st[2] + "</span> <span class='level other'>"
-			}
-			return template.HTML(strings.Join(st, " ") + "</span>")
-		},
+		"colorizeLogString": colorizeLogString,
 	}
 
 	// Create template object and parse HTML templates
@@ -160,6 +153,22 @@ func (a *App) init() {
 		logger.Fatal(err.Error())
 		panic(err)
 	}
+
+	// Маршрут для Swagger UI
+	http.Handle("/swagger/", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"), // Указание пути к файлу swagger.json
+	))
+
+}
+
+func colorizeLogString(input string) template.HTML {
+	st := strings.Split(input, " ")
+	if len(st) > 2 {
+		st[0] = "<span class='date'>" + st[0]
+		st[1] = st[1] + "</span>"
+		st[2] = "<span class='level " + st[2] + "'>" + st[2] + "</span> <span class='level other'>"
+	}
+	return template.HTML(strings.Join(st, " ") + "</span>")
 }
 
 func getWorkDir() string {
@@ -230,10 +239,19 @@ func (a *App) handleApiInfo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// todo: разделить логику по отдельным функциям
 // handleGetTag handles GET requests for a tag and outputs the corresponding value.
 // The tag can be filtered by date, or by a time range. The output can be formatted
 // as raw or rounded. The function takes in an http.ResponseWriter and an http.Request
 // as parameters, and returns nothing.
+// @Summary Получить значение тега
+// @Description Получает значение тега на выбранную дату.
+// @Tags GetTag
+// @Produce text/plain
+// @Success 200 {array} string
+// @Router /get/tag/ [get]
+// @Param tag query string true "tag"
+// @Param date query string true "date"
 func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 	// Set response headers
 	headers := w.Header()
@@ -332,6 +350,13 @@ func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary Получить список тегов
+// @Description Получает список всех тегов.
+// @Tags Users
+// @Produce json
+// @Success 200 {array} string
+// @Router /get/tag/list/ [get]
+// @Param like query string true "like"
 // returns JSON with tags by mask
 func (a *App) handleGetTagList(w http.ResponseWriter, r *http.Request) {
 	// Set response headers
