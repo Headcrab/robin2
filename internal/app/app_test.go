@@ -34,13 +34,13 @@ func Test_tryParseDate(t *testing.T) {
 			name:     "invalid empty string",
 			date:     "",
 			expected: time.Time{},
-			err:      errors.ErrInvalidDate,
+			err:      errors.InvalidDate,
 		},
 		{
 			name:     "invalid 12.31.2022 00:00:00",
 			date:     "12.31.2022 00:00:00",
 			expected: time.Time{},
-			err:      errors.ErrInvalidDate,
+			err:      errors.InvalidDate,
 		},
 	}
 	app := NewApp()
@@ -131,13 +131,13 @@ func Test_excelTimeToTime(t *testing.T) {
 			name:     "invalid empty string",
 			time:     "",
 			expected: time.Time{},
-			err:      errors.ErrInvalidDate,
+			err:      errors.InvalidDate,
 		},
 		{
 			name:     "invalid 12.31.2022 00:00:00",
 			time:     "12.31.2022 00:00:00",
 			expected: time.Time{},
-			err:      errors.ErrInvalidDate,
+			err:      errors.InvalidDate,
 		},
 	}
 	app := NewApp()

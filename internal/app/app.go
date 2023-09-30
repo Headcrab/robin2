@@ -48,12 +48,12 @@ type App struct {
 	version   string
 	startTime time.Time
 	workDir   string
-	round     int
-	opCount   int64
-	config    config.Config
-	cache     cache.BaseCache
-	store     store.BaseStore
-	template  *template.Template
+	// round     int
+	opCount  int64
+	config   config.Config
+	cache    cache.BaseCache
+	store    store.BaseStore
+	template *template.Template
 }
 
 func (a *App) Run() {
@@ -250,10 +250,10 @@ func (a *App) handleTagAndDate(tag, date, format string) []byte {
 	if err != nil {
 		return []byte("#Error: " + err.Error())
 	}
-	if format == "raw" || a.round == -1 {
+	if format == "raw" {
 		return []byte(fmt.Sprintf("%f", tagValue))
 	} else {
-		return []byte(a.store.RoundAndFormat(tagValue))
+		return []byte(a.store.Format(a.store.Round(tagValue)))
 	}
 }
 
@@ -271,6 +271,30 @@ func (a *App) handleTagAndCount(tag, from, to, count string) []byte {
 		return []byte(err.Error())
 	}
 	tagValue, err := a.store.GetTagCount(tag, fromT, toT, countT)
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
+	tagValueJSON, err := json.MarshalIndent(tagValue, "", "  ")
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
+	return tagValueJSON
+}
+
+func (a *App) handleTagAndCountGroup(tag, from, to, count string, group string) []byte {
+	fromT, err := a.excelTimeToTime(from)
+	if err != nil {
+		return []byte(err.Error())
+	}
+	toT, err := a.excelTimeToTime(to)
+	if err != nil {
+		return []byte(err.Error())
+	}
+	countT, err := strconv.Atoi(count)
+	if err != nil {
+		return []byte(err.Error())
+	}
+	tagValue, err := a.store.GetTagCountGroup(tag, fromT, toT, countT, group)
 	if err != nil {
 		return []byte("#Error: " + err.Error())
 	}
@@ -313,8 +337,11 @@ func (a *App) handleTagFromToGroup(tag, from, to, group string) []byte {
 	if err != nil {
 		return []byte(err.Error())
 	}
-	tagValue := a.store.GetTagFromToGroup(tag, fromT, toT, group)
-	return []byte(tagValue)
+	tagValue, err := a.store.GetTagFromToGroup(tag, fromT, toT, group)
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
+	return []byte(a.store.Format(a.store.Round(tagValue)))
 }
 
 // @Summary Получить значение тега
@@ -338,7 +365,7 @@ func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 	procTimeBegin := time.Now()
 	writer := []byte("")
 	defer func() {
-		headers.Set("Porocession-Time", time.Since(procTimeBegin).String())
+		headers.Set("Procession-Time", time.Since(procTimeBegin).String())
 		w.WriteHeader(http.StatusOK)
 		w.Write(writer)
 	}()
@@ -355,9 +382,12 @@ func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 	count := query.Get("count")
 	format := query.Get("format")
 
-	a.round = 2
 	if round != "" {
-		a.round, _ = strconv.Atoi(round)
+		round, _ := strconv.Atoi(round)
+		a.store.SetRound(round)
+	} else {
+		round := a.config.GetInt("app.round")
+		a.store.SetRound(round)
 	}
 
 	if tag != "" && date != "" {
@@ -367,8 +397,13 @@ func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 
 	if tag != "" && from != "" && to != "" {
 		if count != "" {
-			writer = a.handleTagAndCount(tag, from, to, count)
-			return
+			if group == "" {
+				writer = a.handleTagAndCount(tag, from, to, count)
+				return
+			} else {
+				writer = a.handleTagAndCountGroup(tag, from, to, count, group)
+				return
+			}
 		}
 
 		if group == "" {
@@ -393,6 +428,13 @@ func (a *App) handleGetTagList(w http.ResponseWriter, r *http.Request) {
 	// Set response headers
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
+	procTimeBegin := time.Now()
+	writer := []byte("")
+	defer func() {
+		w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
+		w.WriteHeader(http.StatusOK)
+		w.Write(writer)
+	}()
 
 	// Extract query parameter
 	like := r.URL.Query().Get("like")
@@ -400,27 +442,27 @@ func (a *App) handleGetTagList(w http.ResponseWriter, r *http.Request) {
 	// Retrieve list of tags
 	tags, err := a.store.GetTagList(like)
 	if err != nil {
-		w.Write([]byte("#Error: " + err.Error()))
+		writer = []byte("#Error: " + err.Error())
 		return
 	}
 
 	// Marshal tags into JSON string
-	j, err := json.MarshalIndent(tags, "", "  ")
+	writer, err = json.MarshalIndent(tags, "", "  ")
 	if err != nil {
 		// logger.Debug(err.error())
-		w.Write([]byte("#Error: " + err.Error()))
+		writer = []byte("#Error: " + err.Error())
 		return
 	}
 
 	// Write JSON string to response
-	w.Write(j)
+	// w.Write(j)
 }
 
 // return time.Time and error
 func (a *App) excelTimeToTime(timeStr string) (time.Time, error) {
 
 	if timeStr == "" {
-		return time.Time{}, errors.ErrInvalidDate
+		return time.Time{}, errors.InvalidDate
 	}
 
 	var result time.Time
@@ -429,7 +471,7 @@ func (a *App) excelTimeToTime(timeStr string) (time.Time, error) {
 		timeStr = strings.Replace(timeStr, ",", ".", 1)
 		timeFloat, err := strconv.ParseFloat(timeStr, 64)
 		if err != nil {
-			return time.Time{}, errors.ErrNotAFloat
+			return time.Time{}, errors.NotAFloat
 		}
 
 		unixTime := (timeFloat - 25569) * 86400
@@ -446,7 +488,7 @@ func (a *App) excelTimeToTime(timeStr string) (time.Time, error) {
 	}
 
 	if result.IsZero() {
-		return time.Time{}, errors.ErrInvalidDate
+		return time.Time{}, errors.InvalidDate
 	}
 
 	return result, nil
@@ -455,7 +497,7 @@ func (a *App) excelTimeToTime(timeStr string) (time.Time, error) {
 func (a *App) tryParseDate(date string) (time.Time, error) {
 	// if date is empty, return error
 	if date == "" {
-		return time.Time{}, errors.ErrInvalidDate
+		return time.Time{}, errors.InvalidDate
 	}
 	// if date is not empty, try to parse it to time.Time
 	// if date is not valid, return error
@@ -466,7 +508,7 @@ func (a *App) tryParseDate(date string) (time.Time, error) {
 			return t, nil
 		}
 	}
-	return time.Time{}, errors.ErrInvalidDate
+	return time.Time{}, errors.InvalidDate
 }
 
 func (a *App) handleGetTagDown(w http.ResponseWriter, r *http.Request) {
@@ -576,7 +618,7 @@ func (a *App) handleApiGetLog(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) handleFavicon(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, a.workDir+"/web/images/icon3.png")
+	http.ServeFile(w, r, a.workDir+"/web/images/icon.png")
 }
 
 func (a *App) handleDirectory(d string) http.HandlerFunc {

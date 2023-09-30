@@ -22,14 +22,16 @@ type BaseStore interface {
 	Connect(cache cache.BaseCache) error
 	GetTagDate(tag string, date time.Time) (float32, error)
 	GetTagCount(tag string, from time.Time, to time.Time, strCount int) (map[string]map[time.Time]float32, error)
+	GetTagCountGroup(tag string, from time.Time, to time.Time, strCount int, group string) (map[string]map[time.Time]float32, error)
 	GetTagFromTo(tag string, from time.Time, to time.Time) (map[string]map[time.Time]float32, error)
-	GetTagFromToGroup(tag string, from time.Time, to time.Time, group string) string
+	GetTagFromToGroup(tag string, from time.Time, to time.Time, group string) (float32, error)
 	GetTagList(like string) (map[string][]string, error)
 	GetDownDates(tag string, from time.Time, to time.Time) ([]time.Time, error)
 	GetUpDates(tag string, from time.Time, to time.Time) ([]time.Time, error)
 	GetStatus() (string, string, error)
 
-	RoundAndFormat(val float32) string
+	SetRound(round int)
+	Format(val float32) string
 	Round(val float32) float32
 }
 
@@ -39,6 +41,7 @@ type BaseStoreImpl struct {
 	config        config.Config
 	cache         cache.BaseCache
 	roundConstant float64
+	round         int
 }
 
 /*------------------------------------------------------------------*/
@@ -48,22 +51,27 @@ func (s *BaseStoreImpl) marshalConnectionString() string {
 	for k, v := range s.config.GetStringMapString("db." + s.config.GetString("app.db.name")) {
 		connStr = strings.ReplaceAll(connStr, "{"+k+"}", v)
 	}
+	s.round = s.config.GetInt("app.round")
 	return connStr
 }
 
-func (s *BaseStoreImpl) RoundAndFormat(val float32) string {
-	f := float64(val)
-	round := s.config.GetInt("app.round")
-	p := math.Pow(10, float64(round))
-	rounded := math.Round(f*p) / p
-	ret := strconv.FormatFloat(rounded, 'f', round, 64)
+func (s *BaseStoreImpl) SetRound(round int) {
+	s.round = round
+}
+
+func (s *BaseStoreImpl) Format(val float32) string {
+	// f := float64(val)
+	// p := math.Pow(10, float64(s.round))
+	// rounded := math.Round(f*p) / p
+	// ret := strconv.FormatFloat(rounded, 'f', s.round, 64)
+	ret := strconv.FormatFloat(float64(val), 'f', s.round, 64)
 	ret = strings.Replace(ret, ".", ",", -1)
 	return ret
 }
 
 func (s *BaseStoreImpl) Round(val float32) float32 {
-	round := float64(s.config.GetInt("app.round"))
-	return float32(math.Round(float64(val)*math.Pow(10, round)) / math.Pow(10, round))
+	// round := float64(s.config.GetInt("app.round"))
+	return float32(math.Round(float64(val)*math.Pow(10, float64(s.round))) / math.Pow(10, float64(s.round)))
 }
 
 func (s *BaseStoreImpl) replaceTemplate(repMap map[string]string, query string) string {
@@ -84,10 +92,10 @@ func (s *BaseStoreImpl) GetStatus() (string, string, error) {
 
 func (s *BaseStoreImpl) GetTagDate(tag string, date time.Time) (float32, error) {
 	if date.IsZero() {
-		return 0, errors.ErrInvalidDate
+		return 0, errors.InvalidDate
 	}
 	if s.db == nil {
-		return 0, errors.ErrDbConnectionFailed
+		return 0, errors.DbConnectionFailed
 	}
 	if s.cache != nil {
 		if val, err := s.cache.Get(tag, date); err == nil {
@@ -111,10 +119,10 @@ func (s *BaseStoreImpl) GetTagDate(tag string, date time.Time) (float32, error) 
 func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, count int) (map[string]map[time.Time]float32, error) {
 	logger.Debug(fmt.Sprintf("GetTagCount %s : %s - %s (%d)", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05"), count))
 	if count == 0 {
-		return nil, errors.ErrCountIsEmpty
+		return nil, errors.CountIsEmpty
 	}
 	if count < 1 {
-		return nil, errors.ErrCountIsLessThanOne
+		return nil, errors.CountIsLessThanOne
 	}
 
 	tmDiff := to.Sub(from).Seconds() / float64(count)
@@ -129,6 +137,34 @@ func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, co
 				val = -1
 			}
 			resDt[dateFrom] = s.Round(val)
+		}
+		res[t] = resDt
+	}
+	return res, nil
+}
+
+func (s *BaseStoreImpl) GetTagCountGroup(tag string, from time.Time, to time.Time, count int, group string) (map[string]map[time.Time]float32, error) {
+	logger.Debug(fmt.Sprintf("GetTagCount %s : %s - %s (%d)", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05"), count))
+	if count == 0 {
+		return nil, errors.CountIsEmpty
+	}
+	if count < 1 {
+		return nil, errors.CountIsLessThanOne
+	}
+
+	tmDiff := to.Sub(from).Seconds() / float64(count)
+	tags := strings.Split(tag, ",")
+	res := make(map[string]map[time.Time]float32, len(tags))
+	for _, t := range tags {
+		resDt := make(map[time.Time]float32, count)
+		for i := 1; i <= count; i++ {
+			dateFrom := from.Add(time.Duration(tmDiff*float64(i-1)) * time.Second)
+			dateTo := from.Add(time.Duration(tmDiff*float64(i)) * time.Second)
+			val, err := s.GetTagFromToGroup(t, dateFrom, dateTo, group)
+			if err != nil {
+				val = -1
+			}
+			resDt[dateFrom] = val
 		}
 		res[t] = resDt
 	}
@@ -162,7 +198,7 @@ func (s *BaseStoreImpl) GetTagFromTo(tag string, from time.Time, to time.Time) (
 	return res, nil
 }
 
-func (s *BaseStoreImpl) GetTagFromToGroup(tag string, from time.Time, to time.Time, group string) string {
+func (s *BaseStoreImpl) GetTagFromToGroup(tag string, from time.Time, to time.Time, group string) (float32, error) {
 	logger.Debug(fmt.Sprintf("GetTagFromTo %s: %s - %s (%s)", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05"), group))
 
 	group = strings.ToLower(group)
@@ -176,7 +212,7 @@ func (s *BaseStoreImpl) GetTagFromToGroup(tag string, from time.Time, to time.Ti
 	case "count":
 		query = s.config.GetString(fmt.Sprintf("db.%s.query.get_tag_from_to_count", s.config.GetString("app.db.name")))
 	default:
-		return "#Error: group error"
+		return -1, errors.GroupError
 	}
 
 	fromStr, toStr := from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05")
@@ -184,17 +220,17 @@ func (s *BaseStoreImpl) GetTagFromToGroup(tag string, from time.Time, to time.Ti
 	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{from}": fromStr, "{to}": toStr, "{group}": group}, query)
 
 	if query == "" {
-		return "#Error: group error"
+		return -1, errors.GroupError
 	}
 
 	var value float32
 	err := s.db.QueryRow(query).Scan(&value)
 
 	if err != nil {
-		return fmt.Sprintf("#Error: tag or date not found (%s)", err.Error())
+		return -1, err
 	}
 
-	return s.RoundAndFormat(value)
+	return s.Round(value), nil
 }
 
 func (s *BaseStoreImpl) GetTagList(like string) (map[string][]string, error) {
@@ -239,7 +275,7 @@ func (s *BaseStoreImpl) GetDownDates(tag string, from time.Time, to time.Time) (
 	toStr := to.Format("2006-01-02 15:04:05")
 	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{from}": fromStr, "{to}": toStr}, query)
 	if query == "" {
-		return nil, errors.ErrQueryError
+		return nil, errors.QueryError
 	}
 	var dates []time.Time
 	cur, err := s.db.Query(query)
@@ -275,7 +311,7 @@ func (s *BaseStoreImpl) GetUpDates(tag string, from time.Time, to time.Time) ([]
 	toStr := to.Format("2006-01-02 15:04:05")
 	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{from}": fromStr, "{to}": toStr}, query)
 	if query == "" {
-		return nil, errors.ErrQueryError
+		return nil, errors.QueryError
 	}
 	var dates []time.Time
 	cur, err := s.db.Query(query)
