@@ -133,6 +133,7 @@ func (a *App) init() {
 		"/images/":       a.handleDirectory("images"),
 		"/scripts/":      a.handleDirectory("scripts"),
 		"/css/":          a.handleDirectory("css"),
+		"/swagger/":      httpSwagger.Handler(httpSwagger.URL("/swagger/doc.json")),
 	}
 
 	// Register HTTP request handlers
@@ -153,12 +154,6 @@ func (a *App) init() {
 		logger.Fatal(err.Error())
 		panic(err)
 	}
-
-	// Маршрут для Swagger UI
-	http.Handle("/swagger/", httpSwagger.Handler(
-		httpSwagger.URL("/swagger/doc.json"), // Указание пути к файлу swagger.json
-	))
-
 }
 
 func colorizeLogString(input string) template.HTML {
@@ -212,6 +207,7 @@ func (a *App) handleApiServerStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dbname := a.config.GetString("app.db.name")
+	dbtype := a.config.GetString("app.db.type")
 	dbuptime, err := time.ParseDuration(thenIf(dbuptimeStr != "", dbuptimeStr+"s", "0s"))
 	if err != nil {
 		logger.Error(err.Error())
@@ -221,9 +217,15 @@ func (a *App) handleApiServerStatus(w http.ResponseWriter, r *http.Request) {
 	appUptime := time.Since(a.startTime).Round(time.Second).String()
 
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"dbserver": "%s", "dbversion": "%s", "dbuptime": "%s", "dbstatus": "%s", "appuptime": "%s"}`, dbname, version, dbuptimeStr, dbstatus, appUptime)
+	fmt.Fprintf(w, `{"dbserver": "%s", "dbversion": "%s", "dbuptime": "%s", "dbstatus": "%s", "appuptime": "%s", "dbtype": "%s"}`, dbname, version, dbuptimeStr, dbstatus, appUptime, dbtype)
 }
 
+// @Summary Запрос информации
+// @Description Инфо по программе
+// @Tags System
+// @Produce json
+// @Success 200 {array} string
+// @Router /api/info/ [get]
 func (a *App) handleApiInfo(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("rendered info page")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
@@ -239,29 +241,110 @@ func (a *App) handleApiInfo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// todo: разделить логику по отдельным функциям
-// handleGetTag handles GET requests for a tag and outputs the corresponding value.
-// The tag can be filtered by date, or by a time range. The output can be formatted
-// as raw or rounded. The function takes in an http.ResponseWriter and an http.Request
-// as parameters, and returns nothing.
+func (a *App) handleTagAndDate(tag, date, format string) []byte {
+	dateTime, err := a.excelTimeToTime(date)
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
+	tagValue, err := a.store.GetTagDate(tag, dateTime)
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
+	if format == "raw" || a.round == -1 {
+		return []byte(fmt.Sprintf("%f", tagValue))
+	} else {
+		return []byte(a.store.RoundAndFormat(tagValue))
+	}
+}
+
+func (a *App) handleTagAndCount(tag, from, to, count string) []byte {
+	fromT, err := a.excelTimeToTime(from)
+	if err != nil {
+		return []byte(err.Error())
+	}
+	toT, err := a.excelTimeToTime(to)
+	if err != nil {
+		return []byte(err.Error())
+	}
+	countT, err := strconv.Atoi(count)
+	if err != nil {
+		return []byte(err.Error())
+	}
+	tagValue, err := a.store.GetTagCount(tag, fromT, toT, countT)
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
+	tagValueJSON, err := json.MarshalIndent(tagValue, "", "  ")
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
+	return tagValueJSON
+}
+
+func (a *App) handleTagFromTo(tag, from, to string) []byte {
+	fromT, err := a.excelTimeToTime(from)
+	if err != nil {
+		return []byte(err.Error())
+	}
+	toT, err := a.excelTimeToTime(to)
+	if err != nil {
+		return []byte(err.Error())
+	}
+	tagValue, err := a.store.GetTagFromTo(tag, fromT, toT)
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
+	tagValueJSON, err := json.MarshalIndent(tagValue, "", "  ")
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
+	return tagValueJSON
+}
+
+func (a *App) handleTagFromToGroup(tag, from, to, group string) []byte {
+	fromT, err := a.excelTimeToTime(from)
+
+	if err != nil {
+		return []byte(err.Error())
+	}
+
+	toT, err := a.excelTimeToTime(to)
+
+	if err != nil {
+		return []byte(err.Error())
+	}
+	tagValue := a.store.GetTagFromToGroup(tag, fromT, toT, group)
+	return []byte(tagValue)
+}
+
 // @Summary Получить значение тега
 // @Description Получает значение тега на выбранную дату.
-// @Tags GetTag
-// @Produce text/plain
+// @Tags Tag
+// @Produce plain/text json
 // @Success 200 {array} string
 // @Router /get/tag/ [get]
-// @Param tag query string true "tag"
-// @Param date query string true "date"
+// @Param tag query string true "Наименование тега"
+// @Param date query string false "Дата" "date-time"
+// @Param from query string false "Дата начала периода"
+// @Param to query string false "Дата окончания периода"
+// @Param group query string false "Функция группировки (avg, sum, count, min, max)"
+// @Param count query string false "Количество значений"
+// @Param round query string false "Округление, знаков после запятой (по умолчанию 2)"
+// @Param format query string false "Формат вывода (raw - без округления и замены точки на запятую, только для одного знчения)"
 func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
-	// Set response headers
 	headers := w.Header()
 	headers.Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	headers.Set("Content-Type", "application/json")
+	headers.Set("Content-Type", "text/plain")
+	procTimeBegin := time.Now()
+	writer := []byte("")
+	defer func() {
+		headers.Set("Porocession-Time", time.Since(procTimeBegin).String())
+		w.WriteHeader(http.StatusOK)
+		w.Write(writer)
+	}()
 
-	// Increment operation count
 	a.opCount++
 
-	// Parse query parameters
 	query := r.URL.Query()
 	tag := query.Get("tag")
 	date := query.Get("date")
@@ -272,91 +355,39 @@ func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 	count := query.Get("count")
 	format := query.Get("format")
 
-	// Set round field of App struct
 	a.round = 2
 	if round != "" {
 		a.round, _ = strconv.Atoi(round)
 	}
 
-	// Handle tag and date parameters
 	if tag != "" && date != "" {
-		dateTime, err := a.excelTimeToTime(date)
-		if err != nil {
-			w.Write([]byte("#Error: " + err.Error()))
-			return
-		}
-		tagValue, err := a.store.GetTagDate(tag, dateTime)
-		if err != nil {
-			w.Write([]byte("#Error: " + err.Error()))
-			return
-		}
-		if format == "raw" {
-			w.Write([]byte(fmt.Sprintf("%f", tagValue)))
-		} else {
-			w.Write([]byte(a.store.RoundAndFormat(tagValue)))
-		}
+		writer = a.handleTagAndDate(tag, date, format)
 		return
 	}
 
-	// Handle tag, from, and to parameters
 	if tag != "" && from != "" && to != "" {
-		fromT, err := a.excelTimeToTime(from)
-		if err != nil {
-			w.Write([]byte(err.Error()))
-			return
-		}
-		toT, err := a.excelTimeToTime(to)
-		if err != nil {
-			w.Write([]byte(err.Error()))
+		if count != "" {
+			writer = a.handleTagAndCount(tag, from, to, count)
 			return
 		}
 
-		switch {
-		case count != "":
-			countT, err := strconv.Atoi(count)
-			if err != nil {
-				w.Write([]byte(err.Error()))
-				return
-			}
-			tagValue, err := a.store.GetTagCount(tag, fromT, toT, countT)
-			if err != nil {
-				w.Write([]byte("#Error: " + err.Error()))
-				return
-			}
-			tagValueJSON, err := json.MarshalIndent(tagValue, "", "  ")
-			if err != nil {
-				w.Write([]byte("#Error: " + err.Error()))
-				return
-			}
-			w.Write(tagValueJSON)
+		if group == "" {
+			writer = a.handleTagFromTo(tag, from, to)
 			return
-		case group == "":
-			tagValue, err := a.store.GetTagFromTo(tag, fromT, toT)
-			if err != nil {
-				w.Write([]byte("#Error: " + err.Error()))
-				return
-			}
-			tagValueJSON, err := json.MarshalIndent(tagValue, "", "  ")
-			if err != nil {
-				w.Write([]byte("#Error: " + err.Error()))
-				return
-			}
-			w.Write(tagValueJSON)
+		} else {
+			writer = a.handleTagFromToGroup(tag, from, to, group)
 			return
-		default:
-			tagValue := a.store.GetTagFromToGroup(tag, fromT, toT, group)
-			w.Write([]byte(tagValue))
 		}
 	}
 }
 
 // @Summary Получить список тегов
-// @Description Получает список всех тегов.
-// @Tags Users
+// @Description Получает список всех тегов по маске
+// @Tags Tag
 // @Produce json
 // @Success 200 {array} string
 // @Router /get/tag/list/ [get]
-// @Param like query string true "like"
+// @Param like query string false "Маска поиска"
 // returns JSON with tags by mask
 func (a *App) handleGetTagList(w http.ResponseWriter, r *http.Request) {
 	// Set response headers

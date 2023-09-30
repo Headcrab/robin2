@@ -47,25 +47,19 @@ docker: update_version
 	-t $(PROJECT_NAME_LOW):${NEW_VERSION} .
 
 deploy: docker undeploy
+	@docker run -d \
+	--name $(PROJECT_NAME_LOW) \
+	--restart=always \
 ifeq ($(OS),Windows_NT)
-	@docker run -d \
-	--name $(PROJECT_NAME_LOW) \
-	--restart=always \
-	-v x:/configs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/config \
-	-v x:/logs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/log \
-	-p $(PORT):$(PORT) \
-	--add-host=host.docker.internal:host-gateway \
-	$(PROJECT_NAME_LOW):${NEW_VERSION}
+	-v x:/docker/configs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/config \
+	-v x:/docker/logs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/log \
 else
-	@docker run -d \
-	--name $(PROJECT_NAME_LOW) \
-	--restart=always \
-	-v /media/alexandr/data/work/configs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/config \
-	-v /media/alexandr/data/work/logs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/log \
+	-v /media/alexandr/data/work/docker/configs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/config \
+	-v /media/alexandr/data/work/docker/logs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/log \
+endif
 	-p $(PORT):$(PORT) \
 	--add-host=host.docker.internal:host-gateway \
 	$(PROJECT_NAME_LOW):${NEW_VERSION}
-endif
 
 undeploy:
 	@docker rm -f $(PROJECT_NAME_LOW)

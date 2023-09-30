@@ -1,19 +1,19 @@
-FROM golang:alpine AS builder
+FROM golang:1.21.1-alpine AS builder
 ARG PROJECT_NAME
 ENV PROJECT_NAME=$PROJECT_NAME
 WORKDIR /$PROJECT_NAME
 COPY /cmd cmd   
 COPY /internal internal
 COPY /pkg pkg
-COPY /go.mod go.mod
+COPY /docs docs
 COPY /vendor vendor
+COPY /go.mod go.mod
 # RUN go mod tidy 
 # RUN go mod download
-RUN CGO_ENABLED=0 go build -ldflags "-s -w" -trimpath -o ./bin/$PROJECT_NAME ./cmd/
+RUN CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath -o ./bin/$PROJECT_NAME ./cmd/
 RUN apk update && apk add upx
 RUN upx ./bin/$PROJECT_NAME
 
-# FROM scratch AS runner
 FROM alpine:latest AS runner
 RUN apk update && apk add tzdata
 ENV TZ=Asia/Almaty
@@ -27,14 +27,13 @@ ENV PORT=$PORT
 WORKDIR /bin/$PROJECT_NAME
 COPY --from=builder $PROJECT_NAME/bin/$PROJECT_NAME bin/
 COPY /web web
+COPY /docs docs
 COPY /log log
 COPY /config config
 RUN chmod a+rwx log
 RUN chmod a+rwx config
 RUN chmod a+rwx web
-# CMD ["chmod", "a+rwx", "/bin/logs"]
-# CMD ["chmod", "a+rwx", "/bin/config"]
-# CMD ["chmod", "a+rwx", "/bin/web"]
+RUN chmod a+rwx docs
 
 EXPOSE $PORT
 USER root:root

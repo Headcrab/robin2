@@ -34,6 +34,7 @@ function fetchStatus() {
         .then(response => response.json())
         .then(data => {
             document.getElementById('dbserver').textContent = data.dbserver;
+            document.getElementById('dbtype').textContent = data.dbtype;
             document.getElementById('dbversion').textContent = data.dbversion;
             document.getElementById('dbuptime').textContent = data.dbuptime;
             document.getElementById('appuptime').textContent = data.appuptime;

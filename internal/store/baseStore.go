@@ -75,7 +75,7 @@ func (s *BaseStoreImpl) replaceTemplate(repMap map[string]string, query string) 
 
 func (s *BaseStoreImpl) GetStatus() (string, string, error) {
 	var version, uptime string
-	err := s.db.QueryRow("SELECT version(), uptime()").Scan(&version, &uptime)
+	err := s.db.QueryRow(s.config.GetString("db."+s.config.GetString("app.db.name")+".query.status")).Scan(&version, &uptime)
 	if err != nil {
 		return "", "", err
 	}
