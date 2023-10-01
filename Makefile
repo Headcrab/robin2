@@ -47,19 +47,27 @@ docker: update_version
 	-t $(PROJECT_NAME_LOW):${NEW_VERSION} .
 
 deploy: docker undeploy
+ifeq ($(OS),Windows_NT)
 	@docker run -d \
 	--name $(PROJECT_NAME_LOW) \
+	--network=database \
 	--restart=always \
-ifeq ($(OS),Windows_NT)
 	-v x:/docker/configs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/config \
 	-v x:/docker/logs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/log \
-else
-	-v /media/alexandr/data/work/docker/configs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/config \
-	-v /media/alexandr/data/work/docker/logs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/log \
-endif
 	-p $(PORT):$(PORT) \
 	--add-host=host.docker.internal:host-gateway \
 	$(PROJECT_NAME_LOW):${NEW_VERSION}
+else
+	@docker run -d \
+	--name $(PROJECT_NAME_LOW) \
+	--network=database \
+	--restart=always \
+	-v /media/alexandr/data/work/docker/configs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/config \
+	-v /media/alexandr/data/work/docker/logs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/log \
+	-p $(PORT):$(PORT) \
+	--add-host=host.docker.internal:host-gateway \
+	$(PROJECT_NAME_LOW):${NEW_VERSION}
+endif
 
 undeploy:
 	@docker rm -f $(PROJECT_NAME_LOW)

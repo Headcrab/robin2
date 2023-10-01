@@ -2,8 +2,8 @@
     "app": {
         "port": 8008,
         "db": {
-            "type": "mssql",
-            "name": "hs0"
+            "type": "clickhouse",
+            "name": "clickhouse"
         },
         "round": "2",
         "cache": {

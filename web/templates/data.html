@@ -1,0 +1,33 @@
+<!-- <div id="tags" style="display: none;">{{.tags}}</div> -->
+
+<div class="text-center">
+  <h4>Получить данные</h4>
+  <div style="display: flex; align-items: center;">
+    <input style="font-family: var(--standart)" type="text" id="searchInput" placeholder="Тэг" value="A20_WT_01">
+    <div> </div>
+    <input style="font-family: var(--standart)" type="datetime-local" id="dateFrom" name="dateFrom"
+      value="2022-01-02T21:00:00" placeholder="Дата начала">
+    <div> </div>
+    <input style="font-family: var(--standart)" type="datetime-local" id="dateTo" name="dateTo"
+      value="2022-01-02T21:05:00" placeholder="Дата окончания">
+    <div> </div>
+    <input style="font-family: var(--standart); width: 50px;" type="number" id="searchCount" placeholder="Количество"
+      value="300">
+    <div> </div>
+    <button style="font-family: var(--standart); width: 100px;" class="page-number" id="searchBtn"
+      onclick="getTagOnDate()">Поиск</button>
+    <div> </div>
+  </div>
+  <ul class="list-group">
+    {{range .data}}
+    <li class="text-list-item">
+      {{formatDataString .}}
+    </li>
+    {{else}}
+    <li class="text-list-item">
+      <b>Нет данных.</b>
+    </li>
+    {{end}}
+  </ul>
+  {{.page}}
+</div>

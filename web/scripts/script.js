@@ -54,13 +54,14 @@ function getTagOnDate() {
     var tag = document.getElementById("searchInput").value;
     var dateFrom = document.getElementById("dateFrom").value;
     var dateTo = document.getElementById("dateTo").value;
+    var searchCount = document.getElementById("searchCount").value;
 
     // Формируем URL с параметрами
     if (!document.getElementById('apiserver')) {
         return;
     }
     api = document.getElementById('apiserver').textContent
-    var url = api+"/info?tag=" + tag + "&from=" + dateFrom + "&to=" + dateTo;
+    var url = api+"/data/?tag=" + tag + "&from=" + dateFrom + "&to=" + dateTo + "&count=" + searchCount;
     // + "&group=avg";
 
     // go to url
@@ -78,4 +79,20 @@ function getTagOnDate() {
     //     .catch(function (error) {
     //         console.log("Произошла ошибка: " + error);
     //     });
+}
+
+function getTagList() {
+    // Получаем значения полей ввода
+    var tag = document.getElementById("searchInput").value;
+
+    // Формируем URL с параметрами
+    if (!document.getElementById('apiserver')) {
+        return;
+    }
+    api = document.getElementById('apiserver').textContent
+    var url = api+"/tags/?like=" + tag;
+
+    // go to url
+    loadPage(url);
+
 }

@@ -126,9 +126,9 @@ func (a *App) init() {
 		"/api/reload/":   a.handleApiReloadConfig,
 		"/api/log/":      a.handleApiGetLog,
 		"/api/status/":   a.handleApiServerStatus,
-		"/logs/":         a.handleLog,
-		"/info/":         a.handleInfo,
-		"/health/":       a.handleHealth,
+		"/logs/":         a.handleLogPage,
+		"/data/":         a.handleDataPage,
+		"/tags/":         a.handleTagsPage,
 		"/":              a.handleAnyPage("home", nil),
 		"/images/":       a.handleDirectory("images"),
 		"/scripts/":      a.handleDirectory("scripts"),
@@ -144,6 +144,7 @@ func (a *App) init() {
 	// Define custom template function
 	funcMap := template.FuncMap{
 		"colorizeLogString": colorizeLogString,
+		"formatDataString":  formatDataString,
 	}
 
 	// Create template object and parse HTML templates
@@ -164,6 +165,24 @@ func colorizeLogString(input string) template.HTML {
 		st[2] = "<span class='level " + st[2] + "'>" + st[2] + "</span> <span class='level other'>"
 	}
 	return template.HTML(strings.Join(st, " ") + "</span>")
+}
+
+func formatDataString(input string) template.HTML {
+	st := strings.Split(input, "|")
+	if len(st) > 1 {
+		tm, err := time.Parse("2006-01-02 15:04:05 +0000 UTC", st[0])
+		if err != nil {
+			logger.Error(err.Error())
+		}
+		st[0] = tm.Format("01.02.2006 15:04:05")
+		st[0] = fmt.Sprintf("<span class='text-center list-group text-list-item level other'>%s</span>", st[0])
+		flValue, err := strconv.ParseFloat(st[1], 64)
+		if err != nil {
+			logger.Error(err.Error())
+		}
+		st[1] = fmt.Sprintf("<span class='text-center list-group text-list-item level other'>%.2f</span>", flValue)
+	}
+	return template.HTML(strings.Join(st, " "))
 }
 
 func getWorkDir() string {
@@ -635,36 +654,6 @@ func (a *App) handleDirectory(d string) http.HandlerFunc {
 	}
 }
 
-var logData []string
-
-func (a *App) handleLog(w http.ResponseWriter, r *http.Request) {
-	page := "logs"
-	logPerPage := 23
-	pageNumStr := r.URL.Query().Get("page")
-	if pageNumStr == "" {
-		pageNumStr = "1"
-		logData = nil
-	}
-
-	pageNum, err := strconv.Atoi(pageNumStr)
-	if err != nil || pageNum < 1 {
-		pageNum = 1
-	}
-
-	if logData == nil {
-		logData, err = logger.GetLogHistory()
-		if err != nil {
-			errorMsg := "#Error: " + err.Error()
-			w.Write([]byte(errorMsg))
-			logger.Error(errorMsg)
-			return
-		}
-	}
-
-	a.handleAnyPage(page, getOnePage(page, logData, pageNum, logPerPage))(w, r)
-
-}
-
 func getOnePage(name string, data []string, pageNum, linesPerPage int) map[string]interface{} {
 	pagesTotal := len(data) / linesPerPage
 	if pageNum > pagesTotal+1 {
@@ -737,60 +726,6 @@ func getDataSubset(data []string, pageNum, linesPerPage int) []string {
 	return data[startIndex:endIndex]
 }
 
-var tags map[string]map[time.Time]float32
-
-func (a *App) handleInfo(w http.ResponseWriter, r *http.Request) {
-
-	page := "info"
-
-	linesPerPage := 23
-
-	q := r.URL.Query()
-	pageNumStr := q.Get("page")
-	if pageNumStr == "" {
-		tags = nil
-		pageNumStr = "1"
-	}
-
-	pageNum, err := strconv.Atoi(pageNumStr)
-	if err != nil || pageNum < 1 {
-		pageNum = 1
-	}
-
-	if tags == nil {
-		if q.Get("tag") != "" && q.Get("from") != "" && q.Get("to") != "" {
-			from, _ := time.Parse("2006-01-02T15:04", q.Get("from"))
-			to, _ := time.Parse("2006-01-02T15:04", q.Get("to"))
-			// tags, err = a.store.GetTagFromTo(q.Get("tag"), from, to)
-			tags, err = a.store.GetTagCount(q.Get("tag"), from, to, 500)
-			if err != nil {
-				fmt.Println("Ошибка при чтении ответа:", err)
-				return
-			}
-		}
-	}
-
-	infoData := []string{}
-	for _, tag := range tags {
-		times := make([]time.Time, 0, len(tag))
-		for k := range tag {
-			times = append(times, k)
-		}
-		sort.Slice(times, func(i, j int) bool {
-			return times[i].Before(times[j])
-		})
-		for _, v := range times {
-			infoData = append(infoData, fmt.Sprintf("%s: %f", v, tag[v]))
-		}
-	}
-	// data :=map[string]interface{}{
-	// 	page: infoData,
-	// }
-
-	a.handleAnyPage(page, getOnePage(page, infoData, pageNum, linesPerPage))(w, r)
-
-}
-
 func (a *App) handleAnyPage(page string, data map[string]interface{}) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger.Trace("rendered " + page + " page")
@@ -805,8 +740,8 @@ func (a *App) handleAnyPage(page string, data map[string]interface{}) func(w htt
 
 		c := contentBuffer.String()
 		t := template.HTML(c)
-		// fmt.Printf("%s", t)
 		apiserver := "http://" + r.Host
+		// apiserver := "http://" + a.config.GetString("db."+a.config.GetString("app.db.name")+".host") + ":" + a.config.GetString("app.port")
 		dataFull := map[string]interface{}{
 			"content": t,
 			"app":     map[string]interface{}{"name": a.name, "version": a.version, "apiserver": apiserver},
@@ -819,15 +754,49 @@ func (a *App) handleAnyPage(page string, data map[string]interface{}) func(w htt
 	}
 }
 
-var tagList []string
+var logData []string
 
-func (a *App) handleHealth(w http.ResponseWriter, r *http.Request) {
-	page := "health"
-	linesPerPage := 23
-
+func (a *App) handleLogPage(w http.ResponseWriter, r *http.Request) {
+	procTimeBegin := time.Now()
+	page := "logs"
+	logPerPage := 23
 	pageNumStr := r.URL.Query().Get("page")
 	if pageNumStr == "" {
-		tagList = nil
+		pageNumStr = "1"
+		logData = nil
+	}
+
+	pageNum, err := strconv.Atoi(pageNumStr)
+	if err != nil || pageNum < 1 {
+		pageNum = 1
+	}
+
+	if logData == nil {
+		logData, err = logger.GetLogHistory()
+		if err != nil {
+			errorMsg := "#Error: " + err.Error()
+			w.Write([]byte(errorMsg))
+			logger.Error(errorMsg)
+			return
+		}
+	}
+	w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
+	a.handleAnyPage(page, getOnePage(page, logData, pageNum, logPerPage))(w, r)
+
+}
+
+var tagsValues map[string]map[time.Time]float32
+
+func (a *App) handleDataPage(w http.ResponseWriter, r *http.Request) {
+	procTimeBegin := time.Now()
+	page := "data"
+
+	linesPerPage := 23
+
+	q := r.URL.Query()
+	pageNumStr := q.Get("page")
+	if pageNumStr == "" {
+		tagsValues = nil
 		pageNumStr = "1"
 	}
 
@@ -836,16 +805,74 @@ func (a *App) handleHealth(w http.ResponseWriter, r *http.Request) {
 		pageNum = 1
 	}
 
-	if tagList == nil {
-		tags, err := a.store.GetTagList("")
-		if err != nil {
-			w.Write([]byte("#Error: " + err.Error()))
-			return
+	if tagsValues == nil {
+		if q.Get("tag") != "" && q.Get("from") != "" && q.Get("to") != "" {
+			from, _ := time.Parse("2006-01-02T15:04", q.Get("from"))
+			to, _ := time.Parse("2006-01-02T15:04", q.Get("to"))
+			countStr, _ := strconv.Atoi(q.Get("count"))
+			count := int(countStr)
+			// tags, err = a.store.GetTagFromTo(q.Get("tag"), from, to)
+			tagsValues, err = a.store.GetTagCount(q.Get("tag"), from, to, count)
+			if err != nil {
+				fmt.Println("Ошибка при чтении ответа:", err)
+				return
+			}
 		}
-		tagList = append(tagList, tags["tags"]...)
-		// for _, tag := range tags["tags"] {
-		// 	tagList = append(tagList, fmt.Sprintf("<div>%s</div>", tag))
-		// }
 	}
-	a.handleAnyPage(page, getOnePage(page, tagList, pageNum, linesPerPage))(w, r)
+
+	data := []string{}
+	for _, tag := range tagsValues {
+		times := make([]time.Time, 0, len(tag))
+		for k := range tag {
+			times = append(times, k)
+		}
+		sort.Slice(times, func(i, j int) bool {
+			return times[i].Before(times[j])
+		})
+		for _, v := range times {
+			// data = append(data, fmt.Sprintf("%s: %f", v, tag[v]))
+			data = append(data, fmt.Sprintf("%s|%f", v, tag[v]))
+		}
+	}
+
+	w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
+	a.handleAnyPage(page, getOnePage(page, data, pageNum, linesPerPage))(w, r)
+
+}
+
+var tagsList []string
+
+func (a *App) handleTagsPage(w http.ResponseWriter, r *http.Request) {
+	procTimeBegin := time.Now()
+	page := "tags"
+	linesPerPage := 23
+
+	pageNumStr := r.URL.Query().Get("page")
+	if pageNumStr == "" {
+		tagsList = nil
+		pageNumStr = "1"
+	}
+
+	pageNum, err := strconv.Atoi(pageNumStr)
+	if err != nil || pageNum < 1 {
+		pageNum = 1
+	}
+
+	like := r.URL.Query().Get("like")
+	if like != "" {
+		if tagsList == nil {
+			tags, err := a.store.GetTagList(like)
+			if err != nil {
+				w.Write([]byte("#Error: " + err.Error()))
+				return
+			}
+			tagsList = append(tagsList, tags["tags"]...)
+		}
+	}
+
+	data := getOnePage(page, tagsList, pageNum, linesPerPage)
+	data["like"] = thenIf(like == "", "", like)
+
+	w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
+	a.handleAnyPage(page, data)(w, r)
 }

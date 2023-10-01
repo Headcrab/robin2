@@ -1,0 +1,23 @@
+<div class="text-center">
+    <h4>Список доступных тегов</h4>
+    <div style="display: flex; align-items: center;">
+        <input style="font-family: var(--standart)" type="text" id="searchInput" placeholder="Input Tag"
+            value="{{.like}}">
+        <div> </div>
+        <button style="font-family: var(--standart); width: 100px;" class="page-number" id="searchBtn"
+            onclick="getTagList()">Поиск</button>
+        <div> </div>
+    </div>
+    <ul class="list-group">
+        {{range .tags}}
+        <li class="text-list-item">
+            <span class="level other">{{.}}</span>
+        </li>
+        {{else}}
+        <li class="text-list-item">
+            <b>Нет данных.</b>
+        </li>
+        {{end}}
+    </ul>
+    {{.page}}
+</div>
