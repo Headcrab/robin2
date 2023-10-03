@@ -1,12 +1,12 @@
 <div class="fixed-bottom">
   <span class="status-text">{{.app.name}} v:{{.app.version}}</span>
-  <span id="appuptime">.</span>
+  <span id="appuptime">{{.app.uptime}}</span>
   <span> (</span>
-  <span id="dbserver">.</span>
+  <span id="dbserver">{{.db.server}}</span>
   <span> </span>
-  <span id="dbtype">.</span>
-  <span> v:<span id="dbversion">.</span></span>
-  <span class="status" id="dbstatus">.</span>
-  <span id="dbuptime">.</span>
+  <span id="dbtype">{{.db.type}}</span>
+  <span> v:<span id="dbversion">{{.db.version}}</span></span>
+  <span class="status {{.db.status}}" id="dbstatus"></span>
+  <span id="dbuptime">{{.db.uptime}}</span>
   <span>)</span>
 </div>

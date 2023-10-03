@@ -59,8 +59,8 @@ func fileLog() *zerolog.Logger {
 		checkFileLog()
 		// defer file.Close()
 		tmp := zerolog.New(zerolog.ConsoleWriter{Out: file, TimeFormat: "02.01.2006 15:04:05", NoColor: true}).
-			Level(zerolog.TraceLevel).
-			// Level(zerolog.DebugLevel).
+			// Level(zerolog.TraceLevel).
+			Level(zerolog.DebugLevel).
 			// Level(zerolog.InfoLevel).
 			With().Timestamp().Logger()
 		fileLogPtr = &tmp
@@ -131,7 +131,7 @@ func checkFileLog() {
 		logName = file.Name()
 		// file.Close()
 		s, _ := os.Stat(logName)
-		if s.Size() > 1000000 {
+		if s.Size() > 100000 {
 			// file.Close()
 			logName = "robin" + time.Now().Format("_2006_01_02_15_04_05") + ".log"
 		}
@@ -143,7 +143,8 @@ func checkFileLog() {
 	}
 }
 
-// opens 'file *os.File' and returns it
+// todo: return json
+// todo: ? add level selector
 func GetLogHistory() ([]string, error) {
 	checkFileLog()
 	defer file.Close()

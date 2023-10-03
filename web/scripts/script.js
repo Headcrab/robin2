@@ -46,8 +46,8 @@ function fetchStatus() {
         .catch(error => console.error('Ошибка:', error));
 }
 
-setInterval(fetchStatus, 1000);
 fetchStatus();
+setInterval(fetchStatus, 60000);
 
 function getTagOnDate() {
     // Получаем значения полей ввода

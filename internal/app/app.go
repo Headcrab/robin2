@@ -1,5 +1,9 @@
-// fix: add swagger descriptions to all endpoints
+// fix: check swagger descriptions to all endpoints
+// todo: add query temlate system
+// todo: sessions
+// todo: authenticate
 // todo: add tests
+
 package robin
 
 import (
@@ -116,20 +120,20 @@ func (a *App) init() {
 
 	// Define HTTP request handlers
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
-		"/get/tag/":      a.handleGetTag,
-		"/get/tag/list/": a.handleGetTagList,
-		"/get/tag/up/":   a.handleGetTagUp,
-		"/get/tag/down/": a.handleGetTagDown,
+		"/get/tag/":      a.handleAPIGetTag,
+		"/get/tag/list/": a.handleAPIGetTagList,
+		"/get/tag/up/":   a.handleAPIGetTagUp,
+		"/get/tag/down/": a.handleAPIGetTagDown,
 		"/favicon.ico":   a.handleFavicon,
-		"/api/info/":     a.handleApiInfo,
-		"/api/uptime/":   a.handleApiUptime,
-		"/api/reload/":   a.handleApiReloadConfig,
-		"/api/log/":      a.handleApiGetLog,
-		"/api/status/":   a.handleApiServerStatus,
-		"/logs/":         a.handleLogPage,
-		"/data/":         a.handleDataPage,
-		"/tags/":         a.handleTagsPage,
-		"/":              a.handleAnyPage("home", nil),
+		"/api/info/":     a.handleAPIInfo,
+		"/api/uptime/":   a.handleAPIUptime,
+		"/api/reload/":   a.handleAPIReloadConfig,
+		"/api/log/":      a.handleAPIGetLog,
+		"/api/status/":   a.handleAPIServerStatus,
+		"/logs/":         a.handlePageLog,
+		"/data/":         a.handlePageData,
+		"/tags/":         a.handlePageTags,
+		"/":              a.handlePageAny("home", nil),
 		"/images/":       a.handleDirectory("images"),
 		"/scripts/":      a.handleDirectory("scripts"),
 		"/css/":          a.handleDirectory("css"),
@@ -198,7 +202,7 @@ func getWorkDir() string {
 	return dir
 }
 
-func (a *App) handleApiReloadConfig(w http.ResponseWriter, r *http.Request) {
+func (a *App) handleAPIReloadConfig(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("reloading config file")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	logger.Info("reloading config file")
@@ -208,7 +212,13 @@ func (a *App) handleApiReloadConfig(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *App) handleApiUptime(w http.ResponseWriter, r *http.Request) {
+// @Summary Получить время работы
+// @Description Возвращает время работы приложения с времени запуска
+// @Tags System
+// @Produce plain/text
+// @Success 200 {array} string
+// @Router /api/uptime/ [get]
+func (a *App) handleAPIUptime(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("rendered uptime page")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	uptime := time.Since(a.startTime).Round(time.Second)
@@ -218,34 +228,48 @@ func (a *App) handleApiUptime(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *App) handleApiServerStatus(w http.ResponseWriter, r *http.Request) {
-	version, dbuptimeStr, err := a.store.GetStatus()
-	dbstatus := "green"
-	if err != nil {
-		dbstatus = "red"
-	}
+type dbstatus struct {
+	Status  string
+	Name    string
+	Type    string
+	Version string
+	Uptime  time.Duration
+}
 
-	dbname := a.config.GetString("app.db.name")
-	dbtype := a.config.GetString("app.db.type")
-	dbuptime, err := time.ParseDuration(thenIf(dbuptimeStr != "", dbuptimeStr+"s", "0s"))
-	if err != nil {
-		logger.Error(err.Error())
+func (a *App) getDbStatus() dbstatus {
+	dbstatus := dbstatus{
+		Status: "green",
+		Name:   a.config.GetString("app.db.name"),
+		Type:   a.config.GetString("app.db.type"),
 	}
-	dbuptimeStr = dbuptime.String()
+	var err error
+	var dbuptimeStr string
+	dbstatus.Version, dbuptimeStr, err = a.store.GetStatus()
+	if err != nil {
+		dbstatus.Status = "red"
+	}
+	dbstatus.Uptime, err = time.ParseDuration(thenIf(dbuptimeStr != "", dbuptimeStr+"s", "0s"))
+	if err != nil {
+		dbstatus.Status = "red"
+	}
+	return dbstatus
+}
 
+func (a *App) handleAPIServerStatus(w http.ResponseWriter, r *http.Request) {
+	dbs := a.getDbStatus()
 	appUptime := time.Since(a.startTime).Round(time.Second).String()
 
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"dbserver": "%s", "dbversion": "%s", "dbuptime": "%s", "dbstatus": "%s", "appuptime": "%s", "dbtype": "%s"}`, dbname, version, dbuptimeStr, dbstatus, appUptime, dbtype)
+	fmt.Fprintf(w, `{"dbserver": "%s", "dbversion": "%s", "dbuptime": "%s", "dbstatus": "%s", "appuptime": "%s", "dbtype": "%s"}`, dbs.Name, dbs.Version, dbs.Uptime, dbs.Status, appUptime, dbs.Type)
 }
 
-// @Summary Запрос информации
-// @Description Инфо по программе
+// @Summary Полчить информацию
+// @Description Возвращает информацию о приложении
 // @Tags System
 // @Produce json
 // @Success 200 {array} string
 // @Router /api/info/ [get]
-func (a *App) handleApiInfo(w http.ResponseWriter, r *http.Request) {
+func (a *App) handleAPIInfo(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("rendered info page")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	inf := map[string]interface{}{
@@ -260,7 +284,7 @@ func (a *App) handleApiInfo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *App) handleTagAndDate(tag, date, format string) []byte {
+func (a *App) getTagAndDate(tag, date, format string) []byte {
 	dateTime, err := a.excelTimeToTime(date)
 	if err != nil {
 		return []byte("#Error: " + err.Error())
@@ -276,7 +300,7 @@ func (a *App) handleTagAndDate(tag, date, format string) []byte {
 	}
 }
 
-func (a *App) handleTagAndCount(tag, from, to, count string) []byte {
+func (a *App) getTagAndCount(tag, from, to, count string) []byte {
 	fromT, err := a.excelTimeToTime(from)
 	if err != nil {
 		return []byte(err.Error())
@@ -300,7 +324,7 @@ func (a *App) handleTagAndCount(tag, from, to, count string) []byte {
 	return tagValueJSON
 }
 
-func (a *App) handleTagAndCountGroup(tag, from, to, count string, group string) []byte {
+func (a *App) getTagAndCountGroup(tag, from, to, count string, group string) []byte {
 	fromT, err := a.excelTimeToTime(from)
 	if err != nil {
 		return []byte(err.Error())
@@ -324,7 +348,7 @@ func (a *App) handleTagAndCountGroup(tag, from, to, count string, group string) 
 	return tagValueJSON
 }
 
-func (a *App) handleTagFromTo(tag, from, to string) []byte {
+func (a *App) getTagFromTo(tag, from, to string) []byte {
 	fromT, err := a.excelTimeToTime(from)
 	if err != nil {
 		return []byte(err.Error())
@@ -344,7 +368,7 @@ func (a *App) handleTagFromTo(tag, from, to string) []byte {
 	return tagValueJSON
 }
 
-func (a *App) handleTagFromToGroup(tag, from, to, group string) []byte {
+func (a *App) getTagFromToGroup(tag, from, to, group string) []byte {
 	fromT, err := a.excelTimeToTime(from)
 
 	if err != nil {
@@ -364,7 +388,7 @@ func (a *App) handleTagFromToGroup(tag, from, to, group string) []byte {
 }
 
 // @Summary Получить значение тега
-// @Description Получает значение тега на выбранную дату.
+// @Description Возвращает значение тега на выбранную дату.
 // @Tags Tag
 // @Produce plain/text json
 // @Success 200 {array} string
@@ -377,7 +401,7 @@ func (a *App) handleTagFromToGroup(tag, from, to, group string) []byte {
 // @Param count query string false "Количество значений"
 // @Param round query string false "Округление, знаков после запятой (по умолчанию 2)"
 // @Param format query string false "Формат вывода (raw - без округления и замены точки на запятую, только для одного знчения)"
-func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
+func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 	headers := w.Header()
 	headers.Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	headers.Set("Content-Type", "text/plain")
@@ -410,40 +434,40 @@ func (a *App) handleGetTag(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if tag != "" && date != "" {
-		writer = a.handleTagAndDate(tag, date, format)
+		writer = a.getTagAndDate(tag, date, format)
 		return
 	}
 
 	if tag != "" && from != "" && to != "" {
 		if count != "" {
 			if group == "" {
-				writer = a.handleTagAndCount(tag, from, to, count)
+				writer = a.getTagAndCount(tag, from, to, count)
 				return
 			} else {
-				writer = a.handleTagAndCountGroup(tag, from, to, count, group)
+				writer = a.getTagAndCountGroup(tag, from, to, count, group)
 				return
 			}
 		}
 
 		if group == "" {
-			writer = a.handleTagFromTo(tag, from, to)
+			writer = a.getTagFromTo(tag, from, to)
 			return
 		} else {
-			writer = a.handleTagFromToGroup(tag, from, to, group)
+			writer = a.getTagFromToGroup(tag, from, to, group)
 			return
 		}
 	}
 }
 
 // @Summary Получить список тегов
-// @Description Получает список всех тегов по маске
+// @Description Возвращает список всех тегов по маске
 // @Tags Tag
 // @Produce json
 // @Success 200 {array} string
 // @Router /get/tag/list/ [get]
 // @Param like query string false "Маска поиска"
 // returns JSON with tags by mask
-func (a *App) handleGetTagList(w http.ResponseWriter, r *http.Request) {
+func (a *App) handleAPIGetTagList(w http.ResponseWriter, r *http.Request) {
 	// Set response headers
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
@@ -530,7 +554,17 @@ func (a *App) tryParseDate(date string) (time.Time, error) {
 	return time.Time{}, errors.InvalidDate
 }
 
-func (a *App) handleGetTagDown(w http.ResponseWriter, r *http.Request) {
+// @Summary Получить даты отключения оборудования
+// @Description Возвращает дату и время отключения оборудования
+// @Tags Tag
+// @Produce plain/text
+// @Success 200 {array} string
+// @Router /get/tag/down/ [get]
+// @Param tag query string true "Наименование тега"
+// @Param from query string false "Дата начала периода"
+// @Param to query string false "Дата окончания периода"
+// @Param count query string false "Номер отключения после даты начала (0 - первое отключение)"
+func (a *App) handleAPIGetTagDown(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
 	tag := r.URL.Query().Get("tag")
@@ -574,7 +608,17 @@ func (a *App) handleGetTagDown(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (a *App) handleGetTagUp(w http.ResponseWriter, r *http.Request) {
+// @Summary Получить даты включения оборудования
+// @Description Возвращает дату и время включения оборудования
+// @Tags Tag
+// @Produce plain/text
+// @Success 200 {array} string
+// @Router /get/tag/up/ [get]
+// @Param tag query string true "Наименование тега"
+// @Param from query string false "Дата начала периода"
+// @Param to query string false "Дата окончания периода"
+// @Param count query string false "Номер включения после даты начала (0 - первое включение)"
+func (a *App) handleAPIGetTagUp(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
 
@@ -618,8 +662,13 @@ func (a *App) handleGetTagUp(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// output program log
-func (a *App) handleApiGetLog(w http.ResponseWriter, r *http.Request) {
+// @Summary Получить лог
+// @Description Возвращает логи приложения
+// @Tags System
+// @Produce json
+// @Success 200 {array} string
+// @Router /api/log/ [get]
+func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("rendered log page")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
@@ -655,12 +704,13 @@ func (a *App) handleDirectory(d string) http.HandlerFunc {
 }
 
 func getOnePage(name string, data []string, pageNum, linesPerPage int) map[string]interface{} {
-	pagesTotal := len(data) / linesPerPage
-	if pageNum > pagesTotal+1 {
-		pageNum = pagesTotal + 1
+	pagesTotal := len(data)/(linesPerPage+1) + 1
+	// pagesTotal = thenIf(pagesTotal == 0, 1, pagesTotal)
+	if pageNum > pagesTotal {
+		pageNum = pagesTotal
 	}
 
-	pageSwicher := generatePageSwitcherHTML(name, pageNum, pagesTotal+1)
+	pageSwicher := generatePageSwitcherHTML(name, pageNum, pagesTotal)
 
 	dataL := getDataSubset(data, pageNum, linesPerPage)
 
@@ -726,7 +776,7 @@ func getDataSubset(data []string, pageNum, linesPerPage int) []string {
 	return data[startIndex:endIndex]
 }
 
-func (a *App) handleAnyPage(page string, data map[string]interface{}) func(w http.ResponseWriter, r *http.Request) {
+func (a *App) handlePageAny(page string, data map[string]interface{}) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger.Trace("rendered " + page + " page")
 		w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
@@ -741,10 +791,13 @@ func (a *App) handleAnyPage(page string, data map[string]interface{}) func(w htt
 		c := contentBuffer.String()
 		t := template.HTML(c)
 		apiserver := "http://" + r.Host
+		dbs := a.getDbStatus()
+		appUptime := time.Since(a.startTime).Round(time.Second).String()
 		// apiserver := "http://" + a.config.GetString("db."+a.config.GetString("app.db.name")+".host") + ":" + a.config.GetString("app.port")
 		dataFull := map[string]interface{}{
 			"content": t,
-			"app":     map[string]interface{}{"name": a.name, "version": a.version, "apiserver": apiserver},
+			"app":     map[string]interface{}{"name": a.name, "version": a.version, "apiserver": apiserver, "uptime": appUptime},
+			"db":      map[string]interface{}{"server": dbs.Name, "type": dbs.Type, "version": dbs.Version, "uptime": dbs.Uptime, "status": dbs.Status},
 		}
 
 		if err := a.template.ExecuteTemplate(w, "base.html", dataFull); err != nil {
@@ -756,7 +809,7 @@ func (a *App) handleAnyPage(page string, data map[string]interface{}) func(w htt
 
 var logData []string
 
-func (a *App) handleLogPage(w http.ResponseWriter, r *http.Request) {
+func (a *App) handlePageLog(w http.ResponseWriter, r *http.Request) {
 	procTimeBegin := time.Now()
 	page := "logs"
 	logPerPage := 23
@@ -781,13 +834,13 @@ func (a *App) handleLogPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
-	a.handleAnyPage(page, getOnePage(page, logData, pageNum, logPerPage))(w, r)
+	a.handlePageAny(page, getOnePage(page, logData, pageNum, logPerPage))(w, r)
 
 }
 
 var tagsValues map[string]map[time.Time]float32
 
-func (a *App) handleDataPage(w http.ResponseWriter, r *http.Request) {
+func (a *App) handlePageData(w http.ResponseWriter, r *http.Request) {
 	procTimeBegin := time.Now()
 	page := "data"
 
@@ -836,13 +889,13 @@ func (a *App) handleDataPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
-	a.handleAnyPage(page, getOnePage(page, data, pageNum, linesPerPage))(w, r)
+	a.handlePageAny(page, getOnePage(page, data, pageNum, linesPerPage))(w, r)
 
 }
 
 var tagsList []string
 
-func (a *App) handleTagsPage(w http.ResponseWriter, r *http.Request) {
+func (a *App) handlePageTags(w http.ResponseWriter, r *http.Request) {
 	procTimeBegin := time.Now()
 	page := "tags"
 	linesPerPage := 23
@@ -874,5 +927,5 @@ func (a *App) handleTagsPage(w http.ResponseWriter, r *http.Request) {
 	data["like"] = thenIf(like == "", "", like)
 
 	w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
-	a.handleAnyPage(page, data)(w, r)
+	a.handlePageAny(page, data)(w, r)
 }

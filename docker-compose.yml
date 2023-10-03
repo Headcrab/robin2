@@ -1,4 +1,5 @@
 # todo: add redis
+# todo: review
 version: "3"
 
 services:

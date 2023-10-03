@@ -87,7 +87,7 @@ func Test_endpoint_get_tag_list(t *testing.T) {
 				},
 			}
 			response := httptest.NewRecorder()
-			app.handleGetTagList(response, request)
+			app.handleAPIGetTagList(response, request)
 			// check response
 			if response.Code != http.StatusOK {
 				t.Errorf("Test '%s' failed: expected status code '%v', got '%v'", test.name, http.StatusOK, response.Code)
