@@ -2,7 +2,6 @@ package store
 
 import (
 	"database/sql"
-	"fmt"
 	"math"
 	"robin2/internal/cache"
 	"robin2/pkg/config"
@@ -46,7 +45,6 @@ func (s *ClickHouseStoreImpl) Connect(cache cache.BaseCache) error {
 	base.cache = cache
 
 	dbType := base.config.GetString("app.db.type")
-	dbName := base.config.GetString("app.db.name")
 
 	db, err := sql.Open(dbType, base.marshalConnectionString())
 	if err != nil {
@@ -61,8 +59,7 @@ func (s *ClickHouseStoreImpl) Connect(cache cache.BaseCache) error {
 
 	base.db = db
 
-	logger.Info(fmt.Sprintf("connected to %s database on %s:%s", dbType,
-		base.config.GetString("db."+dbName+".host"), base.config.GetString("db."+dbName+".port")))
+	base.logConnection()
 
 	return nil
 }

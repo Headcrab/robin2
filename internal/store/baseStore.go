@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
+	"net"
 	"robin2/internal/errors"
 	"strconv"
 	"strings"
@@ -53,6 +54,19 @@ func (s *BaseStoreImpl) marshalConnectionString() string {
 	}
 	s.round = s.config.GetInt("app.round")
 	return connStr
+}
+
+func (s *BaseStoreImpl) logConnection() {
+	dbName := s.config.GetString("app.db.name")
+	dbType := s.config.GetString("app.db.type")
+	host := s.config.GetString("db." + dbName + ".host")
+	port := s.config.GetString("db." + dbName + ".port")
+	nips, _ := net.LookupIP(host)
+	var ips []string
+	for _, ip := range nips {
+		ips = append(ips, ip.String())
+	}
+	logger.Info(fmt.Sprintf("connected to %s database on %s:%s ( %s )", dbType, host, port, strings.Join(ips, ", ")))
 }
 
 func (s *BaseStoreImpl) SetRound(round int) {

@@ -53,8 +53,6 @@ func (s *MsSqlStoreImpl) Connect(cache cache.BaseCache) error {
 		logger.Error(err.Error())
 		return err
 	}
-	logger.Info("connected to " + base.config.GetString("app.db.type") + " database on " +
-		base.config.GetString("db."+base.config.GetString("app.db.name")+".host") + ":" +
-		base.config.GetString("db."+base.config.GetString("app.db.name")+".port"))
+	base.logConnection()
 	return nil
 }

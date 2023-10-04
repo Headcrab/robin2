@@ -3,8 +3,10 @@ package cache
 import (
 	"context"
 	"fmt"
+	"net"
 	"robin2/pkg/config"
 	"robin2/pkg/logger"
+	"strings"
 	"sync"
 	"time"
 
@@ -46,7 +48,12 @@ func (c *RedisCacheImpl) Connect() error {
 		Password: password,
 		DB:       db,
 	})
-	logger.Info(fmt.Sprintf("cache connected to redis on %s:%s", host, port))
+	nips, _ := net.LookupIP(host)
+	var ips []string
+	for _, ip := range nips {
+		ips = append(ips, ip.String())
+	}
+	logger.Info(fmt.Sprintf("cache connected to redis on %s:%s ( %s )", host, port, strings.Join(ips, ", ")))
 	// ping to check connection
 	err := c.rds.Ping(context.Background()).Err()
 	if err != nil {

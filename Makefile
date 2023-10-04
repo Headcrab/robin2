@@ -50,7 +50,6 @@ deploy: docker undeploy
 ifeq ($(OS),Windows_NT)
 	@docker run -d \
 	--name $(PROJECT_NAME_LOW) \
-	--network=database \
 	--restart=always \
 	-v x:/docker/configs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/config \
 	-v x:/docker/logs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/log \
@@ -60,7 +59,6 @@ ifeq ($(OS),Windows_NT)
 else
 	@docker run -d \
 	--name $(PROJECT_NAME_LOW) \
-	--network=database \
 	--restart=always \
 	-v /media/alexandr/data/work/docker/configs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/config \
 	-v /media/alexandr/data/work/docker/logs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/log \

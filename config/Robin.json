@@ -2,13 +2,13 @@
     "app": {
         "port": 8008,
         "db": {
-            "type": "clickhouse",
-            "name": "clickhouse"
+            "type": "mssql",
+            "name": "hs0"
         },
         "round": "2",
         "cache": {
             "type": "redis",
-            "name": "redis.localhost",
+            "name": "redis.docker",
             "ttl": 1
         },
         "date_formats": [
@@ -29,7 +29,7 @@
     },
     "db": {
         "hs0": {
-            "host": "139.158.31.1",
+            "host": "hs0",
             "port": "1433",
             "user": "sa",
             "password": "!QAZ1qaz12345",

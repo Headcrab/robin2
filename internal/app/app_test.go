@@ -44,7 +44,7 @@ func Test_tryParseDate(t *testing.T) {
 		},
 	}
 	app := NewApp()
-	app.init()
+	app.initApp()
 	for _, test := range test_cases {
 		t.Run(test.name, func(t *testing.T) {
 			date, err := app.tryParseDate(test.date)
@@ -76,7 +76,7 @@ func Test_endpoint_get_tag_list(t *testing.T) {
 		},
 	}
 	app := NewApp()
-	app.init()
+	app.initApp()
 	for _, test := range test_cases {
 		t.Run(test.name, func(t *testing.T) {
 			// test request, get response
