@@ -120,6 +120,12 @@ func (a *App) initApp() {
 		"/scripts/":      a.handleDirectory("scripts"),
 		"/css/":          a.handleDirectory("css"),
 		"/swagger/":      httpSwagger.Handler(httpSwagger.URL("/swagger/doc.json")),
+		"/templ/list/":   a.handleTemplateList,
+		"/templ/add/":    a.handleTemplateAdd,
+		"/templ/get/":    a.handleTemplateGet,
+		"/templ/edit/":   a.handleTemplateEdit,
+		"/templ/delete/": a.handleTemplateDelete,
+		"/templ/exec/":   a.handleTemplateExec,
 	}
 
 	// Register HTTP request handlers

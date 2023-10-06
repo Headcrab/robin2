@@ -13,6 +13,8 @@ import (
 	"robin2/internal/cache"
 	"robin2/pkg/config"
 	"robin2/pkg/logger"
+
+	"github.com/google/uuid"
 	// _ "github.com/denisenkom/go-mssqldb"
 	// _ "github.com/go-sql-driver/mysql"
 )
@@ -30,6 +32,13 @@ type BaseStore interface {
 	GetDownDates(tag string, from time.Time, to time.Time) ([]time.Time, error)
 	GetUpDates(tag string, from time.Time, to time.Time) ([]time.Time, error)
 	GetStatus() (string, string, error)
+
+	TemplateList(like string) (map[string]string, error)
+	TemplateExec(name string, params map[string]string) (string, error)
+	TemplateAdd(name string, body string) error
+	TemplateSet(name string, body string) error
+	TemplateGet(name string) (string, error)
+	TemplateDel(name string) error
 
 	SetRound(round int)
 	Format(val float32) string
@@ -351,4 +360,87 @@ func (s *BaseStoreImpl) GetUpDates(tag string, from time.Time, to time.Time) ([]
 		}
 	}()
 	return dates, nil
+}
+
+func (s *BaseStoreImpl) TemplateGet(name string) (string, error) {
+	var body string
+	err := s.db.QueryRow("SELECT t.Body from runtime.templates t where t.Name = '" + name + "'").Scan(&body)
+	if err != nil {
+		return "", err
+	}
+	return body, nil
+}
+
+func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) (string, error) {
+	body, err := s.TemplateGet(name)
+	if err != nil {
+		return "", err
+	}
+
+	for k, v := range params {
+		body = strings.Replace(body, "{"+k+"}", v, -1)
+	}
+
+	rows, err := s.db.Query(body)
+	if err != nil {
+		return "", err
+	}
+
+	res := ""
+	for rows.Next() {
+		var line string
+		err := rows.Scan(&line)
+		if err != nil {
+			return "", err
+		}
+		res += line + "\n"
+	}
+
+	return res, nil
+}
+
+func (s *BaseStoreImpl) TemplateList(like string) (map[string]string, error) {
+	tmpl := map[string]string{}
+	if like == "" {
+		like = "%"
+	}
+	q := fmt.Sprintf("SELECT Name, Body FROM runtime.templates WHERE Name LIKE '%s%%'", like)
+	rows, err := s.db.Query(q)
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var name, body string
+		err := rows.Scan(&name, &body)
+		if err != nil {
+			return nil, err
+		}
+		tmpl[name] = body
+	}
+	return tmpl, nil
+}
+
+func (s *BaseStoreImpl) TemplateSet(name string, body string) error {
+	_, err := s.db.Exec("UPDATE runtime.templates SET Body = ? WHERE Name = ?", body, name)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *BaseStoreImpl) TemplateDel(name string) error {
+	_, err := s.db.Exec("DELETE FROM runtime.templates WHERE Name = ?", name)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *BaseStoreImpl) TemplateAdd(name string, body string) error {
+	id := uuid.New().String()
+	_, err := s.db.Exec("INSERT INTO runtime.templates (ID, Name, Body) VALUES (?, ?, ?)", id, name, body)
+	if err != nil {
+		return err
+	}
+	return nil
 }

@@ -318,11 +318,20 @@ func (a *App) getTagAndDate(tag, date, format string) []byte {
 	if err != nil {
 		return []byte("#Error: " + err.Error())
 	}
-	if format == "raw" {
+
+	switch format {
+	case "raw":
 		return []byte(fmt.Sprintf("%f", tagValue))
-	} else {
+	case "json":
+		return []byte(fmt.Sprintf("{ \"Value\" : %f}", tagValue))
+	default:
 		return []byte(a.store.Format(a.store.Round(tagValue)))
 	}
+	// if format == "raw" {
+	// 	return []byte(fmt.Sprintf("%f", tagValue))
+	// } else {
+	// 	return []byte(a.store.Format(a.store.Round(tagValue)))
+	// }
 }
 
 func (a *App) getTagAndCount(tag, from, to, count string) []byte {
