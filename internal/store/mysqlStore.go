@@ -48,12 +48,12 @@ func (s *MySqlStoreImpl) Connect(cache cache.BaseCache) error {
 		logger.Error(err.Error())
 		return err
 	}
-	base.db.SetMaxIdleConns(base.config.GetInt("db." + base.config.GetString("app.db.name") + ".max_idle_conns"))
-	base.db.SetMaxOpenConns(base.config.GetInt("db." + base.config.GetString("app.db.name") + ".max_open_conns"))
-	base.db.SetConnMaxIdleTime(time.Duration(base.config.GetInt("db."+base.config.GetString("app.db.name")+".conn_max_idle_time")) * time.Second)
-	base.db.SetConnMaxLifetime(time.Duration(base.config.GetInt("db."+base.config.GetString("app.db.name")+".conn_max_lifetime")) * time.Second)
+	base.db.SetMaxIdleConns(base.config.GetInt("app.db." + base.config.GetString("app.db.current") + ".max_idle_conns"))
+	base.db.SetMaxOpenConns(base.config.GetInt("app.db." + base.config.GetString("app.db.current") + ".max_open_conns"))
+	base.db.SetConnMaxIdleTime(time.Duration(base.config.GetInt("app.db."+base.config.GetString("app.db.current")+".conn_max_idle_time")) * time.Second)
+	base.db.SetConnMaxLifetime(time.Duration(base.config.GetInt("app.db."+base.config.GetString("app.db.current")+".conn_max_lifetime")) * time.Second)
 	// setup strings
-	for _, v := range base.config.GetStringSlice("db." + base.config.GetString("app.db.name") + ".setup_strings") {
+	for _, v := range base.config.GetStringSlice("app.db." + base.config.GetString("app.db.current") + ".setup_strings") {
 		_, err = base.db.Exec(v)
 		if err != nil {
 			logger.Error(err.Error())

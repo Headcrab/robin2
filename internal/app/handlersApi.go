@@ -79,17 +79,17 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if tag != "" && date != "" {
-		writer = a.getTagAndDate(tag, date, format)
+		writer = a.getTagOnDate(tag, date, format)
 		return
 	}
 
 	if tag != "" && from != "" && to != "" {
 		if count != "" {
 			if group == "" {
-				writer = a.getTagAndCount(tag, from, to, count)
+				writer = a.getTagByCount(tag, from, to, count)
 				return
 			} else {
-				writer = a.getTagAndCountGroup(tag, from, to, count, group)
+				writer = a.getTagFromToByCountWithGroup(tag, from, to, count, group)
 				return
 			}
 		}
@@ -98,7 +98,7 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 			writer = a.getTagFromTo(tag, from, to)
 			return
 		} else {
-			writer = a.getTagFromToGroup(tag, from, to, group)
+			writer = a.getTagFromToWithGroup(tag, from, to, group, format)
 			return
 		}
 	}
@@ -309,7 +309,7 @@ func (a *App) handleAPIServerStatus(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `{"dbserver": "%s", "dbversion": "%s", "dbuptime": "%s", "dbstatus": "%s", "appuptime": "%s", "dbtype": "%s"}`, dbs.Name, dbs.Version, dbs.Uptime, dbs.Status, appUptime, dbs.Type)
 }
 
-func (a *App) getTagAndDate(tag, date, format string) []byte {
+func (a *App) getTagOnDate(tag, date, format string) []byte {
 	dateTime, err := a.excelTimeToTime(date)
 	if err != nil {
 		return []byte("#Error: " + err.Error())
@@ -323,7 +323,7 @@ func (a *App) getTagAndDate(tag, date, format string) []byte {
 	case "raw":
 		return []byte(fmt.Sprintf("%f", tagValue))
 	case "json":
-		return []byte(fmt.Sprintf("{ \"Value\" : %f}", tagValue))
+		return []byte(fmt.Sprintf("{ \"Value\" : %f }", tagValue))
 	default:
 		return []byte(a.store.Format(a.store.Round(tagValue)))
 	}
@@ -334,7 +334,7 @@ func (a *App) getTagAndDate(tag, date, format string) []byte {
 	// }
 }
 
-func (a *App) getTagAndCount(tag, from, to, count string) []byte {
+func (a *App) getTagByCount(tag, from, to, count string) []byte {
 	fromT, err := a.excelTimeToTime(from)
 	if err != nil {
 		return []byte(err.Error())
@@ -358,7 +358,7 @@ func (a *App) getTagAndCount(tag, from, to, count string) []byte {
 	return tagValueJSON
 }
 
-func (a *App) getTagAndCountGroup(tag, from, to, count string, group string) []byte {
+func (a *App) getTagFromToByCountWithGroup(tag, from, to, count string, group string) []byte {
 	fromT, err := a.excelTimeToTime(from)
 	if err != nil {
 		return []byte(err.Error())
@@ -402,7 +402,7 @@ func (a *App) getTagFromTo(tag, from, to string) []byte {
 	return tagValueJSON
 }
 
-func (a *App) getTagFromToGroup(tag, from, to, group string) []byte {
+func (a *App) getTagFromToWithGroup(tag, from, to, group string, format string) []byte {
 	fromT, err := a.excelTimeToTime(from)
 
 	if err != nil {
@@ -418,5 +418,12 @@ func (a *App) getTagFromToGroup(tag, from, to, group string) []byte {
 	if err != nil {
 		return []byte("#Error: " + err.Error())
 	}
-	return []byte(a.store.Format(a.store.Round(tagValue)))
+	switch format {
+	case "raw":
+		return []byte(fmt.Sprintf("%f", tagValue))
+	case "json":
+		return []byte(fmt.Sprintf("{ \"Value\" : %f }", tagValue))
+	default:
+		return []byte(a.store.Format(a.store.Round(tagValue)))
+	}
 }

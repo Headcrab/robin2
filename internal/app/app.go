@@ -97,8 +97,9 @@ func (a *App) initApp() {
 	// Configure the logger
 	logger.Debug("initializing app")
 	a.config = config.GetConfig()
-	a.cache = cache.NewFactory().NewCache(a.config.GetString("app.cache.type"))
-	a.store = store.NewFactory().NewStore(a.config.GetString("app.db.type"))
+	a.cache = cache.NewFactory().NewCache(a.config.GetString("app.cache." + a.config.GetString("app.cache.current") + ".type"))
+	a.store = store.NewFactory().NewStore(a.config.GetString("app.db." + a.config.GetString("app.db.current") + ".type"))
+	a.template = template.New("tmpl")
 
 	// Define HTTP request handlers
 	handlers := map[string]func(http.ResponseWriter, *http.Request){

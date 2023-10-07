@@ -20,6 +20,7 @@ type RedisCacheImpl struct {
 	BaseCache
 	rds    *redis.Client
 	config config.Config
+	ttl    time.Duration
 }
 
 func NewRedisCache() (BaseCache, error) {
@@ -36,12 +37,12 @@ func NewRedisCache() (BaseCache, error) {
 }
 
 func (c *RedisCacheImpl) Connect() error {
-	cacheName := c.config.GetString("app.cache.name")
-	host := c.config.GetString("db." + cacheName + ".host")
-	port := c.config.GetString("db." + cacheName + ".port")
-	password := c.config.GetString("db." + cacheName + ".password")
-	db := c.config.GetInt("db." + cacheName + ".db")
-
+	cacheName := c.config.GetString("app.cache.current")
+	host := c.config.GetString("app.cache." + cacheName + ".host")
+	port := c.config.GetString("app.cache." + cacheName + ".port")
+	password := c.config.GetString("app.cache." + cacheName + ".password")
+	db := c.config.GetInt("app.cache." + cacheName + ".db")
+	c.ttl = time.Duration(c.config.GetInt("app.cache."+cacheName+".ttl")) * time.Hour
 	logger.Trace("RedisCacheImpl.Connect")
 	c.rds = redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", host, port),
@@ -64,17 +65,27 @@ func (c *RedisCacheImpl) Connect() error {
 
 func (c *RedisCacheImpl) Get(tag string, date time.Time) (float32, error) {
 	logger.Trace("RedisCacheImpl.Get")
-	c.rds.Expire(context.Background(), tag, time.Duration(c.config.GetInt("app.cache.ttl"))*time.Hour)
-	return c.rds.HGet(context.Background(), tag, date.Format("02.01.2006 15:04:05")).Float32()
+	c.rds.Expire(context.Background(), tag, c.ttl)
+	return c.rds.HGet(context.Background(), tag, date.Format("2006-01-02 15:04:05")).Float32()
 }
 
 func (c *RedisCacheImpl) Set(tag string, date time.Time, value float32) error {
 	logger.Trace("RedisCacheImpl.Set")
-	// RedisCacheLock.Lock()
-	// defer RedisCacheLock.Unlock()
+	c.rds.Expire(context.Background(), tag, c.ttl)
+	c.rds.HSet(context.Background(), tag, date.Format("2006-01-02 15:04:05"), value)
+	return nil
+}
 
-	// устанавливаем TTL
-	c.rds.Expire(context.Background(), tag, time.Duration(c.config.GetInt("app.cache.ttl"))*time.Hour)
-	c.rds.HSet(context.Background(), tag, date.Format("02.01.2006 15:04:05"), value)
+func (c *RedisCacheImpl) GetStr(tag string, field string) (float32, error) {
+	logger.Trace("RedisCacheImpl.GetStr")
+	c.rds.Expire(context.Background(), tag, c.ttl)
+	return c.rds.HGet(context.Background(), tag, field).Float32()
+
+}
+
+func (c *RedisCacheImpl) SetStr(tag string, field string, value float32) error {
+	logger.Trace("RedisCacheImpl.SetStr")
+	c.rds.Expire(context.Background(), tag, c.ttl)
+	c.rds.HSet(context.Background(), tag, field, value)
 	return nil
 }

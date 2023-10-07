@@ -1,15 +1,153 @@
 {
     "app": {
         "port": 8008,
-        "db": {
-            "type": "clickhouse",
-            "name": "clickhouse"
-        },
         "round": "2",
         "cache": {
-            "type": "redis",
-            "name": "redis.docker",
-            "ttl": 1
+            "current": "redis.docker",
+            "redis.localhost": {
+                "type": "redis",
+                "ttl": 1,
+                "active": "false",
+                "host": "127.0.0.1",
+                "port": "6379",
+                "password": "",
+                "db": 0,
+                "max_open_conns": 100,
+                "max_idle_conns": 10,
+                "conn_max_lifetime": 60,
+                "connection_string": "redis://{host}:{port}/{db}"
+            },
+            "redis.docker": {
+                "type": "redis",
+                "ttl": 1,
+                "active": "false",
+                "host": "host.docker.internal",
+                "port": "6379",
+                "password": "",
+                "db": 0,
+                "max_open_conns": 100,
+                "max_idle_conns": 10,
+                "conn_max_lifetime": 60,
+                "connection_string": "redis://{host}:{port}/{db}"
+            }
+        },
+        "db": {
+            "current": "clickhouse",
+            "hs0": {
+                "type": "mssql",
+                "host": "hs0",
+                "port": "1433",
+                "user": "sa",
+                "password": "!QAZ1qaz12345",
+                "database": "Runtime",
+                "timeout": 30,
+                "connection_string": "server={host};port={port};user id={user};password={password};database={database};TrustServerCertificate=true;encrypt=disable;connection timeout={timeout};",
+                "query": {
+                    "get_tag_date": "set quoted_identifier off select * from openquery(INSQL,\"select h.Value from history h where (h.TagName) = '{tag}' and h.[DateTime] = '{date}'\")",
+                    "get_tag_from_to": "set quoted_identifier off select * from openquery(INSQL,\"select h.[DateTime], h.Value from history h where (h.TagName) = '{tag}' and h.[DateTime] >= '{from}' and h.[DateTime] < '{to}' and wwRetrievalMode = 'Cyclic' and wwResolution = 1000\")",
+                    "get_tag_from_to_group": "set quoted_identifier off select * from openquery(INSQL,\"select {group}(h.Value) value from history h where (h.TagName) = '{tag}' and h.[DateTime] >= '{from}' and h.[DateTime] < '{to}' and wwRetrievalMode = 'Cyclic' and wwResolution = 1000 group by h.TagName\")",
+                    "get_tag_from_to_dif": "set quoted_identifier off select (ht.value-hf.value) value from openquery(INSQL,\"select TagName, Value from history where TagName ='{tag}' and [DateTime] = '{from}'\") hf join openquery(INSQL,\"select TagName, Value from history where TagName ='{tag}' and [DateTime] = '{to}'\") ht on hf.TagName = ht.TagName",
+                    "get_tag_from_to_count": "set quoted_identifier off select count(h.Value)/60.0 value from openquery(INSQL,\"select h.Value from history h where (h.TagName) = '{tag}' and h.[DateTime] >= '{from}' and h.[DateTime] < '{to}' and wwRetrievalMode = 'Cyclic' and wwResolution = 1000\")",
+                    "get_tag_list": "select distinct t.TagName from Tag t where (t.TagName) like '{tag}' order by t.TagName",
+                    "get_tag_count": "select '{from}', avg(h.Value) value from history h where (h.TagName) = '{tag}' AND h.[DateTime] >= '{from}' AND h.[DateTime] < '{to}' group by h.TagName",
+                    "get_tag_count2": "select '{from}', avg(h.Value) value from history h where (h.TagName) = '{tag}' AND h.[DateTime] >= '{from}' AND h.[DateTime] < '{to}' group by h.TagName",
+                    "status": "SELECT SUBSTRING(CONVERT(NVARCHAR(4000), SERVERPROPERTY('ProductVersion')), 1, CHARINDEX('.', CONVERT(NVARCHAR(4000), SERVERPROPERTY('ProductVersion'))) + 8) AS Version, DATEDIFF(SECOND, '2022-07-26 10:08:09.413', GETDATE()) AS UptimeInSeconds"
+                }
+            },
+            "appsrv": {
+                "type": "mysql",
+                "host": "172.26.207.211",
+                "port": "3306",
+                "user": "nav",
+                "password": "navnav123",
+                "database": "runtime",
+                "timeout": 30,
+                "connection_string": "{user}:{password}@tcp({host}:{port})/{database}?charset=utf8&parseTime=True&loc=Local",
+                "query": {
+                    "get_tag_date": "select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec(timediff(timediff(tt.DataTime, ft.DataTime),timediff(tt.DataTime,'{date}')))/time_to_sec(timediff(tt.DataTime,ft.DataTime))*(tt.Value-ft.Value)+ft.Value else ft.Value end as t from (select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{date}' order by h.DataTime desc limit 1) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{date}' order by h.DataTime asc limit 1) tt on ft.TagName = tt.TagName",
+                    "get_tag_from_to": "select h.DataTime, h.Value from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}'",
+                    "get_tag_from_to_group": "select {group}(h.Value) from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}' group by h.TagName",
+                    "get_tag_from_to_dif": "select (ht.t-hf.t) value from (select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{from}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{from}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{from}' limit 1 ) tt on ft.TagName = tt.TagName) hf, (select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{to}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{to}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{to}' limit 1 ) tt on ft.TagName = tt.TagName) ht",
+                    "get_tag_from_to_count": "select count(h.v) value from historian h where h.t ='{tag}' AND h.d >= '{from}' AND h.d < '{to}'",
+                    "get_tag_list": "select t.tagname from tagname t where (t.TagName) like '{tag}' order by t.tagname",
+                    "get_tag_count": "select '{from}' date, avg(h.Value) value from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}' group by h.TagName",
+                    "get_tag_count2": "select '{date}' date, case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{date}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{date}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{date}' limit 1 ) tt on ft.TagName = tt.TagName",
+                    "status": "select version() version, (SELECT VARIABLE_VALUE FROM information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME = 'Uptime') uptime"
+                }
+            },
+            "mysql_local": {
+                "type": "mysql",
+                "host": "localhost",
+                "port": "3306",
+                "user": "root",
+                "password": "iamyourroot",
+                "database": "runtime",
+                "timeout": 30,
+                "max_idle_conns": 1,
+                "max_open_conns": 2,
+                "conn_max_idle_time": 10,
+                "conn_max_lifetime": 10,
+                "connection_string": "{user}:{password}@tcp({host}:{port})/{database}?charset=utf8&parseTime=True&loc=Local",
+                "query": {
+                    "get_tag_date": "select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec(timediff(timediff(tt.DataTime, ft.DataTime),timediff(tt.DataTime,'{date}')))/time_to_sec(timediff(tt.DataTime,ft.DataTime))*(tt.Value-ft.Value)+ft.Value else ft.Value end as t from (select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{date}' order by h.DataTime desc limit 1) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{date}' order by h.DataTime asc limit 1) tt on ft.TagName = tt.TagName",
+                    "get_tag_from_to": "select h.DataTime, h.Value from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}'",
+                    "get_tag_from_to_group": "select {group}(h.Value) from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}' group by h.TagName",
+                    "get_tag_from_to_dif": "select (ht.t-hf.t) value from (select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{from}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{from}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{from}' limit 1 ) tt on ft.TagName = tt.TagName) hf, (select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{to}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{to}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{to}' limit 1 ) tt on ft.TagName = tt.TagName) ht",
+                    "get_tag_from_to_count": "select count(h.v) value from historian h where h.t ='{tag}' AND h.d >= '{from}' AND h.d < '{to}'",
+                    "get_tag_list": "select t.tagname from tagname t where (t.TagName) like '{tag}' order by t.tagname",
+                    "get_tag_count": "select '{from}' date, avg(h.Value) value from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}' group by h.TagName",
+                    "get_tag_count2": "select '{date}' date, case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{date}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{date}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{date}' limit 1 ) tt on ft.TagName = tt.TagName",
+                    "status": "select version() version, (SELECT VARIABLE_VALUE FROM information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME = 'Uptime') uptime"
+                }
+            },
+            "mysql_docker": {
+                "type": "mysql",
+                "host": "host.docker.internal",
+                "port": "3306",
+                "user": "root",
+                "password": "iamyourroot",
+                "database": "runtime",
+                "timeout": 30,
+                "max_idle_conns": 1,
+                "max_open_conns": 2,
+                "conn_max_idle_time": 10,
+                "conn_max_lifetime": 10,
+                "connection_string": "{user}:{password}@tcp({host}:{port})/{database}?charset=utf8&parseTime=True",
+                "query": {
+                    "get_tag_date": "select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec(timediff(timediff(tt.DataTime, ft.DataTime),timediff(tt.DataTime,'{date}')))/time_to_sec(timediff(tt.DataTime,ft.DataTime))*(tt.Value-ft.Value)+ft.Value else ft.Value end as t from (select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{date}' order by h.DataTime desc limit 1) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{date}' order by h.DataTime asc limit 1) tt on ft.TagName = tt.TagName",
+                    "get_tag_from_to": "select h.DataTime, h.Value from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}'",
+                    "get_tag_from_to_group": "select {group}(h.Value) from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}' group by h.TagName",
+                    "get_tag_from_to_dif": "select (ht.t-hf.t) value from (select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{from}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{from}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{from}' limit 1 ) tt on ft.TagName = tt.TagName) hf, (select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{to}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{to}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{to}' limit 1 ) tt on ft.TagName = tt.TagName) ht",
+                    "get_tag_from_to_count": "select count(h.v) value from historian h where h.t ='{tag}' AND h.d >= '{from}' AND h.d < '{to}'",
+                    "get_tag_list": "select t.tagname from tagname t where (t.TagName) like '{tag}' order by t.tagname",
+                    "get_tag_count": "select '{from}' date, avg(h.Value) value from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}' group by h.TagName",
+                    "get_tag_count2": "select '{date}' date, case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{date}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{date}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{date}' limit 1 ) tt on ft.TagName = tt.TagName",
+                    "status": "select version() version, (SELECT VARIABLE_VALUE FROM information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME = 'Uptime') uptime"
+                }
+            },
+            "clickhouse": {
+                "type": "clickhouse",
+                "host": "host.docker.internal",
+                "port": "9000",
+                "user": "admin",
+                "password": "password123",
+                "database": "runtime",
+                "timeout": 30,
+                "connection_string": "clickhouse://{host}:{port}/{database}?username={user}&password={password}",
+                "query": {
+                    "get_tag_date2": "select h.Value from history h where (h.TagName) = '{tag}' and h.DateTime between timeStampSub(minute, 5 , toDateTime('{date}')) and toDateTime('{date}') order by h.DateTime desc limit 1",
+                    "get_tag_date": "select if(toDateTime('{date}','Asia/Almaty') > (select max(max) from runtime.max), -1, h.Value) as Value from history h where (h.TagName) = '{tag}' and h.DateTime <= '{date}' order by h.DateTime desc limit 1",
+                    "get_tag_date3": "select h.Value from history h where (h.TagName) = '{tag}' and h.DateTime <= '{date}' order by h.DateTime desc limit 1",
+                    "get_tag_from_to": "select h.DataTime, h.Value from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}'",
+                    "get_tag_from_to_group": "select {group}(h.Value) from history h where (h.TagName) = '{tag}' AND h.DateTime >= '{from}' AND h.DateTime < '{to}' group by h.TagName",
+                    "get_tag_from_to_dif": "select (ht.Value-hf.Value) Value from (select h.Value from history h where (h.TagName) = '{tag}' and h.DateTime <= toDateTime('{from}') order by h.DateTime desc limit 1) as hf, (select h.Value from history h where (h.TagName) = '{tag}' and h.DateTime <= toDateTime('{to}') order by h.DateTime desc limit 1) as ht",
+                    "get_tag_from_to_count": "select count(h.Value) Value from historian h where (h.TagName) = '{tag}' AND h.DateTime >= '{from}' AND h.DateTime < '{to}'",
+                    "get_tag_list": "select t.TagName from runtime.tag t where (t.TagName) like '{tag}' group by t.TagName order by t.TagName;",
+                    "get_down_dates": "select v.DT from ( select h.DateTime as DT, h.Value, lagInFrame(h.Value) OVER (ORDER BY DateTime) as was, lagInFrame(h.DateTime) OVER (ORDER BY DateTime) as was_date from runtime.history h where (h.TagName) = '{tag}' and h.DateTime >= '{from}' and h.DateTime <= '{to}' order by h.DateTime ) v where (Value<>was or was_date = toDateTime('1970-01-01')) and Value=0",
+                    "get_up_dates": "select v.DT from ( select h.DateTime as DT, h.Value, lagInFrame(h.Value) OVER (ORDER BY DateTime) as was ,lagInFrame(h.DateTime) OVER (ORDER BY DateTime) as was_date from runtime.history h where (h.TagName) = '{tag}' and h.DateTime >= '{from}' and h.DateTime <= '{to}' order by h.DateTime ) v where (Value<>was or was_date = toDateTime('1970-01-01')) and Value=1",
+                    "status": "SELECT version() version, uptime() uptime"
+                }
+            }
         },
         "date_formats": [
             "2006-01-02 15:04:05",
@@ -26,139 +164,5 @@
             "2006-01-02T15:04:05.00-07:00",
             "2006-01-02T15:04:05.000-07:00"
         ]
-    },
-    "db": {
-        "hs0": {
-            "host": "hs0",
-            "port": "1433",
-            "user": "sa",
-            "password": "!QAZ1qaz12345",
-            "database": "Runtime",
-            "timeout": 30,
-            "connection_string": "server={host};port={port};user id={user};password={password};database={database};TrustServerCertificate=true;encrypt=disable;connection timeout={timeout};",
-            "query": {
-                "get_tag_date": "set quoted_identifier off select * from openquery(INSQL,\"select h.Value from history h where (h.TagName) = '{tag}' and h.[DateTime] = '{date}'\")",
-                "get_tag_from_to": "set quoted_identifier off select * from openquery(INSQL,\"select h.[DateTime], h.Value from history h where (h.TagName) = '{tag}' and h.[DateTime] >= '{from}' and h.[DateTime] < '{to}' and wwRetrievalMode = 'Cyclic' and wwResolution = 1000\")",
-                "get_tag_from_to_group": "set quoted_identifier off select * from openquery(INSQL,\"select {group}(h.Value) value from history h where (h.TagName) = '{tag}' and h.[DateTime] >= '{from}' and h.[DateTime] < '{to}' and wwRetrievalMode = 'Cyclic' and wwResolution = 1000 group by h.TagName\")",
-                "get_tag_from_to_dif": "set quoted_identifier off select (ht.value-hf.value) value from openquery(INSQL,\"select TagName, Value from history where TagName ='{tag}' and [DateTime] = '{from}'\") hf join openquery(INSQL,\"select TagName, Value from history where TagName ='{tag}' and [DateTime] = '{to}'\") ht on hf.TagName = ht.TagName",
-                "get_tag_from_to_count": "set quoted_identifier off select count(h.Value)/60.0 value from openquery(INSQL,\"select h.Value from history h where (h.TagName) = '{tag}' and h.[DateTime] >= '{from}' and h.[DateTime] < '{to}' and wwRetrievalMode = 'Cyclic' and wwResolution = 1000\")",
-                "get_tag_list": "select t.TagName from Tag t where (t.TagName) like '{tag}' order by t.TagName",
-                "get_tag_count": "select '{from}', avg(h.Value) value from history h where (h.TagName) = '{tag}' AND h.[DateTime] >= '{from}' AND h.[DateTime] < '{to}' group by h.TagName",
-                "get_tag_count2": "select '{from}', avg(h.Value) value from history h where (h.TagName) = '{tag}' AND h.[DateTime] >= '{from}' AND h.[DateTime] < '{to}' group by h.TagName",
-                "status": "SELECT SUBSTRING(CONVERT(NVARCHAR(4000), SERVERPROPERTY('ProductVersion')), 1, CHARINDEX('.', CONVERT(NVARCHAR(4000), SERVERPROPERTY('ProductVersion'))) + 8) AS Version, DATEDIFF(SECOND, '2022-07-26 10:08:09.413', GETDATE()) AS UptimeInSeconds"
-            }
-        },
-        "appsrv": {
-            "host": "172.26.207.211",
-            "port": "3306",
-            "user": "nav",
-            "password": "navnav123",
-            "database": "runtime",
-            "timeout": 30,
-            "connection_string": "{user}:{password}@tcp({host}:{port})/{database}?charset=utf8&parseTime=True&loc=Local",
-            "query": {
-                "get_tag_date": "select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec(timediff(timediff(tt.DataTime, ft.DataTime),timediff(tt.DataTime,'{date}')))/time_to_sec(timediff(tt.DataTime,ft.DataTime))*(tt.Value-ft.Value)+ft.Value else ft.Value end as t from (select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{date}' order by h.DataTime desc limit 1) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{date}' order by h.DataTime asc limit 1) tt on ft.TagName = tt.TagName",
-                "get_tag_from_to": "select h.DataTime, h.Value from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}'",
-                "get_tag_from_to_group": "select {group}(h.Value) from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}' group by h.TagName",
-                "get_tag_from_to_dif": "select (ht.t-hf.t) value from (select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{from}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{from}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{from}' limit 1 ) tt on ft.TagName = tt.TagName) hf, (select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{to}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{to}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{to}' limit 1 ) tt on ft.TagName = tt.TagName) ht",
-                "get_tag_from_to_count": "select count(h.v) value from historian h where h.t ='{tag}' AND h.d >= '{from}' AND h.d < '{to}'",
-                "get_tag_list": "select t.tagname from tagname t where (t.TagName) like '{tag}' order by t.tagname",
-                "get_tag_count": "select '{from}' date, avg(h.Value) value from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}' group by h.TagName",
-                "get_tag_count2": "select '{date}' date, case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{date}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{date}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{date}' limit 1 ) tt on ft.TagName = tt.TagName",
-                "status": "select version() version, (SELECT VARIABLE_VALUE FROM information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME = 'Uptime') uptime"
-            }
-        },
-        "mysql_local": {
-            "host": "localhost",
-            "port": "3306",
-            "user": "root",
-            "password": "iamyourroot",
-            "database": "runtime",
-            "timeout": 30,
-            "max_idle_conns": 1,
-            "max_open_conns": 2,
-            "conn_max_idle_time": 10,
-            "conn_max_lifetime": 10,
-            "connection_string": "{user}:{password}@tcp({host}:{port})/{database}?charset=utf8&parseTime=True&loc=Local",
-            "query": {
-                "get_tag_date": "select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec(timediff(timediff(tt.DataTime, ft.DataTime),timediff(tt.DataTime,'{date}')))/time_to_sec(timediff(tt.DataTime,ft.DataTime))*(tt.Value-ft.Value)+ft.Value else ft.Value end as t from (select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{date}' order by h.DataTime desc limit 1) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{date}' order by h.DataTime asc limit 1) tt on ft.TagName = tt.TagName",
-                "get_tag_from_to": "select h.DataTime, h.Value from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}'",
-                "get_tag_from_to_group": "select {group}(h.Value) from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}' group by h.TagName",
-                "get_tag_from_to_dif": "select (ht.t-hf.t) value from (select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{from}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{from}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{from}' limit 1 ) tt on ft.TagName = tt.TagName) hf, (select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{to}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{to}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{to}' limit 1 ) tt on ft.TagName = tt.TagName) ht",
-                "get_tag_from_to_count": "select count(h.v) value from historian h where h.t ='{tag}' AND h.d >= '{from}' AND h.d < '{to}'",
-                "get_tag_list": "select t.tagname from tagname t where (t.TagName) like '{tag}' order by t.tagname",
-                "get_tag_count": "select '{from}' date, avg(h.Value) value from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}' group by h.TagName",
-                "get_tag_count2": "select '{date}' date, case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{date}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{date}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{date}' limit 1 ) tt on ft.TagName = tt.TagName",
-                "status": "select version() version, (SELECT VARIABLE_VALUE FROM information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME = 'Uptime') uptime"
-            }
-        },
-        "mysql_docker": {
-            "host": "host.docker.internal",
-            "port": "3306",
-            "user": "root",
-            "password": "iamyourroot",
-            "database": "runtime",
-            "timeout": 30,
-            "max_idle_conns": 1,
-            "max_open_conns": 2,
-            "conn_max_idle_time": 10,
-            "conn_max_lifetime": 10,
-            "connection_string": "{user}:{password}@tcp({host}:{port})/{database}?charset=utf8&parseTime=True",
-            "query": {
-                "get_tag_date": "select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec(timediff(timediff(tt.DataTime, ft.DataTime),timediff(tt.DataTime,'{date}')))/time_to_sec(timediff(tt.DataTime,ft.DataTime))*(tt.Value-ft.Value)+ft.Value else ft.Value end as t from (select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{date}' order by h.DataTime desc limit 1) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{date}' order by h.DataTime asc limit 1) tt on ft.TagName = tt.TagName",
-                "get_tag_from_to": "select h.DataTime, h.Value from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}'",
-                "get_tag_from_to_group": "select {group}(h.Value) from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}' group by h.TagName",
-                "get_tag_from_to_dif": "select (ht.t-hf.t) value from (select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{from}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{from}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{from}' limit 1 ) tt on ft.TagName = tt.TagName) hf, (select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{to}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{to}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{to}' limit 1 ) tt on ft.TagName = tt.TagName) ht",
-                "get_tag_from_to_count": "select count(h.v) value from historian h where h.t ='{tag}' AND h.d >= '{from}' AND h.d < '{to}'",
-                "get_tag_list": "select t.tagname from tagname t where (t.TagName) like '{tag}' order by t.tagname",
-                "get_tag_count": "select '{from}' date, avg(h.Value) value from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}' group by h.TagName",
-                "get_tag_count2": "select '{date}' date, case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec( timediff( timediff(tt.DataTime, ft.DataTime), timediff(tt.DataTime, '{date}') ) ) / time_to_sec(timediff(tt.DataTime, ft.DataTime)) *(tt.Value - ft.Value) + ft.Value else ft.Value end as t from ( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{date}' limit 1 ) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{date}' limit 1 ) tt on ft.TagName = tt.TagName",
-                "status": "select version() version, (SELECT VARIABLE_VALUE FROM information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME = 'Uptime') uptime"
-            }
-        },
-        "clickhouse": {
-            "host": "host.docker.internal",
-            "port": "9000",
-            "user": "admin",
-            "password": "password123",
-            "database": "runtime",
-            "timeout": 30,
-            "connection_string": "clickhouse://{host}:{port}/{database}?username={user}&password={password}",
-            "query": {
-                "get_tag_date2": "select h.Value from history h where (h.TagName) = '{tag}' and h.DateTime between timeStampSub(minute, 5 , toDateTime('{date}')) and toDateTime('{date}') order by h.DateTime desc limit 1",
-                "get_tag_date": "select if(toDateTime('{date}','Asia/Almaty') > (select max(max) from runtime.max), -1, h.Value) as Value from history h where (h.TagName) = '{tag}' and h.DateTime <= '{date}' order by h.DateTime desc limit 1",
-                "get_tag_date3": "select h.Value from history h where (h.TagName) = '{tag}' and h.DateTime <= '{date}' order by h.DateTime desc limit 1",
-                "get_tag_from_to": "select h.DataTime, h.Value from history h where (h.TagName) = '{tag}' AND h.DataTime >= '{from}' AND h.DataTime < '{to}'",
-                "get_tag_from_to_group": "select {group}(h.Value) from history h where (h.TagName) = '{tag}' AND h.DateTime >= '{from}' AND h.DateTime < '{to}' group by h.TagName",
-                "get_tag_from_to_dif": "select (ht.Value-hf.Value) Value from (select h.Value from history h where (h.TagName) = '{tag}' and h.DateTime <= toDateTime('{from}') order by h.DateTime desc limit 1) as hf, (select h.Value from history h where (h.TagName) = '{tag}' and h.DateTime <= toDateTime('{to}') order by h.DateTime desc limit 1) as ht",
-                "get_tag_from_to_count": "select count(h.Value) Value from historian h where (h.TagName) = '{tag}' AND h.DateTime >= '{from}' AND h.DateTime < '{to}'",
-                "get_tag_list": "select distinct t.TagName from history t where (t.TagName) like '{tag}' order by t.TagName",
-                "get_down_dates": "select v.DT from ( select h.DateTime as DT, h.Value, lagInFrame(h.Value) OVER (ORDER BY DateTime) as was, lagInFrame(h.DateTime) OVER (ORDER BY DateTime) as was_date from runtime.history h where (h.TagName) = '{tag}' and h.DateTime >= '{from}' and h.DateTime <= '{to}' order by h.DateTime ) v where (Value<>was or was_date = toDateTime('1970-01-01')) and Value=0",
-                "get_up_dates": "select v.DT from ( select h.DateTime as DT, h.Value, lagInFrame(h.Value) OVER (ORDER BY DateTime) as was ,lagInFrame(h.DateTime) OVER (ORDER BY DateTime) as was_date from runtime.history h where (h.TagName) = '{tag}' and h.DateTime >= '{from}' and h.DateTime <= '{to}' order by h.DateTime ) v where (Value<>was or was_date = toDateTime('1970-01-01')) and Value=1",
-                "status": "SELECT version() version, uptime() uptime"
-            }
-        },
-        "redis.localhost": {
-            "active": "false",
-            "host": "127.0.0.1",
-            "port": "6379",
-            "password": "",
-            "db": 0,
-            "max_open_conns": 100,
-            "max_idle_conns": 10,
-            "conn_max_lifetime": 60,
-            "connection_string": "redis://{host}:{port}/{db}"
-        },
-        "redis.docker": {
-            "active": "false",
-            "host": "host.docker.internal",
-            "port": "6379",
-            "password": "",
-            "db": 0,
-            "max_open_conns": 100,
-            "max_idle_conns": 10,
-            "conn_max_lifetime": 60,
-            "connection_string": "redis://{host}:{port}/{db}"
-        }
     }
 }

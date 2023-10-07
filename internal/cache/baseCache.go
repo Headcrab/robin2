@@ -9,6 +9,8 @@ type BaseCache interface {
 	Disconnect() error
 	Get(tag string, date time.Time) (float32, error)
 	Set(tag string, date time.Time, value float32) error
+	GetStr(tag string, field string) (float32, error)
+	SetStr(tag string, field string, value float32) error
 	// Remove(key string) error
 	// RemoveHash(key hash) error
 	// RemoveAll() error

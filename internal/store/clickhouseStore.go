@@ -44,7 +44,7 @@ func (s *ClickHouseStoreImpl) Connect(cache cache.BaseCache) error {
 
 	base.cache = cache
 
-	dbType := base.config.GetString("app.db.type")
+	dbType := base.config.GetString("app.db." + base.config.GetString("app.db.current") + ".type")
 
 	db, err := sql.Open(dbType, base.marshalConnectionString())
 	if err != nil {

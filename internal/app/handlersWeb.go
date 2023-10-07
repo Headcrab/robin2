@@ -246,7 +246,7 @@ func (a *App) handlePageTags(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte("#Error: " + err.Error()))
 				return
 			}
-			tagsList = append(tagsList, tags["tags"]...)
+			tagsList = append(tagsList, tags...)
 		}
 	}
 
