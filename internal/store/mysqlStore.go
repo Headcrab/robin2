@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"math"
 	"robin2/internal/cache"
-	"robin2/pkg/config"
-	"robin2/pkg/logger"
+	"robin2/internal/config"
+	"robin2/internal/logger"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"

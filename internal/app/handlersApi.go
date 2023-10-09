@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"robin2/pkg/logger"
+	"robin2/internal/decode"
+	"robin2/internal/format"
+	"robin2/internal/logger"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -17,8 +20,8 @@ import (
 // @Router /api/log/ [get]
 func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("rendered log page")
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", "application/json")
+	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	// w.Header().Set("Content-Type", "application/json")
 	logs, err := logger.GetLogHistory()
 	if err != nil {
 		w.Write([]byte("#Error: " + err.Error()))
@@ -47,14 +50,11 @@ func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 // @Param round query string false "Округление, знаков после запятой (по умолчанию 2)"
 // @Param format query string false "Формат вывода (raw - без округления и замены точки на запятую, только для одного знчения)"
 func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
-	headers := w.Header()
-	headers.Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	headers.Set("Content-Type", "text/plain")
-	procTimeBegin := time.Now()
-	writer := []byte("")
+	// headers := w.Header()
+	// headers.Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	// headers.Set("Content-Type", "text/plain")
+	writer := []byte("Error: unknown error")
 	defer func() {
-		headers.Set("Procession-Time", time.Since(procTimeBegin).String())
-		w.WriteHeader(http.StatusOK)
 		w.Write(writer)
 	}()
 
@@ -66,39 +66,33 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 	from := query.Get("from")
 	to := query.Get("to")
 	group := query.Get("group")
-	round := query.Get("round")
+	roundStr := query.Get("round")
 	count := query.Get("count")
 	format := query.Get("format")
 
-	if round != "" {
-		round, _ := strconv.Atoi(round)
-		a.store.SetRound(round)
-	} else {
-		round := a.config.GetInt("app.round")
-		a.store.SetRound(round)
-	}
+	round := thenIf(roundStr != "", func() int { r, _ := strconv.Atoi(roundStr); return r }(), a.config.GetInt("app.round"))
 
 	if tag != "" && date != "" {
-		writer = a.getTagOnDate(tag, date, format)
+		writer = a.getTagOnDate(tag, date, format, round)
 		return
 	}
 
 	if tag != "" && from != "" && to != "" {
 		if count != "" {
 			if group == "" {
-				writer = a.getTagByCount(tag, from, to, count)
+				writer = a.getTagByCount(tag, from, to, count, format, round)
 				return
 			} else {
-				writer = a.getTagFromToByCountWithGroup(tag, from, to, count, group)
+				writer = a.getTagFromToByCountWithGroup(tag, from, to, count, group, format, round)
 				return
 			}
 		}
 
 		if group == "" {
-			writer = a.getTagFromTo(tag, from, to)
+			writer = a.getTagFromTo(tag, from, to, format, round)
 			return
 		} else {
-			writer = a.getTagFromToWithGroup(tag, from, to, group, format)
+			writer = a.getTagFromToWithGroup(tag, from, to, group, format, round)
 			return
 		}
 	}
@@ -111,21 +105,19 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {array} string
 // @Router /get/tag/list/ [get]
 // @Param like query string false "Маска поиска"
+// @Param format query string false "Формат вывода"
 // returns JSON with tags by mask
 func (a *App) handleAPIGetTagList(w http.ResponseWriter, r *http.Request) {
-	// Set response headers
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", "application/json")
-	procTimeBegin := time.Now()
-	writer := []byte("")
+	writer := []byte("#Error: unknown error")
 	defer func() {
-		w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
-		w.WriteHeader(http.StatusOK)
 		w.Write(writer)
 	}()
 
 	// Extract query parameter
 	like := r.URL.Query().Get("like")
+	fmt := r.URL.Query().Get("format")
+	roundStr := r.URL.Query().Get("round")
+	round := thenIf(roundStr != "", func() int { r, _ := strconv.Atoi(roundStr); return r }(), a.config.GetInt("app.round"))
 
 	// Retrieve list of tags
 	tags, err := a.store.GetTagList(like)
@@ -134,16 +126,7 @@ func (a *App) handleAPIGetTagList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Marshal tags into JSON string
-	writer, err = json.MarshalIndent(tags, "", "  ")
-	if err != nil {
-		// logger.Debug(err.error())
-		writer = []byte("#Error: " + err.Error())
-		return
-	}
-
-	// Write JSON string to response
-	// w.Write(j)
+	writer = format.New(fmt).Round(round).Process(tags)
 }
 
 // @Summary Получить даты отключения оборудования
@@ -157,8 +140,8 @@ func (a *App) handleAPIGetTagList(w http.ResponseWriter, r *http.Request) {
 // @Param to query string false "Дата окончания периода"
 // @Param count query string false "Номер отключения после даты начала (0 - первое отключение)"
 func (a *App) handleAPIGetTagDown(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", "application/json")
+	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	// w.Header().Set("Content-Type", "application/json")
 	tag := r.URL.Query().Get("tag")
 	if tag == "" {
 		w.Write([]byte("#Error: tag is empty"))
@@ -211,12 +194,16 @@ func (a *App) handleAPIGetTagDown(w http.ResponseWriter, r *http.Request) {
 // @Param to query string false "Дата окончания периода"
 // @Param count query string false "Номер включения после даты начала (0 - первое включение)"
 func (a *App) handleAPIGetTagUp(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", "application/json")
+	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	// w.Header().Set("Content-Type", "application/json")
+	writer := []byte("#Error: unknown error")
+	defer func() {
+		w.Write(writer)
+	}()
 
 	tag := r.URL.Query().Get("tag")
 	if tag == "" {
-		w.Write([]byte("#Error: tag is empty"))
+		writer = []byte("#Error: tag is empty")
 		return
 	}
 
@@ -230,27 +217,29 @@ func (a *App) handleAPIGetTagUp(w http.ResponseWriter, r *http.Request) {
 
 	fromT, err := a.excelTimeToTime(from)
 	if err != nil {
-		w.Write([]byte("#Error: " + err.Error()))
+		writer = []byte("#Error: " + err.Error())
 		return
 	}
 
 	toT, err := a.excelTimeToTime(to)
 	if err != nil {
-		w.Write([]byte("#Error: " + err.Error()))
+		writer = []byte("#Error: " + err.Error())
 		return
 	}
 
 	v, err := a.store.GetUpDates(tag, fromT, toT)
 	if err != nil {
-		w.Write([]byte("#Error: " + err.Error()))
+		writer = []byte("#Error: " + err.Error())
 		return
 	}
 
 	if count >= 0 && count < len(v) {
 		val := v[count].Format("2006-01-02 15:04:05")
-		w.Write([]byte(val))
+		writer = []byte(val)
+		return
 	} else {
-		w.Write([]byte(""))
+		writer = []byte("")
+		return
 	}
 }
 
@@ -262,7 +251,8 @@ func (a *App) handleAPIGetTagUp(w http.ResponseWriter, r *http.Request) {
 // @Router /api/info/ [get]
 func (a *App) handleAPIInfo(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("rendered info page")
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+
 	inf := map[string]interface{}{
 		"name":     a.name,
 		"version":  a.version,
@@ -277,8 +267,8 @@ func (a *App) handleAPIInfo(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) handleAPIReloadConfig(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("reloading config file")
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	logger.Info("reloading config file")
+	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	// logger.Info("reloading config file")
 
 	if err := a.config.Reload(); err != nil {
 		logger.Fatal("Failed to read config file")
@@ -293,7 +283,7 @@ func (a *App) handleAPIReloadConfig(w http.ResponseWriter, r *http.Request) {
 // @Router /api/uptime/ [get]
 func (a *App) handleAPIUptime(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("rendered uptime page")
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	uptime := time.Since(a.startTime).Round(time.Second)
 	_, err := w.Write([]byte(uptime.String()))
 	if err != nil {
@@ -309,7 +299,7 @@ func (a *App) handleAPIServerStatus(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `{"dbserver": "%s", "dbversion": "%s", "dbuptime": "%s", "dbstatus": "%s", "appuptime": "%s", "dbtype": "%s"}`, dbs.Name, dbs.Version, dbs.Uptime, dbs.Status, appUptime, dbs.Type)
 }
 
-func (a *App) getTagOnDate(tag, date, format string) []byte {
+func (a *App) getTagOnDate(tag, date, fmt string, round int) []byte {
 	dateTime, err := a.excelTimeToTime(date)
 	if err != nil {
 		return []byte("#Error: " + err.Error())
@@ -319,22 +309,11 @@ func (a *App) getTagOnDate(tag, date, format string) []byte {
 		return []byte("#Error: " + err.Error())
 	}
 
-	switch format {
-	case "raw":
-		return []byte(fmt.Sprintf("%f", tagValue))
-	case "json":
-		return []byte(fmt.Sprintf("{ \"Value\" : %f }", tagValue))
-	default:
-		return []byte(a.store.Format(a.store.Round(tagValue)))
-	}
-	// if format == "raw" {
-	// 	return []byte(fmt.Sprintf("%f", tagValue))
-	// } else {
-	// 	return []byte(a.store.Format(a.store.Round(tagValue)))
-	// }
+	w := format.New(fmt).Round(round).Process(tagValue)
+	return w
 }
 
-func (a *App) getTagByCount(tag, from, to, count string) []byte {
+func (a *App) getTagByCount(tag, from, to, count string, fmt string, round int) []byte {
 	fromT, err := a.excelTimeToTime(from)
 	if err != nil {
 		return []byte(err.Error())
@@ -351,14 +330,12 @@ func (a *App) getTagByCount(tag, from, to, count string) []byte {
 	if err != nil {
 		return []byte("#Error: " + err.Error())
 	}
-	tagValueJSON, err := json.MarshalIndent(tagValue, "", "  ")
-	if err != nil {
-		return []byte("#Error: " + err.Error())
-	}
-	return tagValueJSON
+
+	w := format.New(fmt).Round(round).Process(tagValue)
+	return w
 }
 
-func (a *App) getTagFromToByCountWithGroup(tag, from, to, count string, group string) []byte {
+func (a *App) getTagFromToByCountWithGroup(tag, from, to, count string, group string, fmt string, round int) []byte {
 	fromT, err := a.excelTimeToTime(from)
 	if err != nil {
 		return []byte(err.Error())
@@ -375,14 +352,11 @@ func (a *App) getTagFromToByCountWithGroup(tag, from, to, count string, group st
 	if err != nil {
 		return []byte("#Error: " + err.Error())
 	}
-	tagValueJSON, err := json.MarshalIndent(tagValue, "", "  ")
-	if err != nil {
-		return []byte("#Error: " + err.Error())
-	}
-	return tagValueJSON
+	w := format.New(fmt).Round(round).Process(tagValue)
+	return w
 }
 
-func (a *App) getTagFromTo(tag, from, to string) []byte {
+func (a *App) getTagFromTo(tag, from, to string, fmt string, round int) []byte {
 	fromT, err := a.excelTimeToTime(from)
 	if err != nil {
 		return []byte(err.Error())
@@ -395,14 +369,11 @@ func (a *App) getTagFromTo(tag, from, to string) []byte {
 	if err != nil {
 		return []byte("#Error: " + err.Error())
 	}
-	tagValueJSON, err := json.MarshalIndent(tagValue, "", "  ")
-	if err != nil {
-		return []byte("#Error: " + err.Error())
-	}
-	return tagValueJSON
+	w := format.New(fmt).Round(round).Process(tagValue)
+	return w
 }
 
-func (a *App) getTagFromToWithGroup(tag, from, to, group string, format string) []byte {
+func (a *App) getTagFromToWithGroup(tag, from, to, group string, fmt string, round int) []byte {
 	fromT, err := a.excelTimeToTime(from)
 
 	if err != nil {
@@ -418,12 +389,51 @@ func (a *App) getTagFromToWithGroup(tag, from, to, group string, format string) 
 	if err != nil {
 		return []byte("#Error: " + err.Error())
 	}
-	switch format {
-	case "raw":
-		return []byte(fmt.Sprintf("%f", tagValue))
-	case "json":
-		return []byte(fmt.Sprintf("{ \"Value\" : %f }", tagValue))
-	default:
-		return []byte(a.store.Format(a.store.Round(tagValue)))
+	w := format.New(fmt).Round(round).Process(tagValue)
+	return w
+}
+
+func (a *App) handleTagDecode(w http.ResponseWriter, r *http.Request) {
+	tag := r.URL.Query().Get("tag")
+	// from := r.URL.Query().Get("from")
+	// to := r.URL.Query().Get("to")
+	// fmt := r.URL.Query().Get("fmt")
+	// round := r.URL.Query().Get("round")
+
+	if tag == "" {
+		w.Write([]byte("#Error: tag is empty"))
+		return
 	}
+	tags := strings.Split(tag, ",")
+
+	// var ret map[string]map[string]string
+	ret := make(map[string]map[string]string)
+	var dec decode.Decoder
+	dec.LoadJSONData()
+	for _, t := range tags {
+		dec.Tags = append(dec.Tags, decode.Tag{Name: t})
+		dec.DecodeTags()
+	}
+	// w.Write([]byte(tag + "\n"))
+	for item := range dec.DecodedTagsChan {
+		// keys := make([]string, 0, len(item))
+		// for k := range item {
+		// 	keys = append(keys, k)
+		// }
+		// sort.Strings(keys)
+		// for _, k := range keys {
+		// 	w.Write([]byte(string(" " + k + " = " + item[k] + "\n")))
+		// }
+
+		// b, _ := json.MarshalIndent(item, "", "  ")
+		// w.Write([]byte(b))
+
+		ret[item["tag_name"]] = item
+	}
+	s, err := json.MarshalIndent(ret, "", "  ")
+	if err != nil {
+		w.Write([]byte("#Error: " + err.Error()))
+		return
+	}
+	w.Write([]byte(s))
 }

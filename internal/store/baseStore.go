@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"robin2/internal/cache"
-	"robin2/pkg/config"
-	"robin2/pkg/logger"
+	"robin2/internal/config"
+	"robin2/internal/logger"
 
 	"github.com/google/uuid"
 	// _ "github.com/denisenkom/go-mssqldb"
@@ -41,9 +41,9 @@ type BaseStore interface {
 	TemplateGet(name string) (string, error)
 	TemplateDel(name string) error
 
-	SetRound(round int)
-	Format(val float32) string
-	Round(val float32) float32
+	// SetRound(round int)
+	// Format(val float32) string
+	// Round(val float32) float32
 }
 
 type BaseStoreImpl struct {
@@ -208,7 +208,7 @@ func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, co
 			if err != nil {
 				val = -1
 			}
-			resDt[dateFrom] = s.Round(val)
+			resDt[dateFrom] = val
 		}
 		res[t] = resDt
 	}
@@ -280,7 +280,7 @@ func (s *BaseStoreImpl) GetTagFromTo(tag string, from time.Time, to time.Time) (
 			if err != nil {
 				val = -1
 			}
-			resDt[dateFrom] = s.Round(val)
+			resDt[dateFrom] = val
 			// if val != -1 {
 			// 	s.cache.Set(tag, dateFrom, val)
 			// }
@@ -324,7 +324,7 @@ func (s *BaseStoreImpl) GetTagFromToGroup(tag string, from time.Time, to time.Ti
 	// check cache
 
 	if val, err := s.cache.GetStr(tag, fromStr+"|"+toStr+"|"+group); err == nil {
-		return s.Round(val), nil
+		return val, nil
 	}
 
 	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{from}": fromStr, "{to}": toStr, "{group}": group}, query)
@@ -342,7 +342,7 @@ func (s *BaseStoreImpl) GetTagFromToGroup(tag string, from time.Time, to time.Ti
 
 	s.cache.SetStr(tag, fromStr+"|"+toStr+"|"+group, value)
 
-	return s.Round(value), nil
+	return value, nil
 }
 
 // GetTagList извлекает список тегов, соответствующих заданному шаблону.
@@ -526,13 +526,13 @@ func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) (str
 	}
 
 	res := ""
+	var line string
 	for rows.Next() {
-		var line string
 		err := rows.Scan(&line)
 		if err != nil {
 			return "", err
 		}
-		res += line + "\n"
+		res += string(line) + "\n"
 	}
 
 	return res, nil
@@ -584,7 +584,8 @@ func (s *BaseStoreImpl) TemplateSet(name string, body string) error {
 // name - Имя шаблона, который должен быть удален.
 // error - Возвращает ошибку, если удаление не удалось.
 func (s *BaseStoreImpl) TemplateDel(name string) error {
-	_, err := s.db.Exec("DELETE FROM runtime.templates WHERE Name = ?", name)
+	// _, err := s.db.Exec("DELETE FROM runtime.templates WHERE Name = ?", name)
+	_, err := s.db.Exec("ALTER TABLE runtime.templates DELETE WHERE Name = ?", name)
 	if err != nil {
 		return err
 	}

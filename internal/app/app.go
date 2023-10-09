@@ -7,6 +7,7 @@
 package robin
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"net"
@@ -19,10 +20,10 @@ import (
 	"time"
 
 	"robin2/internal/cache"
+	"robin2/internal/config"
 	"robin2/internal/errors"
+	"robin2/internal/logger"
 	"robin2/internal/store"
-	"robin2/pkg/config"
-	"robin2/pkg/logger"
 
 	"github.com/joho/godotenv"
 
@@ -30,6 +31,37 @@ import (
 
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
+
+type responseWriterWrapper struct {
+	http.ResponseWriter
+	body   *bytes.Buffer
+	status int
+}
+
+func (rw *responseWriterWrapper) WriteHeader(status int) {
+	rw.status = status
+}
+
+func (rw *responseWriterWrapper) Write(b []byte) (int, error) {
+	return rw.body.Write(b)
+}
+
+func TimingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		wrapper := &responseWriterWrapper{ResponseWriter: w, body: new(bytes.Buffer)}
+
+		next.ServeHTTP(wrapper, r)
+
+		duration := time.Since(start)
+		wrapper.Header().Set("X-Execution-Time", duration.String())
+
+		if wrapper.status != 0 {
+			wrapper.ResponseWriter.WriteHeader(wrapper.status)
+		}
+		wrapper.body.WriteTo(wrapper.ResponseWriter)
+	})
+}
 
 // NewApp creates a new instance of the App struct and returns a pointer to it.
 func NewApp() *App {
@@ -62,8 +94,10 @@ func (a *App) Run() {
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
+
+	mux := a.setupHTTPHandlers()
 	logger.Info("listening on: " + strings.Join(getLocalhostIpAdresses(), " , ") + " port: " + a.config.GetString("app.port"))
-	err = http.ListenAndServe(":"+a.config.GetString("app.port"), nil)
+	err = http.ListenAndServe(":"+a.config.GetString("app.port"), mux)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
@@ -99,8 +133,11 @@ func (a *App) initApp() {
 	a.config = config.GetConfig()
 	a.cache = cache.NewFactory().NewCache(a.config.GetString("app.cache." + a.config.GetString("app.cache.current") + ".type"))
 	a.store = store.NewFactory().NewStore(a.config.GetString("app.db." + a.config.GetString("app.db.current") + ".type"))
-	a.template = template.New("tmpl")
+}
 
+func (a *App) setupHTTPHandlers() http.Handler {
+	// a.template = template.New("tmpl")
+	mux := http.NewServeMux()
 	// Define HTTP request handlers
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
 		"/get/tag/":      a.handleAPIGetTag,
@@ -127,12 +164,15 @@ func (a *App) initApp() {
 		"/templ/edit/":   a.handleTemplateEdit,
 		"/templ/delete/": a.handleTemplateDelete,
 		"/templ/exec/":   a.handleTemplateExec,
+		"/tag/decode/":   a.handleTagDecode,
 	}
 
 	// Register HTTP request handlers
 	for path, handler := range handlers {
-		http.HandleFunc(path, handler)
+		mux.HandleFunc(path, handler)
 	}
+
+	// timedMux := TimingMiddleware(mux)
 
 	// Define custom template function
 	funcMap := template.FuncMap{
@@ -148,6 +188,8 @@ func (a *App) initApp() {
 		logger.Fatal(err.Error())
 		panic(err)
 	}
+
+	return TimingMiddleware(mux)
 }
 
 func colorizeLogString(input string) template.HTML {

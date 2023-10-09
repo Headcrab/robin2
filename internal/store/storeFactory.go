@@ -1,6 +1,6 @@
 package store
 
-import "robin2/pkg/logger"
+import "robin2/internal/logger"
 
 type Factory interface {
 	NewStore(string) BaseStore

@@ -6,7 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
-	"robin2/pkg/logger"
+	"robin2/internal/logger"
 	"sort"
 	"strconv"
 	"strings"
@@ -138,7 +138,7 @@ func (a *App) handlePageAny(page string, data map[string]interface{}) func(w htt
 var logData []string
 
 func (a *App) handlePageLog(w http.ResponseWriter, r *http.Request) {
-	procTimeBegin := time.Now()
+	// procTimeBegin := time.Now()
 	page := "logs"
 	logPerPage := 23
 	pageNumStr := r.URL.Query().Get("page")
@@ -161,7 +161,7 @@ func (a *App) handlePageLog(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
+	// w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
 	a.handlePageAny(page, getOnePage(page, logData, pageNum, logPerPage))(w, r)
 
 }
@@ -169,7 +169,7 @@ func (a *App) handlePageLog(w http.ResponseWriter, r *http.Request) {
 var tagsValues map[string]map[time.Time]float32
 
 func (a *App) handlePageData(w http.ResponseWriter, r *http.Request) {
-	procTimeBegin := time.Now()
+	// procTimeBegin := time.Now()
 	page := "data"
 
 	linesPerPage := 23
@@ -215,7 +215,7 @@ func (a *App) handlePageData(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
+	// w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
 	a.handlePageAny(page, getOnePage(page, data, pageNum, linesPerPage))(w, r)
 
 }
@@ -223,7 +223,7 @@ func (a *App) handlePageData(w http.ResponseWriter, r *http.Request) {
 var tagsList []string
 
 func (a *App) handlePageTags(w http.ResponseWriter, r *http.Request) {
-	procTimeBegin := time.Now()
+	// procTimeBegin := time.Now()
 	page := "tags"
 	linesPerPage := 23
 
@@ -253,6 +253,6 @@ func (a *App) handlePageTags(w http.ResponseWriter, r *http.Request) {
 	data := getOnePage(page, tagsList, pageNum, linesPerPage)
 	data["like"] = thenIf(like == "", "", like)
 
-	w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
+	// w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
 	a.handlePageAny(page, data)(w, r)
 }

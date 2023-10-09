@@ -3,7 +3,7 @@ package robin
 import (
 	"fmt"
 	"net/http"
-	"robin2/pkg/logger"
+	"robin2/internal/logger"
 	"strings"
 )
 
@@ -15,7 +15,7 @@ import (
 // @Router /templ/list [get]
 // @Param like query string false "Маска поиска шаблона"
 func (a *App) handleTemplateList(w http.ResponseWriter, r *http.Request) {
-	logger.Trace("rendered template page")
+	logger.Trace("list templates")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
 
@@ -43,7 +43,7 @@ func (a *App) handleTemplateList(w http.ResponseWriter, r *http.Request) {
 // @Param name query string true "Имя шаблона"
 // @Param body query string true "Тело шаблона"
 func (a *App) handleTemplateAdd(w http.ResponseWriter, r *http.Request) {
-	logger.Trace("rendered template page")
+	logger.Trace("adding template")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
 
@@ -74,7 +74,7 @@ func (a *App) handleTemplateAdd(w http.ResponseWriter, r *http.Request) {
 // @Router /templ/get [get]
 // @Param name query string true "Имя шаблона"
 func (a *App) handleTemplateGet(w http.ResponseWriter, r *http.Request) {
-	logger.Trace("rendered template page")
+	logger.Trace("getting template")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
 
@@ -101,7 +101,7 @@ func (a *App) handleTemplateGet(w http.ResponseWriter, r *http.Request) {
 // @Param name query string true "Имя шаблона"
 // @Param body query string true "Тело шаблона"
 func (a *App) handleTemplateEdit(w http.ResponseWriter, r *http.Request) {
-	logger.Trace("rendered template page")
+	logger.Trace("editing template")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
 
@@ -134,7 +134,7 @@ func (a *App) handleTemplateEdit(w http.ResponseWriter, r *http.Request) {
 // @Router /templ/del [get]
 // @Param name query string true "Имя шаблона"
 func (a *App) handleTemplateDelete(w http.ResponseWriter, r *http.Request) {
-	logger.Trace("rendered template page")
+	logger.Trace("deleting template")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
 
@@ -163,12 +163,19 @@ func (a *App) handleTemplateDelete(w http.ResponseWriter, r *http.Request) {
 // @Param args query array false "Список аргументов"
 // @x-try-it-out-enabled false
 func (a *App) handleTemplateExec(w http.ResponseWriter, r *http.Request) {
-	logger.Trace("rendered template page")
+	// procTimeBegin := time.Now()
+	logger.Trace("executing template")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
+	writer := []byte("#Error: unknown error")
+	defer func() {
+		// w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
+		// w.WriteHeader(http.StatusOK)
+		w.Write(writer)
+	}()
 	name := r.URL.Query().Get("name")
 	if name == "" {
-		w.Write([]byte("#Error: name is empty"))
+		writer = []byte("#Error: name is empty")
 		return
 	}
 
@@ -181,8 +188,8 @@ func (a *App) handleTemplateExec(w http.ResponseWriter, r *http.Request) {
 
 	b, err := a.store.TemplateExec(name, params)
 	if err != nil {
-		w.Write([]byte("#Error: " + err.Error()))
+		writer = []byte("#Error: " + err.Error())
 		return
 	}
-	w.Write([]byte(b))
+	writer = []byte(b)
 }

@@ -1,7 +1,7 @@
 package config
 
 import (
-	"robin2/pkg/logger"
+	"robin2/internal/logger"
 	"sync"
 
 	"github.com/spf13/viper"

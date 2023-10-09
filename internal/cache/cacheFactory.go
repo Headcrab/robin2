@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"robin2/pkg/logger"
+	"robin2/internal/logger"
 )
 
 type Factory interface {
