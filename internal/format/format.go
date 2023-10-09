@@ -148,6 +148,19 @@ func (r *ResponseFormatterString) Process(val interface{}) []byte {
 				ret += k1 + ", " + k2.Format("2006-01-02 15:04:05") + ", " + strconv.FormatFloat(Round(float64(v2), r.round), 'f', -1, 64) + "\n"
 			}
 		}
+	case map[string]map[string]string:
+		for k1, v1 := range v {
+			for k2, v2 := range v1 {
+				ret += k1 + ", " + k2 + ", " + v2 + "\n"
+			}
+		}
+	case []map[string]string:
+		for _, v1 := range v {
+			for _, v2 := range v1 {
+				ret += v2 + "\t"
+			}
+			ret += "\n"
+		}
 	default:
 		logger.Error("unknown type: " + fmt.Sprint(val))
 	}

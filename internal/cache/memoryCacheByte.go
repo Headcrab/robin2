@@ -2,6 +2,7 @@ package cache
 
 import (
 	"fmt"
+	"robin2/internal/config"
 	"robin2/internal/errors"
 	"robin2/internal/logger"
 	"sync"
@@ -17,12 +18,14 @@ type MemoryCacheBytes interface {
 
 type MemoryCacheBytesImpl struct {
 	MemoryCacheBytes
-	cache map[hash]float32
+	cache  map[hash]float32
+	config config.Config
 }
 
-func NewMemoryCacheByte() BaseCache {
+func NewMemoryCacheByte(cfg config.Config) BaseCache {
 	t := BaseCache(&MemoryCacheBytesImpl{
-		cache: make(map[hash]float32),
+		cache:  make(map[hash]float32),
+		config: cfg,
 	})
 	logger.Debug("NewMemoryCacheByte")
 	return t

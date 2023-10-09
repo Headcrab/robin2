@@ -89,15 +89,11 @@ func (a *App) Run() {
 	a.version = os.Getenv("PROJECT_VERSION")
 	logger.Info(a.name + " " + a.version + " is running")
 
-	a.initApp()
-	err := a.store.Connect(a.cache)
-	if err != nil {
-		logger.Fatal(err.Error())
-	}
+	a.initDatabase()
 
 	mux := a.setupHTTPHandlers()
 	logger.Info("listening on: " + strings.Join(getLocalhostIpAdresses(), " , ") + " port: " + a.config.GetString("app.port"))
-	err = http.ListenAndServe(":"+a.config.GetString("app.port"), mux)
+	err := http.ListenAndServe(":"+a.config.GetString("app.port"), mux)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
@@ -127,12 +123,22 @@ func getLocalhostIpAdresses() []string {
 	return localhostIPs
 }
 
-func (a *App) initApp() {
+func (a *App) initDatabase() {
 	// Configure the logger
 	logger.Debug("initializing app")
-	a.config = config.GetConfig()
-	a.cache = cache.NewFactory().NewCache(a.config.GetString("app.cache." + a.config.GetString("app.cache.current") + ".type"))
-	a.store = store.NewFactory().NewStore(a.config.GetString("app.db." + a.config.GetString("app.db.current") + ".type"))
+	a.config = config.GetConfig(a.workDir)
+	currCache := a.config.GetString("app.cache.current")
+	currCacheType := a.config.GetString("app.cache." + currCache + ".type")
+	currDB := a.config.GetString("app.db.current")
+	currDBType := a.config.GetString("app.db." + currDB + ".type")
+
+	a.cache = cache.NewFactory().NewCache(currCacheType, a.config)
+	a.store = store.NewFactory().NewStore(currDBType, a.config)
+
+	err := a.store.Connect(currDB, a.cache)
+	if err != nil {
+		logger.Fatal(err.Error())
+	}
 }
 
 func (a *App) setupHTTPHandlers() http.Handler {
@@ -145,7 +151,7 @@ func (a *App) setupHTTPHandlers() http.Handler {
 		"/get/tag/up/":   a.handleAPIGetTagUp,
 		"/get/tag/down/": a.handleAPIGetTagDown,
 		"/api/info/":     a.handleAPIInfo,
-		"/api/uptime/":   a.handleAPIUptime,
+		// "/api/uptime/":   a.handleAPIUptime,
 		"/api/reload/":   a.handleAPIReloadConfig,
 		"/api/log/":      a.handleAPIGetLog,
 		"/api/status/":   a.handleAPIServerStatus,
@@ -242,10 +248,11 @@ type dbstatus struct {
 }
 
 func (a *App) getDbStatus() dbstatus {
+	dbName := a.config.GetString("app.db.current")
 	dbstatus := dbstatus{
 		Status: "green",
-		Name:   a.config.GetString("app.db.name"),
-		Type:   a.config.GetString("app.db.type"),
+		Name:   dbName,
+		Type:   a.config.GetString("app.db." + dbName + ".type"),
 	}
 	var err error
 	var dbuptimeStr string

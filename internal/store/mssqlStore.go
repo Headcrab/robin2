@@ -18,20 +18,19 @@ type MsSqlStoreImpl struct {
 	MsSqlStore
 }
 
-func NewMsSqlStore() BaseStore {
+func NewMsSqlStore(cfg config.Config) BaseStore {
 	logger.Debug("NewMsSqlStore")
-	conf := config.GetConfig()
-	round := conf.GetInt("app.round")
+	round := cfg.GetInt("app.round")
 	p := math.Pow(10, float64(round))
 	return BaseStore(&MsSqlStoreImpl{
 		MsSqlStore: &BaseStoreImpl{
 			roundConstant: p,
-			config:        conf,
+			config:        cfg,
 		},
 	})
 }
 
-func (s *MsSqlStoreImpl) Connect(cache cache.BaseCache) error {
+func (s *MsSqlStoreImpl) Connect(name string, cache cache.BaseCache) error {
 	logger.Debug("MsSqlStoreImpl.Connect")
 	var err error
 	base := s.MsSqlStore.(*BaseStoreImpl)
@@ -42,7 +41,7 @@ func (s *MsSqlStoreImpl) Connect(cache cache.BaseCache) error {
 		}
 	}
 	base.cache = cache
-	base.db, err = sql.Open(base.config.GetString("app.db."+base.config.GetString("app.db.current")+".type"), base.marshalConnectionString())
+	base.db, err = sql.Open(base.config.GetString("app.db."+name+".type"), base.marshalConnectionString(name))
 	if err != nil {
 		logger.Error(err.Error())
 		return err
@@ -53,6 +52,6 @@ func (s *MsSqlStoreImpl) Connect(cache cache.BaseCache) error {
 		logger.Error(err.Error())
 		return err
 	}
-	base.logConnection()
+	base.logConnection(name)
 	return nil
 }

@@ -18,20 +18,19 @@ type ClickHouseStoreImpl struct {
 	ClickHouseStore
 }
 
-func NewClickHouseStore() BaseStore {
+func NewClickHouseStore(cfg config.Config) BaseStore {
 	logger.Debug("NewClickHouseStore")
-	conf := config.GetConfig()
-	round := conf.GetInt("app.round")
+	round := cfg.GetInt("app.round")
 	p := math.Pow(10, float64(round))
 	return BaseStore(&ClickHouseStoreImpl{
 		ClickHouseStore: &BaseStoreImpl{
 			roundConstant: p,
-			config:        config.GetConfig(),
+			config:        cfg,
 		},
 	})
 }
 
-func (s *ClickHouseStoreImpl) Connect(cache cache.BaseCache) error {
+func (s *ClickHouseStoreImpl) Connect(name string, cache cache.BaseCache) error {
 	logger.Debug("ClickHouseStoreImpl.Connect")
 
 	base := s.ClickHouseStore.(*BaseStoreImpl)
@@ -44,9 +43,9 @@ func (s *ClickHouseStoreImpl) Connect(cache cache.BaseCache) error {
 
 	base.cache = cache
 
-	dbType := base.config.GetString("app.db." + base.config.GetString("app.db.current") + ".type")
+	dbType := base.config.GetString("app.db." + name + ".type")
 
-	db, err := sql.Open(dbType, base.marshalConnectionString())
+	db, err := sql.Open(dbType, base.marshalConnectionString(name))
 	if err != nil {
 		logger.Error(err.Error())
 		return err
@@ -59,7 +58,7 @@ func (s *ClickHouseStoreImpl) Connect(cache cache.BaseCache) error {
 
 	base.db = db
 
-	base.logConnection()
+	base.logConnection(name)
 
 	return nil
 }

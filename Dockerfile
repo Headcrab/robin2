@@ -4,7 +4,7 @@ ENV PROJECT_NAME=$PROJECT_NAME
 WORKDIR /$PROJECT_NAME
 COPY /cmd cmd   
 COPY /internal internal
-COPY /pkg pkg
+# COPY /pkg pkg
 COPY /docs docs
 COPY /vendor vendor
 COPY /go.mod go.mod

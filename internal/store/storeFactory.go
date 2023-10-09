@@ -1,9 +1,12 @@
 package store
 
-import "robin2/internal/logger"
+import (
+	"robin2/internal/config"
+	"robin2/internal/logger"
+)
 
 type Factory interface {
-	NewStore(string) BaseStore
+	NewStore(string, config.Config) BaseStore
 }
 
 func NewFactory() Factory {
@@ -15,17 +18,17 @@ type FactoryImpl struct {
 	Factory
 }
 
-func (f *FactoryImpl) NewStore(dbName string) BaseStore {
+func (f *FactoryImpl) NewStore(dbName string, cfg config.Config) BaseStore {
 	switch dbName {
 	case "mysql":
 		logger.Debug("NewStoreFactory.NewStore.mysql")
-		return NewMySqlStore()
+		return NewMySqlStore(cfg)
 	case "mssql":
 		logger.Debug("NewStoreFactory.NewStore.mssql")
-		return NewMsSqlStore()
+		return NewMsSqlStore(cfg)
 	case "clickhouse":
 		logger.Debug("NewStoreFactory.NewStore.clickhouse")
-		return NewClickHouseStore()
+		return NewClickHouseStore(cfg)
 	default:
 		logger.Error("NewStoreFactory.NewStore.default: " + dbName)
 		return nil

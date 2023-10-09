@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"robin2/internal/config"
 	"robin2/internal/errors"
 	"robin2/internal/logger"
 	"sync"
@@ -17,12 +18,14 @@ type MemoryCache interface {
 
 type MemoryCacheImpl struct {
 	MemoryCache
-	cache Memcache
+	cache  Memcache
+	config config.Config
 }
 
-func NewMemoryCache() BaseCache {
+func NewMemoryCache(cfg config.Config) BaseCache {
 	t := BaseCache(&MemoryCacheImpl{
-		cache: make(Memcache),
+		cache:  make(Memcache),
+		config: cfg,
 	})
 	t.Connect()
 	logger.Trace("NewMemoryCache")

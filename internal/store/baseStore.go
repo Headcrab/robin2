@@ -22,7 +22,7 @@ import (
 /*------------------------------------------------------------------*/
 
 type BaseStore interface {
-	Connect(cache cache.BaseCache) error
+	Connect(name string, cache cache.BaseCache) error
 	GetTagDate(tag string, date time.Time) (float32, error)
 	GetTagCount(tag string, from time.Time, to time.Time, strCount int) (map[string]map[time.Time]float32, error)
 	GetTagCountGroup(tag string, from time.Time, to time.Time, strCount int, group string) (map[string]map[time.Time]float32, error)
@@ -34,12 +34,14 @@ type BaseStore interface {
 	GetStatus() (string, string, error)
 
 	TemplateList(like string) (map[string]string, error)
-	TemplateExec(name string, params map[string]string) (string, error)
+	TemplateExec(name string, params map[string]string) ([]map[string]string, error)
 
 	TemplateAdd(name string, body string) error
 	TemplateSet(name string, body string) error
 	TemplateGet(name string) (string, error)
 	TemplateDel(name string) error
+
+	ExecQuery(query string) ([]map[string]string, error)
 
 	// SetRound(round int)
 	// Format(val float32) string
@@ -55,6 +57,13 @@ type BaseStoreImpl struct {
 	round         int
 }
 
+func thenIf[T any](condition bool, ifTrue T, ifFalse T) T {
+	if condition {
+		return ifTrue
+	}
+	return ifFalse
+}
+
 // marshalConnectionString генерирует строку подключения на основе настроек конфигурации.
 //
 // Он извлекает строку подключения из конфигурации, используя имя базы данных, и заменяет все
@@ -63,9 +72,9 @@ type BaseStoreImpl struct {
 // конфигурации.
 //
 // Возвращает сгенерированную строку подключения.
-func (s *BaseStoreImpl) marshalConnectionString() string {
-	connStr := s.config.GetString("app.db." + s.config.GetString("app.db.current") + ".connection_string")
-	for k, v := range s.config.GetStringMapString("app.db." + s.config.GetString("app.db.current")) {
+func (s *BaseStoreImpl) marshalConnectionString(name string) string {
+	connStr := s.config.GetString("app.db." + name + ".connection_string")
+	for k, v := range s.config.GetStringMapString("app.db." + name) {
 		connStr = strings.ReplaceAll(connStr, "{"+k+"}", v)
 	}
 	s.round = s.config.GetInt("app.round")
@@ -78,8 +87,7 @@ func (s *BaseStoreImpl) marshalConnectionString() string {
 // чтобы записать детали соединения. Она использует имя базы данных, чтобы получить
 // хост и порт из конфигурации. Затем она находит IP-адрес хоста и записывает
 // детали соединения вместе с полученными IP-адресами.
-func (s *BaseStoreImpl) logConnection() {
-	dbName := s.config.GetString("app.db.current")
+func (s *BaseStoreImpl) logConnection(dbName string) {
 	dbType := s.config.GetString("app.db." + dbName + ".type")
 	host := s.config.GetString("app.db." + dbName + ".host")
 	port := s.config.GetString("app.db." + dbName + ".port")
@@ -510,32 +518,45 @@ func (s *BaseStoreImpl) TemplateGet(name string) (string, error) {
 // Возвращает:
 // - string: результат выполнения шаблона.
 // - error: ошибка, если произошла во время выполнения.
-func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) (string, error) {
+func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) ([]map[string]string, error) {
 	body, err := s.TemplateGet(name)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
+
+	dbName := thenIf(params["db"] != "", params["db"], s.config.GetString("app.db.current"))
 
 	for k, v := range params {
 		body = strings.Replace(body, "{"+k+"}", v, -1)
 	}
 
-	rows, err := s.db.Query(body)
+	storedb := NewFactory().NewStore(s.config.GetString("app.db."+dbName+".type"), s.config)
+	if storedb == nil {
+		return nil, errors.StoreError
+	}
+	err = storedb.Connect(dbName, nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	res := ""
-	var line string
-	for rows.Next() {
-		err := rows.Scan(&line)
-		if err != nil {
-			return "", err
-		}
-		res += string(line) + "\n"
+	rows, err := storedb.ExecQuery(body)
+	if err != nil {
+		return nil, err
 	}
 
-	return res, nil
+	return rows, nil
+
+	// res := ""
+	// var line string
+	// for rows.Next() {
+	// 	err := rows.Scan(&line)
+	// 	if err != nil {
+	// 		return "", err
+	// 	}
+	// 	res += string(line) + "\n"
+	// }
+
+	// return rows, nil
 }
 
 // TemplateList получает карту имен и тел шаблонов на основе заданного шаблона.
@@ -606,4 +627,37 @@ func (s *BaseStoreImpl) TemplateAdd(name string, body string) error {
 		return err
 	}
 	return nil
+}
+
+func (s *BaseStoreImpl) ExecQuery(query string) ([]map[string]string, error) {
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+
+	cols, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+
+	vals := make([]interface{}, len(cols))
+	for i := 0; i < len(cols); i++ {
+		vals[i] = new(sql.RawBytes)
+	}
+
+	lines := []map[string]string{}
+	for rows.Next() {
+		err = rows.Scan(vals...)
+		if err != nil {
+			return nil, err
+		}
+
+		m := make(map[string]string)
+		for i, col := range cols {
+			m[col] = string(*vals[i].(*sql.RawBytes))
+			// lines += fmt.Sprintf("%s: %s\n", col, vals[i].(*sql.RawBytes))
+		}
+		lines = append(lines, m)
+	}
+	return lines, nil
 }

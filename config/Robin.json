@@ -2,37 +2,8 @@
     "app": {
         "port": 8008,
         "round": "2",
-        "cache": {
-            "current": "redis.docker",
-            "redis.localhost": {
-                "type": "redis",
-                "ttl": 1,
-                "active": "false",
-                "host": "127.0.0.1",
-                "port": "6379",
-                "password": "",
-                "db": 0,
-                "max_open_conns": 100,
-                "max_idle_conns": 10,
-                "conn_max_lifetime": 60,
-                "connection_string": "redis://{host}:{port}/{db}"
-            },
-            "redis.docker": {
-                "type": "redis",
-                "ttl": 1,
-                "active": "false",
-                "host": "host.docker.internal",
-                "port": "6379",
-                "password": "",
-                "db": 0,
-                "max_open_conns": 100,
-                "max_idle_conns": 10,
-                "conn_max_lifetime": 60,
-                "connection_string": "redis://{host}:{port}/{db}"
-            }
-        },
         "db": {
-            "current": "clickhouse",
+            "current": "ch",
             "hs0": {
                 "type": "mssql",
                 "host": "hs0",
@@ -105,8 +76,8 @@
                 "host": "host.docker.internal",
                 "port": "3306",
                 "user": "root",
-                "password": "iamyourroot",
-                "database": "runtime",
+                "password": "password123",
+                "database": "sys",
                 "timeout": 30,
                 "max_idle_conns": 1,
                 "max_open_conns": 2,
@@ -125,7 +96,7 @@
                     "status": "select version() version, (SELECT VARIABLE_VALUE FROM information_schema.GLOBAL_STATUS WHERE VARIABLE_NAME = 'Uptime') uptime"
                 }
             },
-            "clickhouse": {
+            "ch": {
                 "type": "clickhouse",
                 "host": "host.docker.internal",
                 "port": "9000",
@@ -147,6 +118,35 @@
                     "get_up_dates": "select v.DT from ( select h.DateTime as DT, h.Value, lagInFrame(h.Value) OVER (ORDER BY DateTime) as was ,lagInFrame(h.DateTime) OVER (ORDER BY DateTime) as was_date from runtime.history h where (h.TagName) = '{tag}' and h.DateTime >= '{from}' and h.DateTime <= '{to}' order by h.DateTime ) v where (Value<>was or was_date = toDateTime('1970-01-01')) and Value=1",
                     "status": "SELECT version() version, uptime() uptime"
                 }
+            }
+        },
+        "cache": {
+            "current": "redis.docker",
+            "redis.localhost": {
+                "type": "redis",
+                "ttl": 1,
+                "active": "false",
+                "host": "127.0.0.1",
+                "port": "6379",
+                "password": "",
+                "db": 0,
+                "max_open_conns": 100,
+                "max_idle_conns": 10,
+                "conn_max_lifetime": 60,
+                "connection_string": "redis://{host}:{port}/{db}"
+            },
+            "redis.docker": {
+                "type": "redis",
+                "ttl": 1,
+                "active": "false",
+                "host": "host.docker.internal",
+                "port": "6379",
+                "password": "",
+                "db": 0,
+                "max_open_conns": 100,
+                "max_idle_conns": 10,
+                "conn_max_lifetime": 60,
+                "connection_string": "redis://{host}:{port}/{db}"
             }
         },
         "date_formats": [

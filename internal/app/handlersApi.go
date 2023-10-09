@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"robin2/internal/decode"
 	"robin2/internal/format"
 	"robin2/internal/logger"
@@ -18,20 +19,23 @@ import (
 // @Produce json
 // @Success 200 {array} string
 // @Router /api/log/ [get]
+// @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
 func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("rendered log page")
 	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	// w.Header().Set("Content-Type", "application/json")
+	formatStr := r.URL.Query().Get("format")
 	logs, err := logger.GetLogHistory()
 	if err != nil {
 		w.Write([]byte("#Error: " + err.Error()))
 		return
 	}
-	tagValue, err := json.MarshalIndent(logs, "", "  ")
-	if err != nil {
-		w.Write([]byte("#Error: " + err.Error()))
-		return
-	}
+	tagValue := format.New(formatStr).Process(logs)
+	// tagValue, err := json.MarshalIndent(logs, "", "  ")
+	// if err != nil {
+	// 	w.Write([]byte("#Error: " + err.Error()))
+	// 	return
+	// }
 	w.Write(tagValue)
 }
 
@@ -48,7 +52,7 @@ func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 // @Param group query string false "Функция группировки (avg, sum, count, min, max)"
 // @Param count query string false "Количество значений"
 // @Param round query string false "Округление, знаков после запятой (по умолчанию 2)"
-// @Param format query string false "Формат вывода (raw - без округления и замены точки на запятую, только для одного знчения)"
+// @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
 func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 	// headers := w.Header()
 	// headers.Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
@@ -101,11 +105,11 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 // @Summary Получить список тегов
 // @Description Возвращает список всех тегов по маске
 // @Tags Tag
-// @Produce json
+// @Produce plain/text
 // @Success 200 {array} string
 // @Router /get/tag/list/ [get]
 // @Param like query string false "Маска поиска"
-// @Param format query string false "Формат вывода"
+// @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
 // returns JSON with tags by mask
 func (a *App) handleAPIGetTagList(w http.ResponseWriter, r *http.Request) {
 	writer := []byte("#Error: unknown error")
@@ -265,6 +269,12 @@ func (a *App) handleAPIInfo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary Презагрузить конфигурационный файл
+// @Description Презагружает конфигурационный файл приложения в случае изменения
+// @Tags System
+// @Produce plain/text
+// @Success 200 {array} string
+// @Router /api/reload/ [get]
 func (a *App) handleAPIReloadConfig(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("reloading config file")
 	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
@@ -273,22 +283,7 @@ func (a *App) handleAPIReloadConfig(w http.ResponseWriter, r *http.Request) {
 	if err := a.config.Reload(); err != nil {
 		logger.Fatal("Failed to read config file")
 	}
-}
-
-// @Summary Получить время работы
-// @Description Возвращает время работы приложения с времени запуска
-// @Tags System
-// @Produce plain/text
-// @Success 200 {array} string
-// @Router /api/uptime/ [get]
-func (a *App) handleAPIUptime(w http.ResponseWriter, r *http.Request) {
-	logger.Trace("rendered uptime page")
-	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	uptime := time.Since(a.startTime).Round(time.Second)
-	_, err := w.Write([]byte(uptime.String()))
-	if err != nil {
-		logger.Error(err.Error())
-	}
+	a.initDatabase()
 }
 
 func (a *App) handleAPIServerStatus(w http.ResponseWriter, r *http.Request) {
@@ -393,12 +388,17 @@ func (a *App) getTagFromToWithGroup(tag, from, to, group string, fmt string, rou
 	return w
 }
 
+// @Summary Получить расшифровку имени тега
+// @Description Возвращает расшифровку имени тега
+// @Tags Tag
+// @Produce plain/text json
+// @Success 200 {array} string
+// @Router /tag/decode/ [get]
+// @Param tag query string true "Наименование тега"
+// @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
 func (a *App) handleTagDecode(w http.ResponseWriter, r *http.Request) {
 	tag := r.URL.Query().Get("tag")
-	// from := r.URL.Query().Get("from")
-	// to := r.URL.Query().Get("to")
-	// fmt := r.URL.Query().Get("fmt")
-	// round := r.URL.Query().Get("round")
+	formatStr := r.URL.Query().Get("format")
 
 	if tag == "" {
 		w.Write([]byte("#Error: tag is empty"))
@@ -409,7 +409,11 @@ func (a *App) handleTagDecode(w http.ResponseWriter, r *http.Request) {
 	// var ret map[string]map[string]string
 	ret := make(map[string]map[string]string)
 	var dec decode.Decoder
-	dec.LoadJSONData()
+	err := dec.LoadJSONData(filepath.Join(a.workDir, "config"))
+	if err != nil {
+		w.Write([]byte("#Error: " + err.Error()))
+		return
+	}
 	for _, t := range tags {
 		dec.Tags = append(dec.Tags, decode.Tag{Name: t})
 		dec.DecodeTags()
@@ -430,10 +434,13 @@ func (a *App) handleTagDecode(w http.ResponseWriter, r *http.Request) {
 
 		ret[item["tag_name"]] = item
 	}
-	s, err := json.MarshalIndent(ret, "", "  ")
-	if err != nil {
-		w.Write([]byte("#Error: " + err.Error()))
-		return
-	}
+
+	s := format.New(formatStr).Process(ret)
+
+	// s, err := json.MarshalIndent(ret, "", "  ")
+	// if err != nil {
+	// 	w.Write([]byte("#Error: " + err.Error()))
+	// 	return
+	// }
 	w.Write([]byte(s))
 }

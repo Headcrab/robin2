@@ -34,7 +34,7 @@
         }
     },
     "device_type": {
-        "regex": "_(TT|TI|PT|PI|F(|Q)T|FI|LT|LI|SIREN|FAN|FPC|PMP|HTR|FCV|AGT|ISC|APF|CRU|CVR|FDR|HPP|SCR|WT|FTP|MASS)(|_)(\\d{2})",
+        "regex": "_(TT|TI|PT|PI|F(|Q)T|FI|LT|LI|SIREN|FAN|FPC|PMP|HTR|FCV|AGT|ISC|APF|CRU|CVR|FDR|HPP|SCR|WT|WQT|FTP|MASS|SMP)(|_)(\\d{1,2}(|.))",
         "on_match": {
             "device_type": {
                 "group": 0,
@@ -63,8 +63,10 @@
                     "HPP": "hudraulic power pack",
                     "SCR": "conveyer scrubber",
                     "WT": "вес",
-                    "FTP": "Фильтр-пресс",
-                    "MASS": "масса"
+                    "WQT": "счетчик веса",
+                    "FTP": "фильтр-пресс",
+                    "MASS": "масса",
+                    "SMP": "пробоотборник"
                 }
             },
             "device_type_id": {
@@ -78,7 +80,7 @@
         }
     },
     "alarm": {
-        "regex": "(_(AH|AHH|AL_|ALL|ALARM)_)",
+        "regex": "(_(AH|AHH|AL|ALL|ALARM|ALM|CBRS(|1|2|3|4))_)",
         "on_match": {
             "tag_type": {
                 "group": -1,
@@ -92,7 +94,12 @@
                     "AL": "низкий уровень",
                     "ALL": "критически низкий уровень",
                     "ALARM": "тревога",
-                    "ALM": "тревога"
+                    "ALM": "тревога",
+                    "CBRS": "тревога",
+                    "CBRS1": "тревога",
+                    "CBRS2": "тревога",
+                    "CBRS3": "тревога",
+                    "CBRS4": "тревога"
                 }
             }
         }
@@ -168,6 +175,19 @@
                     "group": 1,
                     "value": ""
                 }
+            }
+        }
+    },
+    "description": {
+        "regex": "(\\S+)",
+        "on_match": {
+            "tag_hand": {
+                "group": 0,
+                "value": {
+                    "A15_RST_RST_WQT_03_TOT": "Сброс веса счетчика медного конвейера",
+                    "ччч": "ччч"
+                }
+
             }
         }
     }

@@ -3,6 +3,7 @@ package robin
 import (
 	"fmt"
 	"net/http"
+	"robin2/internal/format"
 	"robin2/internal/logger"
 	"strings"
 )
@@ -16,8 +17,8 @@ import (
 // @Param like query string false "Маска поиска шаблона"
 func (a *App) handleTemplateList(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("list templates")
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", "application/json")
+	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	// w.Header().Set("Content-Type", "application/json")
 
 	like := r.URL.Query().Get("like")
 
@@ -44,8 +45,8 @@ func (a *App) handleTemplateList(w http.ResponseWriter, r *http.Request) {
 // @Param body query string true "Тело шаблона"
 func (a *App) handleTemplateAdd(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("adding template")
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", "application/json")
+	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	// w.Header().Set("Content-Type", "application/json")
 
 	name := r.URL.Query().Get("name")
 	if name == "" {
@@ -75,8 +76,8 @@ func (a *App) handleTemplateAdd(w http.ResponseWriter, r *http.Request) {
 // @Param name query string true "Имя шаблона"
 func (a *App) handleTemplateGet(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("getting template")
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", "application/json")
+	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	// w.Header().Set("Content-Type", "application/json")
 
 	name := r.URL.Query().Get("name")
 	if name == "" {
@@ -102,8 +103,8 @@ func (a *App) handleTemplateGet(w http.ResponseWriter, r *http.Request) {
 // @Param body query string true "Тело шаблона"
 func (a *App) handleTemplateEdit(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("editing template")
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", "application/json")
+	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	// w.Header().Set("Content-Type", "application/json")
 
 	name := r.URL.Query().Get("name")
 	if name == "" {
@@ -135,8 +136,8 @@ func (a *App) handleTemplateEdit(w http.ResponseWriter, r *http.Request) {
 // @Param name query string true "Имя шаблона"
 func (a *App) handleTemplateDelete(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("deleting template")
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", "application/json")
+	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	// w.Header().Set("Content-Type", "application/json")
 
 	name := r.URL.Query().Get("name")
 	if name == "" {
@@ -160,13 +161,14 @@ func (a *App) handleTemplateDelete(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {array} string
 // @Router /templ/exec [get]
 // @Param name query string true "Имя шаблона"
+// @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
 // @Param args query array false "Список аргументов"
 // @x-try-it-out-enabled false
 func (a *App) handleTemplateExec(w http.ResponseWriter, r *http.Request) {
 	// procTimeBegin := time.Now()
 	logger.Trace("executing template")
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", "application/json")
+	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	// w.Header().Set("Content-Type", "application/json")
 	writer := []byte("#Error: unknown error")
 	defer func() {
 		// w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
@@ -179,6 +181,7 @@ func (a *App) handleTemplateExec(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	formatStr := r.URL.Query().Get("format")
 	params := make(map[string]string)
 	args := r.URL.Query().Get("args")
 	for _, arg := range strings.Split(args, ",") {
@@ -191,5 +194,6 @@ func (a *App) handleTemplateExec(w http.ResponseWriter, r *http.Request) {
 		writer = []byte("#Error: " + err.Error())
 		return
 	}
-	writer = []byte(b)
+
+	writer = format.New(formatStr).Process(b)
 }

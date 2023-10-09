@@ -3,6 +3,7 @@ package decode
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"regexp"
 	"robin2/internal/logger"
 	"sync"
@@ -29,18 +30,21 @@ type Decoder struct {
 	DecodedTagsChan chan map[string]string
 }
 
-func (d *Decoder) LoadJSONData() {
-	file, err := os.ReadFile("tag_classifier.json")
+func (d *Decoder) LoadJSONData(path string) error {
+	file, err := os.ReadFile(filepath.Join(path, "tag_classifier.json"))
 	if err != nil {
-		logger.Fatal(err.Error())
+		logger.Error(err.Error())
+		return err
 	}
 
 	var tagClasses map[string]TagClass
 	if err := json.Unmarshal(file, &tagClasses); err != nil {
-		logger.Fatal(err.Error())
+		logger.Error(err.Error())
+		return err
 	}
 	d.TagClasses = tagClasses
 	d.prepareRegex()
+	return nil
 }
 
 func (d *Decoder) DecodeTags() {

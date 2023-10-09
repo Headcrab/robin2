@@ -4,11 +4,14 @@ import (
 	"errors"
 )
 
-var DbConnectionFailed = errors.New("db connection failed")
-var QueryError = errors.New("query error")
-var KeyNotFound = errors.New("key not found")
-var InvalidDate = errors.New("date is not valid")
-var NotAFloat = errors.New("not a float")
-var CountIsEmpty = errors.New("count is empty")
-var CountIsLessThanOne = errors.New("count is less than one")
-var GroupError = errors.New("group error")
+var (
+	DbConnectionFailed = errors.New("db connection failed")
+	QueryError         = errors.New("query error")
+	StoreError         = errors.New("store creation error")
+	KeyNotFound        = errors.New("key not found")
+	InvalidDate        = errors.New("date is not valid")
+	NotAFloat          = errors.New("not a float")
+	CountIsEmpty       = errors.New("count is empty")
+	CountIsLessThanOne = errors.New("count is less than one")
+	GroupError         = errors.New("group error")
+)

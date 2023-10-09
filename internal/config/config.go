@@ -1,6 +1,7 @@
 package config
 
 import (
+	"path/filepath"
 	"robin2/internal/logger"
 	"sync"
 
@@ -13,24 +14,20 @@ type Config struct {
 var config *Config
 var lock = &sync.Mutex{}
 
-func GetConfig() Config {
+func GetConfig(path string) Config {
 	if config == nil {
 		config = &Config{}
-		config.Init()
+		config.Load(filepath.Join(path, "config"))
 	}
 	return *config
 }
 
-func (c *Config) Init() {
+func (c *Config) Load(path string) {
 	logger.Debug("Initializing config...")
 	lock.Lock()
 	defer lock.Unlock()
 	viper.SetConfigName("Robin.json")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("./config")
-	viper.AddConfigPath("../config")
-	viper.AddConfigPath("../../config")
-	viper.AddConfigPath("../../bin/config")
+	viper.AddConfigPath(path)
 	viper.SetConfigType("json")
 	err := viper.ReadInConfig()
 	if err != nil {

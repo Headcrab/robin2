@@ -23,9 +23,9 @@ type RedisCacheImpl struct {
 	ttl    time.Duration
 }
 
-func NewRedisCache() (BaseCache, error) {
+func NewRedisCache(cfg config.Config) (BaseCache, error) {
 	t := BaseCache(&RedisCacheImpl{
-		config: config.GetConfig(),
+		config: cfg,
 	})
 	err := t.Connect()
 	if err != nil {

@@ -1,11 +1,12 @@
 package cache
 
 import (
+	"robin2/internal/config"
 	"robin2/internal/logger"
 )
 
 type Factory interface {
-	NewCache(string) BaseCache
+	NewCache(string, config.Config) BaseCache
 }
 
 func NewFactory() Factory {
@@ -17,20 +18,20 @@ type FactoryImpl struct {
 	Factory
 }
 
-func (f *FactoryImpl) NewCache(cacheName string) BaseCache {
+func (f *FactoryImpl) NewCache(cacheName string, cfg config.Config) BaseCache {
 	switch cacheName {
 	case "none":
 		// logger.Info("no cache selected")
 		return nil
 	case "memory":
 		// logger.Info("memory cache selected")
-		return NewMemoryCache()
+		return NewMemoryCache(cfg)
 	case "memoryBytes":
 		// logger.Info("memoryBytes cache selected")
-		return NewMemoryCacheByte()
+		return NewMemoryCacheByte(cfg)
 	case "redis":
 		// logger.Info("redis cache selected")
-		if c, err := NewRedisCache(); err != nil {
+		if c, err := NewRedisCache(cfg); err != nil {
 			return nil
 		} else {
 			return c
