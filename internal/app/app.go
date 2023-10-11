@@ -1,5 +1,3 @@
-// fix: check swagger descriptions to all endpoints
-// todo: add query temlate system
 // todo: sessions
 // todo: authenticate
 // todo: add tests
@@ -7,10 +5,8 @@
 package robin
 
 import (
-	"bytes"
 	"fmt"
 	"html/template"
-	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,52 +17,17 @@ import (
 
 	"robin2/internal/cache"
 	"robin2/internal/config"
-	"robin2/internal/errors"
 	"robin2/internal/logger"
+	"robin2/internal/middleware/timing"
 	"robin2/internal/store"
+	"robin2/internal/utils"
 
 	"github.com/joho/godotenv"
 
 	_ "robin2/docs"
 
-	httpSwagger "github.com/swaggo/http-swagger/v2"
+	swagger "github.com/swaggo/http-swagger/v2"
 )
-
-type responseWriterWrapper struct {
-	http.ResponseWriter
-	body   *bytes.Buffer
-	status int
-}
-
-func (rw *responseWriterWrapper) WriteHeader(status int) {
-	rw.status = status
-}
-
-func (rw *responseWriterWrapper) Write(b []byte) (int, error) {
-	return rw.body.Write(b)
-}
-
-func TimingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		wrapper := &responseWriterWrapper{ResponseWriter: w, body: new(bytes.Buffer)}
-
-		next.ServeHTTP(wrapper, r)
-
-		duration := time.Since(start)
-		wrapper.Header().Set("X-Execution-Time", duration.String())
-
-		if wrapper.status != 0 {
-			wrapper.ResponseWriter.WriteHeader(wrapper.status)
-		}
-		wrapper.body.WriteTo(wrapper.ResponseWriter)
-	})
-}
-
-// NewApp creates a new instance of the App struct and returns a pointer to it.
-func NewApp() *App {
-	return &App{}
-}
 
 type App struct {
 	name      string
@@ -80,9 +41,22 @@ type App struct {
 	template  *template.Template
 }
 
+type dbStatus struct {
+	Status  string
+	Name    string
+	Type    string
+	Version string
+	Uptime  time.Duration
+}
+
+// NewApp creates a new instance of the App struct and returns a pointer to it.
+func NewApp() *App {
+	return &App{}
+}
+
 func (a *App) Run() {
 	a.startTime = time.Now()
-	a.workDir = getWorkDir()
+	a.workDir = utils.GetWorkDir()
 	godotenv.Load(a.workDir+"/.env", a.workDir+"/app.env")
 	a.name = os.Getenv("PROJECT_NAME")
 	a.version = os.Getenv("PROJECT_VERSION")
@@ -91,35 +65,11 @@ func (a *App) Run() {
 	a.initDatabase()
 
 	mux := a.setupHTTPHandlers()
-	logger.Info("listening on: " + strings.Join(getLocalhostIpAdresses(), " , ") + " port: " + a.config.GetString("app.port"))
+	logger.Info("listening on: " + strings.Join(utils.GetLocalhostIpAdresses(), " , ") + " port: " + a.config.GetString("app.port"))
 	err := http.ListenAndServe(":"+a.config.GetString("app.port"), mux)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
-}
-
-func getLocalhostIpAdresses() []string {
-	localhostIPs := []string{"127.0.0.1"}
-	interfaces, err := net.Interfaces()
-	if err != nil {
-		logger.Error(err.Error())
-		return localhostIPs
-	}
-	for _, iface := range interfaces {
-		addrs, err := iface.Addrs()
-		if err != nil {
-			logger.Error(err.Error())
-			continue
-		}
-		for _, addr := range addrs {
-			if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-				if ip4 := ipnet.IP.To4(); ip4 != nil {
-					localhostIPs = append(localhostIPs, ip4.String())
-				}
-			}
-		}
-	}
-	return localhostIPs
 }
 
 func (a *App) initDatabase() {
@@ -161,7 +111,7 @@ func (a *App) setupHTTPHandlers() http.Handler {
 		"/images/":       a.handleDirectory("images"),
 		"/scripts/":      a.handleDirectory("scripts"),
 		"/css/":          a.handleDirectory("css"),
-		"/swagger/":      httpSwagger.Handler(httpSwagger.URL("/swagger/doc.json")),
+		"/swagger/":      swagger.Handler(swagger.URL("/swagger/doc.json")),
 		"/templ/list/":   a.handleTemplateList,
 		"/templ/add/":    a.handleTemplateAdd,
 		"/templ/get/":    a.handleTemplateGet,
@@ -192,7 +142,7 @@ func (a *App) setupHTTPHandlers() http.Handler {
 		panic(err)
 	}
 
-	return TimingMiddleware(mux)
+	return timing.New(mux)
 }
 
 func colorizeLogString(input string) template.HTML {
@@ -205,6 +155,11 @@ func colorizeLogString(input string) template.HTML {
 	return template.HTML(strings.Join(st, " ") + "</span>")
 }
 
+// formatDataString форматирует входную строку в HTML-шаблон.
+//
+// Функция принимает параметр input типа string, который представляет входные данные для форматирования.
+//
+// Она возвращает тип template.HTML, который представляет отформатированную строку, преобразованную в HTML-строку таблицы.
 func formatDataString(input string) template.HTML {
 	st := strings.Split(input, "|")
 	if len(st) > 1 {
@@ -223,30 +178,18 @@ func formatDataString(input string) template.HTML {
 	return template.HTML("<tr>" + strings.Join(st, " ") + "</tr>")
 }
 
-func getWorkDir() string {
-	executablePath, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		logger.Trace(err.Error())
-		return ""
-	}
-
-	dir := filepath.Dir(executablePath)
-	logger.Trace("working dir set to: " + dir)
-
-	return dir
-}
-
-type dbstatus struct {
-	Status  string
-	Name    string
-	Type    string
-	Version string
-	Uptime  time.Duration
-}
-
-func (a *App) getDbStatus() dbstatus {
+// getDbStatus возвращает статус базы данных.
+//
+// Он извлекает имя текущей базы данных из конфигурации приложения.
+// Затем он создает структуру dbstatus с именем, типом и статусом "green" по умолчанию.
+// Далее он вызывает метод GetStatus из хранилища, чтобы получить версию и время работы базы данных.
+// Если происходит ошибка, статус устанавливается на "red".
+// Наконец, он преобразует строку времени работы в значение типа duration и устанавливает его в структуре dbstatus.
+//
+// Возвращает структуру dbstatus, содержащую статус, имя, тип, версию и время работы базы данных.
+func (a *App) getDbStatus() dbStatus {
 	dbName := a.config.GetString("app.db.current")
-	dbstatus := dbstatus{
+	dbstatus := dbStatus{
 		Status: "green",
 		Name:   dbName,
 		Type:   a.config.GetString("app.db." + dbName + ".type"),
@@ -257,70 +200,9 @@ func (a *App) getDbStatus() dbstatus {
 	if err != nil {
 		dbstatus.Status = "red"
 	}
-	dbstatus.Uptime, err = time.ParseDuration(thenIf(dbuptimeStr != "", dbuptimeStr+"s", "0s"))
+	dbstatus.Uptime, err = time.ParseDuration(utils.ThenIf(dbuptimeStr != "", dbuptimeStr+"s", "0s"))
 	if err != nil {
 		dbstatus.Status = "red"
 	}
 	return dbstatus
-}
-
-// return time.Time and error
-func (a *App) excelTimeToTime(timeStr string) (time.Time, error) {
-
-	if timeStr == "" {
-		return time.Time{}, errors.InvalidDate
-	}
-
-	var result time.Time
-
-	if !strings.Contains(timeStr, ":") {
-		timeStr = strings.Replace(timeStr, ",", ".", 1)
-		timeFloat, err := strconv.ParseFloat(timeStr, 64)
-		if err != nil {
-			return time.Time{}, errors.NotAFloat
-		}
-
-		unixTime := (timeFloat - 25569) * 86400
-		utcTime := time.Unix(int64(unixTime), 0).UTC()
-		locTime := utcTime.Local()
-		result = locTime
-	} else {
-		res, err := a.tryParseDate(timeStr)
-		if err != nil {
-			return time.Time{}, err
-		}
-
-		result = res.Local()
-	}
-
-	if result.IsZero() {
-		return time.Time{}, errors.InvalidDate
-	}
-
-	return result, nil
-}
-
-func (a *App) tryParseDate(date string) (time.Time, error) {
-	// if date is empty, return error
-	if date == "" {
-		return time.Time{}, errors.InvalidDate
-	}
-	// if date is not empty, try to parse it to time.Time
-	// if date is not valid, return error
-	cfg := a.config.GetStringSlice("app.date_formats")
-	for fm := range cfg {
-		t, err := time.ParseInLocation(cfg[fm], date, time.Local)
-		if err == nil {
-			return t, nil
-		}
-	}
-	return time.Time{}, errors.InvalidDate
-}
-
-// generic thernary operator
-func thenIf[T any](condition bool, ifTrue T, ifFalse T) T {
-	if condition {
-		return ifTrue
-	}
-	return ifFalse
 }

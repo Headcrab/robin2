@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"robin2/internal/logger"
+	"robin2/internal/utils"
 	"sort"
 	"strconv"
 	"strings"
@@ -91,8 +92,8 @@ func generatePageSwitcherHTML(name string, pageNum, pagesTotal int) template.HTM
 
 func getFormattedPageNumber(name string, pageNum int, isCurr bool, pagerName string) string {
 	return fmt.Sprintf(`<button class='page-number %s' href='#' onclick='loadPage("/%s?page=%d")'>%s</button>`,
-		thenIf(isCurr, "page-number-current", ""), name, pageNum,
-		thenIf(pagerName == "", fmt.Sprintf("%d", pageNum), pagerName))
+		utils.ThenIf(isCurr, "page-number-current", ""), name, pageNum,
+		utils.ThenIf(pagerName == "", fmt.Sprintf("%d", pageNum), pagerName))
 }
 
 // getDataSubset determines the subset of data to be displayed on the requested page.
@@ -246,6 +247,6 @@ func (a *App) handlePageTags(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := getOnePage(page, tagsList, pageNum, linesPerPage)
-	data["like"] = thenIf(like == "", "", like)
+	data["like"] = utils.ThenIf(like == "", "", like)
 	a.handlePageAny(page, data)(w, r)
 }

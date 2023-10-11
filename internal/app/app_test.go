@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"robin2/internal/errors"
+	"robin2/internal/utils"
 	"testing"
 	"time"
 )
@@ -47,7 +48,7 @@ func Test_tryParseDate(t *testing.T) {
 	app.initDatabase()
 	for _, test := range test_cases {
 		t.Run(test.name, func(t *testing.T) {
-			date, err := app.tryParseDate(test.date)
+			date, err := utils.TryParseDate(test.date, app.config.GetStringSlice("app.date_formats"))
 			if err != test.err {
 				t.Errorf("Test '%s' failed: expected error '%v', got '%v'", test.name, test.err, err)
 			}
@@ -144,7 +145,7 @@ func Test_excelTimeToTime(t *testing.T) {
 	// app.Init()
 	for _, test := range test_cases {
 		t.Run(test.name, func(t *testing.T) {
-			date, err := app.excelTimeToTime(test.time)
+			date, err := utils.ExcelTimeToTime(test.time, app.config.GetStringSlice("app.date_formats"))
 			if err != test.err {
 				t.Errorf("Test '%s' failed: expected error '%v', got '%v'", test.name, test.err, err)
 			}
@@ -164,13 +165,13 @@ func Benchmark_NewApp(b *testing.B) {
 func Benchmark_excelTimeToTime(b *testing.B) {
 	app := NewApp()
 	for i := 0; i < b.N; i++ {
-		app.excelTimeToTime("2019-01-01")
+		utils.TryParseDate("2019-01-01", app.config.GetStringSlice("app.date_formats"))
 	}
 }
 func Benchmark_tryParseDate(b *testing.B) {
 	app := NewApp()
 	// app := App{}
 	for i := 0; i < b.N; i++ {
-		app.tryParseDate("2019-01-01")
+		utils.TryParseDate("2019-01-01", app.config.GetStringSlice("app.date_formats"))
 	}
 }
