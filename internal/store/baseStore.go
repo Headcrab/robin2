@@ -3,10 +3,8 @@ package store
 import (
 	"database/sql"
 	"fmt"
-	"math"
 	"net"
 	"robin2/internal/errors"
-	"strconv"
 	"strings"
 	"time"
 
@@ -42,10 +40,6 @@ type BaseStore interface {
 	TemplateDel(name string) error
 
 	ExecQuery(query string) ([]map[string]string, error)
-
-	// SetRound(round int)
-	// Format(val float32) string
-	// Round(val float32) float32
 }
 
 type BaseStoreImpl struct {
@@ -97,34 +91,6 @@ func (s *BaseStoreImpl) logConnection(dbName string) {
 		ips = append(ips, ip.String())
 	}
 	logger.Info(fmt.Sprintf("connected to %s database on %s:%s ( %s )", dbType, host, port, strings.Join(ips, ", ")))
-}
-
-// SetRound устанавливает значение round в структуре BaseStoreImpl.
-//
-// round: целое число, представляющее значение round.
-func (s *BaseStoreImpl) SetRound(round int) {
-	s.round = round
-}
-
-// Format форматирует заданное значение типа float в виде строки.
-//
-// Принимает значение типа float32 в качестве входного параметра и возвращает строковое представление этого значения.
-func (s *BaseStoreImpl) Format(val float32) string {
-	// f := float64(val)
-	// p := math.Pow(10, float64(s.round))
-	// rounded := math.Round(f*p) / p
-	// ret := strconv.FormatFloat(rounded, 'f', s.round, 64)
-	ret := strconv.FormatFloat(float64(val), 'f', s.round, 64)
-	ret = strings.Replace(ret, ".", ",", -1)
-	return ret
-}
-
-// Round округляет заданное значение типа float в виде строки.
-//
-// Принимает значение типа float32 в качестве входного параметра и возвращает округленное значение.
-func (s *BaseStoreImpl) Round(val float32) float32 {
-	// round := float64(s.config.GetInt("app.round"))
-	return float32(math.Round(float64(val)*math.Pow(10, float64(s.round))) / math.Pow(10, float64(s.round)))
 }
 
 // replaceTemplate заменяет все строки в query на соответствующие значения из repMap.
@@ -545,18 +511,6 @@ func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) ([]m
 	}
 
 	return rows, nil
-
-	// res := ""
-	// var line string
-	// for rows.Next() {
-	// 	err := rows.Scan(&line)
-	// 	if err != nil {
-	// 		return "", err
-	// 	}
-	// 	res += string(line) + "\n"
-	// }
-
-	// return rows, nil
 }
 
 // TemplateList получает карту имен и тел шаблонов на основе заданного шаблона.

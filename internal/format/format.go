@@ -6,6 +6,7 @@ import (
 	"math"
 	"robin2/internal/logger"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -20,8 +21,12 @@ func New(format string) ResponseFormatter {
 	}
 }
 
-func Round(val float64, round float64) float64 {
-	return math.Round(val*math.Pow(10, round)) / math.Pow(10, round)
+func Round[T float32 | float64](val T, round float64) float64 {
+	return math.Round(float64(val)*math.Pow(10, round)) / math.Pow(10, round)
+}
+
+func Format[T float32 | float64](val T) string {
+	return strings.Replace(strconv.FormatFloat(float64(val), 'f', -1, 64), ".", ",", -1)
 }
 
 func roundMap(data map[string]interface{}, round float64) map[string]interface{} {
@@ -41,6 +46,8 @@ func roundMap(data map[string]interface{}, round float64) map[string]interface{}
 func roundSlice(data []interface{}, round float64) []interface{} {
 	for i, v := range data {
 		switch value := v.(type) {
+		case float32:
+			data[i] = Round(value, round)
 		case float64:
 			data[i] = Round(value, round)
 		case []interface{}:
@@ -54,7 +61,7 @@ func roundSlice(data []interface{}, round float64) []interface{} {
 
 type ResponseFormatter interface {
 	Process(val interface{}) []byte
-	Round(r int) ResponseFormatter
+	SetRound(r int) ResponseFormatter
 }
 
 type ResponseFormatterJSON struct {
@@ -84,7 +91,7 @@ func (r *ResponseFormatterJSON) Process(val interface{}) []byte {
 	return mustMarshal(val)
 }
 
-func (r *ResponseFormatterJSON) Round(r2 int) ResponseFormatter {
+func (r *ResponseFormatterJSON) SetRound(r2 int) ResponseFormatter {
 	r.round = float64(r2)
 	return r
 }
@@ -97,7 +104,7 @@ func (r *ResponseFormatterRaw) Process(val interface{}) []byte {
 	return []byte(fmt.Sprintf("%v", val))
 }
 
-func (r *ResponseFormatterRaw) Round(r2 int) ResponseFormatter {
+func (r *ResponseFormatterRaw) SetRound(r2 int) ResponseFormatter {
 	r.round = float64(r2)
 	return r
 }
@@ -110,9 +117,9 @@ func (r *ResponseFormatterString) Process(val interface{}) []byte {
 	ret := ""
 	switch v := val.(type) {
 	case float64:
-		ret = strconv.FormatFloat(Round(v, r.round), 'f', -1, 64)
+		ret = Format(Round(v, r.round))
 	case float32:
-		ret = strconv.FormatFloat(Round(float64(v), r.round), 'f', -1, 64)
+		ret = Format(Round(v, r.round))
 	case int64:
 		ret = strconv.FormatInt(v, 10)
 	case int32:
@@ -136,16 +143,16 @@ func (r *ResponseFormatterString) Process(val interface{}) []byte {
 		}
 	case map[string]float32:
 		for k, v := range v {
-			ret += k + ", " + strconv.FormatFloat(Round(float64(v), r.round), 'f', -1, 64) + "\n"
+			ret += k + ", " + Format(Round(v, r.round)) + "\n"
 		}
 	case map[time.Time]float32:
 		for k, v := range v {
-			ret += k.Format("2006-01-02 15:04:05") + ", " + strconv.FormatFloat(Round(float64(v), r.round), 'f', -1, 64) + "\n"
+			ret += k.Format("2006-01-02 15:04:05") + ", " + Format(Round(v, r.round)) + "\n"
 		}
 	case map[string]map[time.Time]float32:
 		for k1, v1 := range v {
 			for k2, v2 := range v1 {
-				ret += k1 + ", " + k2.Format("2006-01-02 15:04:05") + ", " + strconv.FormatFloat(Round(float64(v2), r.round), 'f', -1, 64) + "\n"
+				ret += k1 + ", " + k2.Format("2006-01-02 15:04:05") + ", " + Format(Round(v2, r.round)) + "\n"
 			}
 		}
 	case map[string]map[string]string:
@@ -167,7 +174,7 @@ func (r *ResponseFormatterString) Process(val interface{}) []byte {
 	return []byte(fmt.Sprint(ret))
 }
 
-func (r *ResponseFormatterString) Round(r2 int) ResponseFormatter {
+func (r *ResponseFormatterString) SetRound(r2 int) ResponseFormatter {
 	r.round = float64(r2)
 	return r
 }

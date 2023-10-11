@@ -19,7 +19,6 @@ func (a *App) handleFavicon(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) handleDirectory(d string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// http.ServeFile(w, r, filepath.Join(a.workDir, d))
 		basePath := filepath.Join(a.workDir, "web", d)
 		filePath := filepath.Join(basePath, r.URL.Path[len("/"+d+"/"):])
 		if !strings.HasPrefix(filePath, basePath) {
@@ -121,7 +120,6 @@ func (a *App) handlePageAny(page string, data map[string]interface{}) func(w htt
 		apiserver := "http://" + r.Host
 		dbs := a.getDbStatus()
 		appUptime := time.Since(a.startTime).Round(time.Second).String()
-		// apiserver := "http://" + a.config.GetString("db."+a.config.GetString("app.db.name")+".host") + ":" + a.config.GetString("app.port")
 		dataFull := map[string]interface{}{
 			"content": t,
 			"app":     map[string]interface{}{"name": a.name, "version": a.version, "apiserver": apiserver, "uptime": appUptime},
@@ -161,7 +159,6 @@ func (a *App) handlePageLog(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	// w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
 	a.handlePageAny(page, getOnePage(page, logData, pageNum, logPerPage))(w, r)
 
 }
@@ -214,8 +211,6 @@ func (a *App) handlePageData(w http.ResponseWriter, r *http.Request) {
 			data = append(data, fmt.Sprintf("%s|%f", v, tag[v]))
 		}
 	}
-
-	// w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
 	a.handlePageAny(page, getOnePage(page, data, pageNum, linesPerPage))(w, r)
 
 }
@@ -252,7 +247,5 @@ func (a *App) handlePageTags(w http.ResponseWriter, r *http.Request) {
 
 	data := getOnePage(page, tagsList, pageNum, linesPerPage)
 	data["like"] = thenIf(like == "", "", like)
-
-	// w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
 	a.handlePageAny(page, data)(w, r)
 }

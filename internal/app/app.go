@@ -73,12 +73,11 @@ type App struct {
 	version   string
 	startTime time.Time
 	workDir   string
-	// round     int
-	opCount  int64
-	config   config.Config
-	cache    cache.BaseCache
-	store    store.BaseStore
-	template *template.Template
+	opCount   int64
+	config    config.Config
+	cache     cache.BaseCache
+	store     store.BaseStore
+	template  *template.Template
 }
 
 func (a *App) Run() {
@@ -151,7 +150,6 @@ func (a *App) setupHTTPHandlers() http.Handler {
 		"/get/tag/up/":   a.handleAPIGetTagUp,
 		"/get/tag/down/": a.handleAPIGetTagDown,
 		"/api/info/":     a.handleAPIInfo,
-		// "/api/uptime/":   a.handleAPIUptime,
 		"/api/reload/":   a.handleAPIReloadConfig,
 		"/api/log/":      a.handleAPIGetLog,
 		"/api/status/":   a.handleAPIServerStatus,
@@ -179,7 +177,6 @@ func (a *App) setupHTTPHandlers() http.Handler {
 	}
 
 	// timedMux := TimingMiddleware(mux)
-
 	// Define custom template function
 	funcMap := template.FuncMap{
 		"colorizeLogString": colorizeLogString,

@@ -17,9 +17,6 @@ import (
 // @Param like query string false "Маска поиска шаблона"
 func (a *App) handleTemplateList(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("list templates")
-	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	// w.Header().Set("Content-Type", "application/json")
-
 	like := r.URL.Query().Get("like")
 
 	b, err := a.store.TemplateList(like)
@@ -45,9 +42,6 @@ func (a *App) handleTemplateList(w http.ResponseWriter, r *http.Request) {
 // @Param body query string true "Тело шаблона"
 func (a *App) handleTemplateAdd(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("adding template")
-	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	// w.Header().Set("Content-Type", "application/json")
-
 	name := r.URL.Query().Get("name")
 	if name == "" {
 		w.Write([]byte("#Error: name is empty"))
@@ -76,9 +70,6 @@ func (a *App) handleTemplateAdd(w http.ResponseWriter, r *http.Request) {
 // @Param name query string true "Имя шаблона"
 func (a *App) handleTemplateGet(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("getting template")
-	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	// w.Header().Set("Content-Type", "application/json")
-
 	name := r.URL.Query().Get("name")
 	if name == "" {
 		w.Write([]byte("#Error: name is empty"))
@@ -103,9 +94,6 @@ func (a *App) handleTemplateGet(w http.ResponseWriter, r *http.Request) {
 // @Param body query string true "Тело шаблона"
 func (a *App) handleTemplateEdit(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("editing template")
-	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	// w.Header().Set("Content-Type", "application/json")
-
 	name := r.URL.Query().Get("name")
 	if name == "" {
 		w.Write([]byte("#Error: name is empty"))
@@ -136,9 +124,6 @@ func (a *App) handleTemplateEdit(w http.ResponseWriter, r *http.Request) {
 // @Param name query string true "Имя шаблона"
 func (a *App) handleTemplateDelete(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("deleting template")
-	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	// w.Header().Set("Content-Type", "application/json")
-
 	name := r.URL.Query().Get("name")
 	if name == "" {
 		w.Write([]byte("#Error: name is empty"))
@@ -165,14 +150,9 @@ func (a *App) handleTemplateDelete(w http.ResponseWriter, r *http.Request) {
 // @Param args query array false "Список аргументов"
 // @x-try-it-out-enabled false
 func (a *App) handleTemplateExec(w http.ResponseWriter, r *http.Request) {
-	// procTimeBegin := time.Now()
 	logger.Trace("executing template")
-	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	// w.Header().Set("Content-Type", "application/json")
 	writer := []byte("#Error: unknown error")
 	defer func() {
-		// w.Header().Set("Procession-Time", time.Since(procTimeBegin).String())
-		// w.WriteHeader(http.StatusOK)
 		w.Write(writer)
 	}()
 	name := r.URL.Query().Get("name")
