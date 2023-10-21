@@ -33,7 +33,7 @@ func NewMemoryCache(cfg config.Config) BaseCache {
 }
 
 func (c *MemoryCacheImpl) Connect() error {
-	logger.Trace("cache connected to memory")
+	logger.Trace("cache connecting to memory")
 	return nil
 }
 

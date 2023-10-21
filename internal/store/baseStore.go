@@ -90,7 +90,7 @@ func (s *BaseStoreImpl) logConnection(dbName string) {
 	for _, ip := range nips {
 		ips = append(ips, ip.String())
 	}
-	logger.Info(fmt.Sprintf("connected to %s database on %s:%s ( %s )", dbType, host, port, strings.Join(ips, ", ")))
+	logger.Info(fmt.Sprintf("connecting to %s database on %s:%s ( %s )", dbType, host, port, strings.Join(ips, ", ")))
 }
 
 // replaceTemplate заменяет все строки в query на соответствующие значения из repMap.

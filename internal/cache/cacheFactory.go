@@ -18,26 +18,29 @@ type FactoryImpl struct {
 	Factory
 }
 
-func (f *FactoryImpl) NewCache(cacheName string, cfg config.Config) BaseCache {
-	switch cacheName {
-	case "none":
-		// logger.Info("no cache selected")
+var cacheCreators = map[string]func(config.Config) BaseCache{
+	"none": func(cfg config.Config) BaseCache {
 		return nil
-	case "memory":
-		// logger.Info("memory cache selected")
+	},
+	"memory": func(cfg config.Config) BaseCache {
 		return NewMemoryCache(cfg)
-	case "memoryBytes":
-		// logger.Info("memoryBytes cache selected")
+	},
+	"memoryBytes": func(cfg config.Config) BaseCache {
 		return NewMemoryCacheByte(cfg)
-	case "redis":
-		// logger.Info("redis cache selected")
+	},
+	"redis": func(cfg config.Config) BaseCache {
 		if c, err := NewRedisCache(cfg); err != nil {
 			return nil
 		} else {
 			return c
 		}
-	default:
-		logger.Info("no cache selected")
-		return nil
+	},
+}
+
+func (f *FactoryImpl) NewCache(cacheName string, cfg config.Config) BaseCache {
+	if creator, ok := cacheCreators[cacheName]; ok {
+		return creator(cfg)
 	}
+	logger.Info("no cache selected")
+	return nil
 }

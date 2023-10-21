@@ -54,7 +54,7 @@ func (c *RedisCacheImpl) Connect() error {
 	for _, ip := range nips {
 		ips = append(ips, ip.String())
 	}
-	logger.Info(fmt.Sprintf("cache connected to redis on %s:%s ( %s )", host, port, strings.Join(ips, ", ")))
+	logger.Info(fmt.Sprintf("cache connecting to redis on %s:%s ( %s )", host, port, strings.Join(ips, ", ")))
 	// ping to check connection
 	err := c.rds.Ping(context.Background()).Err()
 	if err != nil {

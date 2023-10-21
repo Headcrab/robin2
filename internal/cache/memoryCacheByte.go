@@ -32,7 +32,7 @@ func NewMemoryCacheByte(cfg config.Config) BaseCache {
 }
 
 func (c *MemoryCacheBytesImpl) Connect() error {
-	logger.Debug("cache connected to memoryByte ")
+	logger.Debug("cache connecting to memoryByte ")
 	return nil
 }
 
