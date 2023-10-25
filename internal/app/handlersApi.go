@@ -75,8 +75,14 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 	round := utils.ThenIf(roundStr != "", func() int { r, _ := strconv.Atoi(roundStr); return r }(), a.config.GetInt("app.round"))
 
 	if tag != "" && date != "" {
-		writer = a.getTagOnDate(tag, date, format, round)
-		return
+		tags := strings.Split(tag, ",")
+		if len(tags) > 1 {
+			writer = a.getTagsOnDate(tags, date, format, round)
+			return
+		} else {
+			writer = a.getTagOnDate(tag, date, format, round)
+			return
+		}
 	}
 
 	if tag != "" && from != "" && to != "" {
@@ -108,7 +114,6 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 // @Router /get/tag/list/ [get]
 // @Param like query string false "Маска поиска"
 // @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
-// returns JSON with tags by mask
 func (a *App) handleAPIGetTagList(w http.ResponseWriter, r *http.Request) {
 	writer := []byte("#Error: unknown error")
 	defer func() {
@@ -290,6 +295,26 @@ func (a *App) getTagOnDate(tag, date, fmt string, round int) []byte {
 		return []byte("#Error: " + err.Error())
 	}
 	tagValue, err := a.store.GetTagDate(tag, dateTime)
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
+
+	w := format.New(fmt).SetRound(round).Process(tagValue)
+	return w
+}
+
+func (a *App) getTagsOnDate(tags []string, date, fmt string, round int) []byte {
+	dateTime, err := utils.ExcelTimeToTime(date, a.config.GetStringSlice("app.date_formats"))
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
+
+	// trim spaces
+	for i, tag := range tags {
+		tags[i] = strings.TrimSpace(tag)
+	}
+
+	tagValue, err := a.store.GetTagsDate(tags, dateTime)
 	if err != nil {
 		return []byte("#Error: " + err.Error())
 	}

@@ -19,6 +19,9 @@ else
 	@GOOS=linux CGO_ENABLED=0 go build -ldflags "-s -w -X main.Name=$(PROJECT_NAME) -X main.AppVersion=$(NEW_VERSION)" -trimpath -o ./bin/$(PROJECT_NAME) $(PROJECT_PATH)
 endif
 
+swagger:
+	@swag init -g internal/app/app.go --exclude vendor --exclude ./
+
 upx: build
 ifeq ($(OS),Windows_NT)
 	@upx.exe ./bin/$(PROJECT_NAME).exe 

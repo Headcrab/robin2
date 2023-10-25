@@ -22,6 +22,7 @@ import (
 type BaseStore interface {
 	Connect(name string, cache cache.BaseCache) error
 	GetTagDate(tag string, date time.Time) (float32, error)
+	GetTagsDate(tags []string, date time.Time) (map[string]float32, error)
 	GetTagCount(tag string, from time.Time, to time.Time, strCount int) (map[string]map[time.Time]float32, error)
 	GetTagCountGroup(tag string, from time.Time, to time.Time, strCount int, group string) (map[string]map[time.Time]float32, error)
 	GetTagFromTo(tag string, from time.Time, to time.Time) (map[string]map[time.Time]float32, error)
@@ -149,6 +150,32 @@ func (s *BaseStoreImpl) GetTagDate(tag string, date time.Time) (float32, error) 
 		s.cache.Set(tag, date, val)
 	}
 	return val, nil
+}
+
+// GetTagsDate вычисляет значение указанных тегов в заданном количестве внутри временного диапазона.
+//
+// Параметры:
+// - tag: Теги, который нужно посчитать.
+// - date: Начальное время диапазона.
+//
+// Возвращает: map[string]float32, содержащий результаты по каждому тегу.
+func (s *BaseStoreImpl) GetTagsDate(tags []string, date time.Time) (map[string]float32, error) {
+	if date.IsZero() {
+		return nil, errors.InvalidDate
+	}
+	if s.db == nil {
+		return nil, errors.DbConnectionFailed
+	}
+	res := make(map[string]float32, len(tags))
+
+	for _, t := range tags {
+		val, err := s.GetTagDate(t, date)
+		if err != nil {
+			return nil, err
+		}
+		res[t] = val
+	}
+	return res, nil
 }
 
 // GetTagCount вычисляет значение указанного тега в заданном количестве внутри временного диапазона.

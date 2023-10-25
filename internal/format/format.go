@@ -2,6 +2,7 @@ package format
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"math"
 	"robin2/internal/logger"
@@ -16,6 +17,8 @@ func New(format string) ResponseFormatter {
 		return &ResponseFormatterJSON{}
 	case "raw":
 		return &ResponseFormatterRaw{}
+	case "xml":
+		return &ResponseFormatterXML{}
 	default:
 		return &ResponseFormatterString{}
 	}
@@ -59,6 +62,29 @@ func roundSlice(data []interface{}, round float64) []interface{} {
 	return data
 }
 
+func roundMapStringFloat(data map[string]float32, round float64) map[string]float32 {
+	for k, v := range data {
+		data[k] = float32(Round(v, round))
+	}
+	return data
+}
+
+func roundInterface(value interface{}, round float64) interface{} {
+	switch v := value.(type) {
+	case float32:
+		return Round(v, round)
+	case float64:
+		return Round(v, round)
+	case []interface{}:
+		return roundSlice(v, round)
+	case map[string]interface{}:
+		return roundMap(v, round)
+	case map[string]float32:
+		return roundMapStringFloat(v, round)
+	}
+	return value
+}
+
 type ResponseFormatter interface {
 	Process(val interface{}) []byte
 	SetRound(r int) ResponseFormatter
@@ -87,6 +113,8 @@ func (r *ResponseFormatterJSON) Process(val interface{}) []byte {
 		return mustMarshal(roundMap(v, r.round))
 	case []interface{}:
 		return mustMarshal(roundSlice(v, r.round))
+	case interface{}:
+		return mustMarshal(roundInterface(v, r.round))
 	}
 	return mustMarshal(val)
 }
@@ -177,4 +205,54 @@ func (r *ResponseFormatterString) Process(val interface{}) []byte {
 func (r *ResponseFormatterString) SetRound(r2 int) ResponseFormatter {
 	r.round = float64(r2)
 	return r
+}
+
+type ResponseFormatterXML struct {
+	round float64
+}
+
+func (r *ResponseFormatterXML) SetRound(r2 int) ResponseFormatter {
+	r.round = float64(r2)
+	return r
+}
+
+func mustMarshalXML(v interface{}) []byte {
+	data, err := xml.MarshalIndent(v, "", " ")
+	if err != nil {
+		logger.Error(err.Error())
+		return []byte("#Error: " + err.Error())
+	}
+	return data
+}
+
+func (r *ResponseFormatterXML) Process(val interface{}) []byte {
+	switch v := val.(type) {
+	case float32:
+		return mustMarshalXML(Round(float64(v), r.round))
+	case float64:
+		return mustMarshalXML(Round(v, r.round))
+	case []uint8:
+		var a []byte
+		for i := 0; i < len(v); i++ {
+			a = append(a, v[i])
+		}
+		return a
+	case map[string]interface{}:
+		return mustMarshalXML(roundMap(v, r.round))
+	case []interface{}:
+		return mustMarshalXML(roundSlice(v, r.round))
+	case map[string]map[time.Time]float32:
+		var a []byte
+		for k, v := range v {
+			a = []byte("<" + k + ">" + string(r.Process(v)) + "</" + k + ">")
+		}
+		return a
+	case map[time.Time]float32:
+		var a []byte
+		for k, v := range v {
+			a = []byte("<" + k.Format("2006-01-02 15:04:05") + ">" + string(mustMarshalXML(v)) + "</" + k.Format("2006-01-02 15:04:05") + ">")
+		}
+		return a
+	}
+	return mustMarshalXML(val)
 }
