@@ -395,11 +395,25 @@ func (a *App) getTagFromToWithGroup(tag, from, to, group string, fmt string, rou
 	if err != nil {
 		return []byte(err.Error())
 	}
-	tagValue, err := a.store.GetTagFromToGroup(tag, fromT, toT, group)
-	if err != nil {
-		return []byte("#Error: " + err.Error())
+	tags := strings.Split(tag, ",")
+	for i := range tags {
+		tags[i] = strings.TrimSpace(tags[i])
 	}
-	w := format.New(fmt).SetRound(round).Process(tagValue)
+	tdv := make(map[string]map[time.Time]float32)
+	for _, tag := range tags {
+		tdv[tag] = make(map[time.Time]float32)
+		tdv[tag][toT], err = a.store.GetTagFromToGroup(tag, fromT, toT, group)
+		if err != nil {
+			return []byte("#Error: " + err.Error())
+		}
+
+	}
+	var w []byte
+	if len(tdv) == 1 {
+		w = format.New(fmt).SetRound(round).Process(tdv[tags[0]][toT])
+	} else {
+		w = format.New(fmt).SetRound(round).Process(tdv)
+	}
 	return w
 }
 
@@ -420,6 +434,9 @@ func (a *App) handleTagDecode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tags := strings.Split(tag, ",")
+	for i := range tags {
+		tags[i] = strings.TrimSpace(tags[i])
+	}
 
 	ret := make(map[string]map[string]string)
 	var dec decode.Decoder

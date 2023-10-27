@@ -1,3 +1,4 @@
+// todo: make formatter use map[string]map[time.Time]float32 and return one float32 if is
 package format
 
 import (
@@ -15,74 +16,13 @@ func New(format string) ResponseFormatter {
 	switch format {
 	case "json":
 		return &ResponseFormatterJSON{}
-	case "raw":
-		return &ResponseFormatterRaw{}
 	case "xml":
 		return &ResponseFormatterXML{}
+	case "raw":
+		return &ResponseFormatterRaw{}
 	default:
 		return &ResponseFormatterString{}
 	}
-}
-
-func Round[T float32 | float64](val T, round float64) float64 {
-	return math.Round(float64(val)*math.Pow(10, round)) / math.Pow(10, round)
-}
-
-func Format[T float32 | float64](val T) string {
-	return strings.Replace(strconv.FormatFloat(float64(val), 'f', -1, 64), ".", ",", -1)
-}
-
-func roundMap(data map[string]interface{}, round float64) map[string]interface{} {
-	for k, v := range data {
-		switch value := v.(type) {
-		case float64:
-			data[k] = Round(value, round)
-		case []interface{}:
-			roundSlice(value, round)
-		case map[string]interface{}:
-			roundMap(value, round)
-		}
-	}
-	return data
-}
-
-func roundSlice(data []interface{}, round float64) []interface{} {
-	for i, v := range data {
-		switch value := v.(type) {
-		case float32:
-			data[i] = Round(value, round)
-		case float64:
-			data[i] = Round(value, round)
-		case []interface{}:
-			roundSlice(value, round)
-		case map[string]interface{}:
-			roundMap(value, round)
-		}
-	}
-	return data
-}
-
-func roundMapStringFloat(data map[string]float32, round float64) map[string]float32 {
-	for k, v := range data {
-		data[k] = float32(Round(v, round))
-	}
-	return data
-}
-
-func roundInterface(value interface{}, round float64) interface{} {
-	switch v := value.(type) {
-	case float32:
-		return Round(v, round)
-	case float64:
-		return Round(v, round)
-	case []interface{}:
-		return roundSlice(v, round)
-	case map[string]interface{}:
-		return roundMap(v, round)
-	case map[string]float32:
-		return roundMapStringFloat(v, round)
-	}
-	return value
 }
 
 type ResponseFormatter interface {
@@ -90,38 +30,88 @@ type ResponseFormatter interface {
 	SetRound(r int) ResponseFormatter
 }
 
+func Round(val float32, round float64) float64 {
+	return float64(math.Round(float64(val)*math.Pow(10, round)) / math.Pow(10, round))
+}
+
+func Format(val float64) string {
+	return strings.Replace(strconv.FormatFloat(float64(val), 'f', -1, 64), ".", ",", -1)
+}
+
 type ResponseFormatterJSON struct {
 	round float64
 }
 
-func mustMarshal(v interface{}) []byte {
+func (r *ResponseFormatterJSON) SetRound(r2 int) ResponseFormatter {
+	r.round = float64(r2)
+	return r
+}
+
+func (r *ResponseFormatterJSON) Process(val interface{}) []byte {
+	switch v := val.(type) {
+	case float32:
+		return mustMarshalJSON(Round(v, r.round))
+	case map[string]float32:
+		for k, v1 := range v {
+			v[k] = float32(Round(v1, r.round))
+		}
+		return mustMarshalJSON(v)
+	case map[string]map[time.Time]float32:
+		for k1, v1 := range v {
+			for k2, v2 := range v1 {
+				v[k1][k2] = float32(Round(v2, r.round))
+			}
+		}
+		return mustMarshalJSON(v)
+	case map[string]map[string]string:
+		return mustMarshalJSON(v)
+	}
+	return []byte("#Error: " + fmt.Sprint(val))
+}
+
+type ResponseFormatterString struct {
+	round float64
+}
+
+func (r *ResponseFormatterString) Process(val interface{}) []byte {
+	ret := ""
+	switch v := val.(type) {
+	case float32:
+		ret = Format(Round(v, r.round))
+	case map[string]float32:
+		for k1, v1 := range v {
+			ret += k1 + ";" + Format(Round(v1, r.round)) + "\n"
+		}
+	case map[string]map[time.Time]float32:
+		for k1, v1 := range v {
+			for k2, v2 := range v1 {
+				ret += k1 + ";" + k2.Format("2006-01-02 15:04:05") + ";" + Format(Round(v2, r.round)) + "\n"
+			}
+		}
+	case map[string]map[string]string:
+		for k1, v1 := range v {
+			for k2, v2 := range v1 {
+				ret += k1 + ";" + k2 + ";" + v2 + "\n"
+			}
+		}
+	default:
+		ret = "#Error: " + fmt.Sprint(val)
+	}
+	return []byte(fmt.Sprint(ret))
+}
+
+func (r *ResponseFormatterString) SetRound(r2 int) ResponseFormatter {
+	r.round = float64(r2)
+	return r
+}
+
+func mustMarshalJSON(v interface{}) []byte {
 	data, err := json.MarshalIndent(v, "", " ")
 	if err != nil {
 		logger.Error(err.Error())
 		return []byte("#Error: " + err.Error())
 	}
 	return data
-}
-
-func (r *ResponseFormatterJSON) Process(val interface{}) []byte {
-	switch v := val.(type) {
-	case float32:
-		return mustMarshal(Round(float64(v), r.round))
-	case float64:
-		return mustMarshal(Round(v, r.round))
-	case map[string]interface{}:
-		return mustMarshal(roundMap(v, r.round))
-	case []interface{}:
-		return mustMarshal(roundSlice(v, r.round))
-	case interface{}:
-		return mustMarshal(roundInterface(v, r.round))
-	}
-	return mustMarshal(val)
-}
-
-func (r *ResponseFormatterJSON) SetRound(r2 int) ResponseFormatter {
-	r.round = float64(r2)
-	return r
 }
 
 type ResponseFormatterRaw struct {
@@ -137,76 +127,6 @@ func (r *ResponseFormatterRaw) SetRound(r2 int) ResponseFormatter {
 	return r
 }
 
-type ResponseFormatterString struct {
-	round float64
-}
-
-func (r *ResponseFormatterString) Process(val interface{}) []byte {
-	ret := ""
-	switch v := val.(type) {
-	case float64:
-		ret = Format(Round(v, r.round))
-	case float32:
-		ret = Format(Round(v, r.round))
-	case int64:
-		ret = strconv.FormatInt(v, 10)
-	case int32:
-		ret = strconv.FormatInt(int64(v), 10)
-	case int:
-		ret = strconv.Itoa(v)
-	case string:
-		ret = v
-	case []float32:
-		vt := roundSlice(val.([]interface{}), r.round)
-		for _, v := range vt {
-			ret += fmt.Sprint(v) + "\n"
-		}
-	case []string:
-		for _, v1 := range v {
-			ret += fmt.Sprint(v1) + "\n"
-		}
-	case map[string]string:
-		for k, v := range v {
-			ret += k + ", " + v + "\n"
-		}
-	case map[string]float32:
-		for k, v := range v {
-			ret += k + ", " + Format(Round(v, r.round)) + "\n"
-		}
-	case map[time.Time]float32:
-		for k, v := range v {
-			ret += k.Format("2006-01-02 15:04:05") + ", " + Format(Round(v, r.round)) + "\n"
-		}
-	case map[string]map[time.Time]float32:
-		for k1, v1 := range v {
-			for k2, v2 := range v1 {
-				ret += k1 + ", " + k2.Format("2006-01-02 15:04:05") + ", " + Format(Round(v2, r.round)) + "\n"
-			}
-		}
-	case map[string]map[string]string:
-		for k1, v1 := range v {
-			for k2, v2 := range v1 {
-				ret += k1 + ", " + k2 + ", " + v2 + "\n"
-			}
-		}
-	case []map[string]string:
-		for _, v1 := range v {
-			for _, v2 := range v1 {
-				ret += v2 + "\t"
-			}
-			ret += "\n"
-		}
-	default:
-		logger.Error("unknown type: " + fmt.Sprint(val))
-	}
-	return []byte(fmt.Sprint(ret))
-}
-
-func (r *ResponseFormatterString) SetRound(r2 int) ResponseFormatter {
-	r.round = float64(r2)
-	return r
-}
-
 type ResponseFormatterXML struct {
 	round float64
 }
@@ -216,6 +136,34 @@ func (r *ResponseFormatterXML) SetRound(r2 int) ResponseFormatter {
 	return r
 }
 
+func (r *ResponseFormatterXML) Process(val interface{}) []byte {
+	switch v := val.(type) {
+	case float32:
+		return mustMarshalXML(Round(v, r.round))
+	case map[string]float32:
+		for k, v1 := range v {
+			v[k] = float32(Round(v1, r.round))
+		}
+		return mustMarshalXML(v)
+	case map[string]map[time.Time]float32:
+		s := "<data>\n"
+		for k1, v1 := range v {
+			for k2, v2 := range v1 {
+				s += "\t<row>\n"
+				s += "\t\t<TagName>" + k1 + "</TagName>\n"
+				s += "\t\t<DateTime>" + k2.Format("2006-01-02 15:04:05") + "</DateTime>\n"
+				s += "\t\t<Value>" + fmt.Sprintf("%v", Format(Round(v2, r.round))) + "</Value>\n"
+				s += "\t</row>\n"
+			}
+		}
+		s += "</data>"
+		return []byte(s)
+	case map[string]map[string]string:
+		return mustMarshalXML(v)
+	}
+	return []byte("#Error: " + fmt.Sprint(val))
+}
+
 func mustMarshalXML(v interface{}) []byte {
 	data, err := xml.MarshalIndent(v, "", " ")
 	if err != nil {
@@ -223,36 +171,4 @@ func mustMarshalXML(v interface{}) []byte {
 		return []byte("#Error: " + err.Error())
 	}
 	return data
-}
-
-func (r *ResponseFormatterXML) Process(val interface{}) []byte {
-	switch v := val.(type) {
-	case float32:
-		return mustMarshalXML(Round(float64(v), r.round))
-	case float64:
-		return mustMarshalXML(Round(v, r.round))
-	case []uint8:
-		var a []byte
-		for i := 0; i < len(v); i++ {
-			a = append(a, v[i])
-		}
-		return a
-	case map[string]interface{}:
-		return mustMarshalXML(roundMap(v, r.round))
-	case []interface{}:
-		return mustMarshalXML(roundSlice(v, r.round))
-	case map[string]map[time.Time]float32:
-		var a []byte
-		for k, v := range v {
-			a = []byte("<" + k + ">" + string(r.Process(v)) + "</" + k + ">")
-		}
-		return a
-	case map[time.Time]float32:
-		var a []byte
-		for k, v := range v {
-			a = []byte("<" + k.Format("2006-01-02 15:04:05") + ">" + string(mustMarshalXML(v)) + "</" + k.Format("2006-01-02 15:04:05") + ">")
-		}
-		return a
-	}
-	return mustMarshalXML(val)
 }

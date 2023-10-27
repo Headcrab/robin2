@@ -146,6 +146,7 @@ func (a *App) handleTemplateDelete(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {array} string
 // @Router /templ/exec [get]
 // @Param name query string true "Имя шаблона"
+// @Param db query string false "Имя базы данных"
 // @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
 // @Param args query array false "Список аргументов"
 // @x-try-it-out-enabled false
@@ -168,6 +169,9 @@ func (a *App) handleTemplateExec(w http.ResponseWriter, r *http.Request) {
 		kv := strings.Split(arg, "=")
 		params[kv[0]] = kv[1]
 	}
+
+	db := r.URL.Query().Get("db")
+	params["db"] = db
 
 	b, err := a.store.TemplateExec(name, params)
 	if err != nil {

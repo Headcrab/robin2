@@ -1,3 +1,4 @@
+// todo: rebuild all funcs to return map[string]map[time.Time]float32
 package store
 
 import (
@@ -200,6 +201,9 @@ func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, co
 
 	tmDiff := to.Sub(from).Seconds() / float64(count)
 	tags := strings.Split(tag, ",")
+	for i, t := range tags {
+		tags[i] = strings.TrimSpace(t)
+	}
 	res := make(map[string]map[time.Time]float32, len(tags))
 	for _, t := range tags {
 		resDt := make(map[time.Time]float32, count)
@@ -238,6 +242,9 @@ func (s *BaseStoreImpl) GetTagCountGroup(tag string, from time.Time, to time.Tim
 
 	tmDiff := to.Sub(from).Seconds() / float64(count)
 	tags := strings.Split(tag, ",")
+	for i, t := range tags {
+		tags[i] = strings.TrimSpace(t)
+	}
 	res := make(map[string]map[time.Time]float32, len(tags))
 	for _, t := range tags {
 		resDt := make(map[time.Time]float32, count)
@@ -269,6 +276,9 @@ func (s *BaseStoreImpl) GetTagFromTo(tag string, from time.Time, to time.Time) (
 	logger.Debug(fmt.Sprintf("GetTagFromTo %s : %s - %s", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05")))
 	count := int(to.Sub(from).Seconds())
 	tags := strings.Split(tag, ",")
+	for i, t := range tags {
+		tags[i] = strings.TrimSpace(t)
+	}
 	res := make(map[string]map[time.Time]float32, len(tags))
 	for _, t := range tags {
 		resDt := make(map[time.Time]float32, count)
@@ -517,19 +527,23 @@ func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) ([]m
 		return nil, err
 	}
 
-	dbName := thenIf(params["db"] != "", params["db"], s.config.GetString("app.db.current"))
-
 	for k, v := range params {
 		body = strings.Replace(body, "{"+k+"}", v, -1)
 	}
 
-	storedb := NewFactory().NewStore(s.config.GetString("app.db."+dbName+".type"), s.config)
-	if storedb == nil {
-		return nil, errors.StoreError
-	}
-	err = storedb.Connect(dbName, nil)
-	if err != nil {
-		return nil, err
+	dbName := thenIf(params["db"] != "", params["db"], s.config.GetString("app.db.current"))
+	var storedb BaseStore
+	if dbName == s.config.GetString("app.db.current") {
+		storedb = s
+	} else {
+		storedb = NewFactory().NewStore(s.config.GetString("app.db."+dbName+".type"), s.config)
+		if storedb == nil {
+			return nil, errors.StoreError
+		}
+		err = storedb.Connect(dbName, nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	rows, err := storedb.ExecQuery(body)

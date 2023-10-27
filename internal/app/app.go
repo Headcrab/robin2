@@ -1,5 +1,4 @@
-// todo: sessions
-// todo: authenticate
+// todo: authenticate (in web only?)
 // todo: add tests
 
 package robin
