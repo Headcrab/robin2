@@ -1,4 +1,6 @@
-// todo: rebuild all funcs to return map[string]map[time.Time]float32
+// todo: ? rebuild all funcs to return map[string]map[time.Time]float32
+// fix: rebuild all funcs to return []map[string]float32
+// bug: templates works on clickhouse only! rewrite logic and config for templates
 package store
 
 import (
@@ -14,8 +16,6 @@ import (
 	"robin2/internal/logger"
 
 	"github.com/google/uuid"
-	// _ "github.com/denisenkom/go-mssqldb"
-	// _ "github.com/go-sql-driver/mysql"
 )
 
 /*------------------------------------------------------------------*/
@@ -34,14 +34,14 @@ type BaseStore interface {
 	GetStatus() (string, string, error)
 
 	TemplateList(like string) (map[string]string, error)
-	TemplateExec(name string, params map[string]string) ([]map[string]string, error)
+	TemplateExec(name string, params map[string]string) ([][]string, error)
 
 	TemplateAdd(name string, body string) error
 	TemplateSet(name string, body string) error
 	TemplateGet(name string) (string, error)
 	TemplateDel(name string) error
 
-	ExecQuery(query string) ([]map[string]string, error)
+	ExecQuery(query string) ([][]string, error)
 }
 
 type BaseStoreImpl struct {
@@ -521,7 +521,7 @@ func (s *BaseStoreImpl) TemplateGet(name string) (string, error) {
 // Возвращает:
 // - string: результат выполнения шаблона.
 // - error: ошибка, если произошла во время выполнения.
-func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) ([]map[string]string, error) {
+func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) ([][]string, error) {
 	body, err := s.TemplateGet(name)
 	if err != nil {
 		return nil, err
@@ -530,6 +530,8 @@ func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) ([]m
 	for k, v := range params {
 		body = strings.Replace(body, "{"+k+"}", v, -1)
 	}
+
+	// todo: добавить кэширование
 
 	dbName := thenIf(params["db"] != "", params["db"], s.config.GetString("app.db.current"))
 	var storedb BaseStore
@@ -624,7 +626,7 @@ func (s *BaseStoreImpl) TemplateAdd(name string, body string) error {
 	return nil
 }
 
-func (s *BaseStoreImpl) ExecQuery(query string) ([]map[string]string, error) {
+func (s *BaseStoreImpl) ExecQuery(query string) ([][]string, error) {
 	rows, err := s.db.Query(query)
 	if err != nil {
 		return nil, err
@@ -640,17 +642,16 @@ func (s *BaseStoreImpl) ExecQuery(query string) ([]map[string]string, error) {
 		vals[i] = new(sql.RawBytes)
 	}
 
-	lines := []map[string]string{}
+	lines := [][]string{}
 	for rows.Next() {
 		err = rows.Scan(vals...)
 		if err != nil {
 			return nil, err
 		}
 
-		m := make(map[string]string)
-		for i, col := range cols {
-			m[col] = string(*vals[i].(*sql.RawBytes))
-			// lines += fmt.Sprintf("%s: %s\n", col, vals[i].(*sql.RawBytes))
+		m := []string{}
+		for i := range cols {
+			m = append(m, string(*vals[i].(*sql.RawBytes)))
 		}
 		lines = append(lines, m)
 	}

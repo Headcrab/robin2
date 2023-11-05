@@ -167,6 +167,9 @@ func (a *App) handleTemplateExec(w http.ResponseWriter, r *http.Request) {
 	args := r.URL.Query().Get("args")
 	for _, arg := range strings.Split(args, ",") {
 		kv := strings.Split(arg, "=")
+		if len(kv) != 2 {
+			continue
+		}
 		params[kv[0]] = kv[1]
 	}
 

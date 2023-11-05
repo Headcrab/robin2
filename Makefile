@@ -47,18 +47,18 @@ docker: update_version
 	--build-arg PORT=${PORT} \
 	--build-arg GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID} \
 	--build-arg GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET} \
-	-t $(PROJECT_NAME_LOW):${NEW_VERSION} .
+	-t $(PROJECT_NAME_LOW) .
 
 deploy: docker undeploy
 ifeq ($(OS),Windows_NT)
-	@docker run -d \
+	docker run -d \
 	--name $(PROJECT_NAME_LOW) \
 	--restart=always \
 	-v x:/docker/configs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/config \
 	-v x:/docker/logs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/log \
 	-p $(PORT):$(PORT) \
 	--add-host=host.docker.internal:host-gateway \
-	$(PROJECT_NAME_LOW):${NEW_VERSION}
+	$(PROJECT_NAME_LOW)
 else
 	@docker run -d \
 	--name $(PROJECT_NAME_LOW) \

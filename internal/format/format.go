@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"robin2/internal/logger"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -80,20 +81,50 @@ func (r *ResponseFormatterString) Process(val interface{}) []byte {
 		ret = Format(Round(v, r.round))
 	case map[string]float32:
 		for k1, v1 := range v {
-			ret += k1 + ";" + Format(Round(v1, r.round)) + "\n"
+			ret += k1 + "\t" + Format(Round(v1, r.round)) + "\n"
 		}
 	case map[string]map[time.Time]float32:
 		for k1, v1 := range v {
 			for k2, v2 := range v1 {
-				ret += k1 + ";" + k2.Format("2006-01-02 15:04:05") + ";" + Format(Round(v2, r.round)) + "\n"
+				ret += k1 + "\t" + k2.Format("2006-01-02 15:04:05") + "\t" + Format(Round(v2, r.round)) + "\n"
 			}
 		}
 	case map[string]map[string]string:
 		for k1, v1 := range v {
 			for k2, v2 := range v1 {
-				ret += k1 + ";" + k2 + ";" + v2 + "\n"
+				ret += k1 + "\t" + k2 + "\t" + v2 + "\n"
 			}
 		}
+	case [][]string:
+		ret = ""
+		for _, v1 := range v {
+			ret += strings.Join(v1, "\t") + "\n"
+		}
+	case []map[string]string:
+		ret = ""
+		// sort by key
+		keys := make([]string, 0, len(v))
+
+		for k1 := range v[0] {
+			keys = append(keys, k1)
+		}
+		sort.Strings(keys)
+		ret += strings.Join(keys, "\t") + "\n"
+
+		for _, v1 := range v {
+			t := []string{}
+			for _, k1 := range keys {
+				t = append(t, v1[k1])
+			}
+			ret += strings.Join(t, "\t") + "\n"
+		}
+		// if len(v) == 1 {
+		// 	if len(v[0]) == 1 {
+		// 		for _, v1 := range v[0] {
+		// 			ret = v1
+		// 		}
+		// 	}
+		// }
 	default:
 		ret = "#Error: " + fmt.Sprint(val)
 	}
@@ -160,6 +191,18 @@ func (r *ResponseFormatterXML) Process(val interface{}) []byte {
 		return []byte(s)
 	case map[string]map[string]string:
 		return mustMarshalXML(v)
+	case []map[string]string:
+		s := "<data>\n"
+		for _, v1 := range v {
+			s += "\t<row>\n"
+			for k2, v2 := range v1 {
+				s += "\t\t<" + k2 + ">" + v2 + "</" + k2 + ">\n"
+			}
+			s += "\t</row>\n"
+
+		}
+		s += "</data>"
+		return []byte(s)
 	}
 	return []byte("#Error: " + fmt.Sprint(val))
 }
