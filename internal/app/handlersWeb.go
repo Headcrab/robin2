@@ -1,4 +1,4 @@
-// todo: sessions in web api
+// todo: sessions in web api to divide users data caches
 package robin
 
 import (

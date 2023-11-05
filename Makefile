@@ -49,6 +49,7 @@ docker: update_version
 	--build-arg GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET} \
 	-t $(PROJECT_NAME_LOW) .
 
+# todo: rewrite to docker-compose
 deploy: docker undeploy
 ifeq ($(OS),Windows_NT)
 	docker run -d \

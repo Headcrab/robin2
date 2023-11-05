@@ -531,7 +531,7 @@ func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) ([][
 		body = strings.Replace(body, "{"+k+"}", v, -1)
 	}
 
-	// todo: добавить кэширование
+	// todo: add cache
 
 	dbName := thenIf(params["db"] != "", params["db"], s.config.GetString("app.db.current"))
 	var storedb BaseStore
