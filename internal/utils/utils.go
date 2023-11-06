@@ -79,7 +79,8 @@ func ExcelTimeToTime(timeStr string, formats []string) (time.Time, error) {
 
 		unixTime := (timeFloat - 25569) * 86400
 		utcTime := time.Unix(int64(unixTime), 0).UTC()
-		locTime := utcTime.Local()
+		locTime := utcTime.Local() // bug: хзхзхз!
+		// locTime := utcTime
 		result = locTime
 	} else {
 		res, err := TryParseDate(timeStr, formats)

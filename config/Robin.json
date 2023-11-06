@@ -3,7 +3,7 @@
         "port": 8008,
         "round": "2",
         "db": {
-            "current": "hs0",
+            "current": "ch",
             "hs0": {
                 "type": "mssql",
                 "host": "hs0",
@@ -16,7 +16,7 @@
                 "query": {
                     "get_tag_date": "set quoted_identifier off select * from openquery(INSQL,\"select h.Value from history h where (h.TagName) = '{tag}' and h.[DateTime] = '{date}'\")",
                     "get_tag_from_to": "set quoted_identifier off select * from openquery(INSQL,\"select h.[DateTime], h.Value from history h where (h.TagName) = '{tag}' and h.[DateTime] >= '{from}' and h.[DateTime] < '{to}' and wwRetrievalMode = 'Cyclic' and wwResolution = 1000\")",
-                    "get_tag_from_to_group": "set quoted_identifier off select * from openquery(INSQL,\"select {group}(h.Value) value from history h where (h.TagName) = '{tag}' and h.[DateTime] >= '{from}' and h.[DateTime] < '{to}' and wwRetrievalMode = 'Cyclic' and wwResolution = 1000 group by h.TagName\")",
+                    "get_tag_from_to_group": "select {group}(h.Value) value from history h where (h.TagName) = '{tag}' and h.[DateTime] >= '{from}' and h.[DateTime] < '{to}' and wwRetrievalMode = 'Cyclic' and wwResolution = 1000 group by h.TagName",
                     "get_tag_from_to_dif": "set quoted_identifier off select (ht.value-hf.value) value from openquery(INSQL,\"select TagName, Value from history where TagName ='{tag}' and [DateTime] = '{from}' order by [DateTime]\") hf join openquery(INSQL,\"select TagName, Value from history where TagName ='{tag}' and [DateTime] = '{to}' order by [DateTime]\") ht on hf.TagName = ht.TagName and hf.[DateTime] = ht.[DateTime]",
                     "get_tag_from_to_count": "set quoted_identifier off select count(h.Value)/60.0 value from openquery(INSQL,\"select h.Value from history h where (h.TagName) = '{tag}' and h.[DateTime] >= '{from}' and h.[DateTime] < '{to}' and wwRetrievalMode = 'Cyclic' and wwResolution = 1000\")",
                     "get_tag_list": "select distinct t.TagName from Tag t where (t.TagName) like '{tag}' order by t.TagName",
@@ -98,7 +98,7 @@
             },
             "ch": {
                 "type": "clickhouse",
-                "host": "127.0.0.1",
+                "host": "localhost",
                 "port": "9000",
                 "user": "admin",
                 "password": "password123",

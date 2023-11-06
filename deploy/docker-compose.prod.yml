@@ -1,0 +1,73 @@
+version: '3.8'
+
+name: robin
+
+networks:
+  database:
+    driver: bridge
+    name: database
+      
+services:
+  clickhouse:
+    build: /ch_runner 
+    container_name: clickhouse
+    restart: always
+    environment:
+      CLICKHOUSE_USER: admin
+      CLICKHOUSE_PASSWORD: password123
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: '1'
+    volumes:
+      - clickhouse:/var/lib/clickhouse
+      - d:/configs/robin2:/var/lib/clickhouse/copyed
+    ports:
+      - 8124:8123
+      - 9001:9000
+    networks:
+      - database
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 3s
+      timeout: 1s
+      retries: 5
+
+  redis:
+    image: redis 
+    container_name: redis
+    restart: always
+    ports:
+      - 6379:6379
+    networks:
+      - database
+    healthcheck:
+      test: redis-cli ping
+      interval: 3s
+      timeout: 1s
+      retries: 5
+
+  robin: 
+    image: robin
+    container_name: robin
+    restart: always
+    volumes:
+      - d:/configs/robin2:/Robin/config
+      - d:/logs/robin2:/Robin/log
+    ports:
+      - 8008:8008
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    networks:
+      - database
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8008/ping || exit 1
+      interval: 3s
+      timeout: 1s
+      retries: 5
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  clickhouse:
+    external: true

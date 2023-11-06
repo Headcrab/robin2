@@ -1,5 +1,4 @@
--include app.env
--include .env
+include app.env
 export
 
 VERSION := $(shell update_env -f app.env -p PROJECT_VERSION) 
@@ -9,10 +8,10 @@ BUILD := $(shell echo $(VERSION) | cut -d. -f3)
 NEW_BUILD := $(shell echo $$(($(BUILD) + 1)))
 NEW_VERSION := $(MAJOR).$(MINOR).$(NEW_BUILD)
 
-run:
-	go run $(PROJECT_PATH)
+run: build
+	delver run ./bin/$(PROJECT_NAME).exe
 
-build: update_version
+build: swagger
 ifeq ($(OS),Windows_NT)
 	@GOOS=windows CGO_ENABLED=0 go build -ldflags "-s -w -X main.Name=$(PROJECT_NAME) -X main.AppVersion=$(NEW_VERSION)" -trimpath -o ./bin/$(PROJECT_NAME).exe $(PROJECT_PATH)
 else
@@ -22,7 +21,7 @@ endif
 swagger:
 	@swag init -g internal/app/app.go --exclude vendor --exclude ./
 
-upx: build
+upx: update_version build
 ifeq ($(OS),Windows_NT)
 	@upx.exe ./bin/$(PROJECT_NAME).exe 
 else
@@ -34,42 +33,35 @@ update_version:
 	@echo $(PROJECT_NAME) v:$(NEW_VERSION)
 
 test:
-	go test ./...
+	@go test ./...
 
 lint:
-	golangci-lint run
+	@golangci-lint run
 
-docker: update_version
+# @docker rmi $(PROJECT_NAME_LOW)
+.PHONY: docker
+docker:
 	@docker build \
 	--network=host \
 	--build-arg PROJECT_NAME=${PROJECT_NAME} \
 	--build-arg PROJECT_VERSION=${NEW_VERSION} \
 	--build-arg PORT=${PORT} \
-	--build-arg GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID} \
-	--build-arg GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET} \
-	-t $(PROJECT_NAME_LOW) .
+	-f deploy/Dockerfile -t $(PROJECT_NAME_LOW) .
 
-# todo: rewrite to docker-compose
-deploy: docker undeploy
-ifeq ($(OS),Windows_NT)
-	docker run -d \
-	--name $(PROJECT_NAME_LOW) \
-	--restart=always \
-	-v x:/docker/configs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/config \
-	-v x:/docker/logs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/log \
-	-p $(PORT):$(PORT) \
-	--add-host=host.docker.internal:host-gateway \
-	$(PROJECT_NAME_LOW)
-else
-	@docker run -d \
-	--name $(PROJECT_NAME_LOW) \
-	--restart=always \
-	-v /media/alexandr/data/work/docker/configs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/config \
-	-v /media/alexandr/data/work/docker/logs/$(PROJECT_NAME):/bin/$(PROJECT_NAME)/log \
-	-p $(PORT):$(PORT) \
-	--add-host=host.docker.internal:host-gateway \
-	$(PROJECT_NAME_LOW):${NEW_VERSION}
-endif
+.PHONY: deploy
+deploy: undeploy docker
+	@docker compose -f ./deploy/docker-compose.dev.yml up -d
 
+.PHONY: deploy_prod
+deploy_prod: undeploy docker
+	@docker compose -f ./deploy/docker-compose.prod.yml up -d
+	@xcopy x:\go\robin2\deploy\docker-compose.prod.yml x:\docker\containers
+	@xcopy x:\go\robin2\deploy\ch_runner x:\docker\containers\ch_runner
+	@docker save -o x:\docker\containers\$(PROJECT_NAME_LOW).tar $(PROJECT_NAME_LOW):latest
+	@docker save -o x:\docker\containers\robin-clickhouse.tar robin-clickhouse
+
+.PHONY: undeploy
 undeploy:
-	@docker rm -f $(PROJECT_NAME_LOW)
+	@docker compose -f ./deploy/docker-compose.prod.yml down
+	@docker rmi robin-clickhouse
+	# @docker rmi $(PROJECT_NAME_LOW):latest
