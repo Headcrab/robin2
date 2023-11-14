@@ -62,14 +62,24 @@ func ThenIf[T any](condition bool, ifTrue T, ifFalse T) T {
 //
 // В качестве параметра принимается строка timeStr, представляющая значение времени в Excel.
 // Функция возвращает объект time.Time и ошибку.
+// excelTimeToTime converts a time string from Excel to a time.Time object in Go.
+//
+// It takes a timeStr string as a parameter, representing the time value in Excel.
+// The function returns a time.Time object and an error.
 func ExcelTimeToTime(timeStr string, formats []string) (time.Time, error) {
-
 	if timeStr == "" {
 		return time.Time{}, errors.InvalidDate
 	}
 
-	var result time.Time
+	parsed, err := parseTime(timeStr, formats)
+	if err != nil {
+		return time.Time{}, err
+	}
 
+	return parsed, nil
+}
+
+func parseTime(timeStr string, formats []string) (time.Time, error) {
 	if !strings.Contains(timeStr, ":") {
 		timeStr = strings.Replace(timeStr, ",", ".", 1)
 		timeFloat, err := strconv.ParseFloat(timeStr, 64)
@@ -78,24 +88,14 @@ func ExcelTimeToTime(timeStr string, formats []string) (time.Time, error) {
 		}
 
 		unixTime := (timeFloat - 25569) * 86400
-		utcTime := time.Unix(int64(unixTime), 0).UTC()
-		locTime := utcTime.Local() // bug: хзхзхз!
-		// locTime := utcTime
-		result = locTime
-	} else {
-		res, err := TryParseDate(timeStr, formats)
-		if err != nil {
-			return time.Time{}, err
-		}
-
-		result = res.Local()
+		return time.Unix(int64(unixTime), 0).UTC(), nil
 	}
 
-	if result.IsZero() {
-		return time.Time{}, errors.InvalidDate
+	tm, err := TryParseDate(timeStr, formats)
+	if err != nil {
+		return time.Time{}, err
 	}
-
-	return result, nil
+	return tm.Local(), nil
 }
 
 // tryParseDate пытается разобрать строку в качестве даты и возвращает разобранную дату в случае успеха.

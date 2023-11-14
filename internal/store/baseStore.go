@@ -13,6 +13,7 @@ import (
 
 	"robin2/internal/cache"
 	"robin2/internal/config"
+	"robin2/internal/data"
 	"robin2/internal/logger"
 
 	"github.com/google/uuid"
@@ -28,20 +29,20 @@ type BaseStore interface {
 	GetTagCountGroup(tag string, from time.Time, to time.Time, strCount int, group string) (map[string]map[time.Time]float32, error)
 	GetTagFromTo(tag string, from time.Time, to time.Time) (map[string]map[time.Time]float32, error)
 	GetTagFromToGroup(tag string, from time.Time, to time.Time, group string) (float32, error)
-	GetTagList(like string) ([]string, error)
+	GetTagList(like string) (*data.Output, error)
 	GetDownDates(tag string, from time.Time, to time.Time) ([]time.Time, error)
 	GetUpDates(tag string, from time.Time, to time.Time) ([]time.Time, error)
 	GetStatus() (string, string, error)
 
 	TemplateList(like string) (map[string]string, error)
-	TemplateExec(name string, params map[string]string) ([][]string, error)
+	TemplateExec(name string, params map[string]string) (*data.Output, error)
 
 	TemplateAdd(name string, body string) error
 	TemplateSet(name string, body string) error
 	TemplateGet(name string) (string, error)
 	TemplateDel(name string) error
 
-	ExecQuery(query string) ([][]string, error)
+	ExecQuery(query string) (*data.Output, error)
 }
 
 type BaseStoreImpl struct {
@@ -364,7 +365,7 @@ func (s *BaseStoreImpl) GetTagFromToGroup(tag string, from time.Time, to time.Ti
 // Возвращает:
 // - map[string][]string: Карта, содержащая теги, сгруппированные по категориям.
 // - error: Ошибка, если запрос к базе данных не выполнен.
-func (s *BaseStoreImpl) GetTagList(like string) ([]string, error) {
+func (s *BaseStoreImpl) GetTagList(like string) (*data.Output, error) {
 	if like == "" {
 		like = "%"
 	}
@@ -372,10 +373,10 @@ func (s *BaseStoreImpl) GetTagList(like string) ([]string, error) {
 	query := s.config.GetString("app.db." + s.config.GetString("app.db.current") + ".query.get_tag_list")
 	// replace {tag} with like
 	query = strings.Replace(query, "{tag}", like, -1)
-	tags := make([]string, 0, 15000)
-	cur, err := s.db.Query(query)
+	// tags := make([]string, 0, 15000)
+	rows, err := s.db.Query(query)
 	defer func() {
-		err := cur.Close()
+		err := rows.Close()
 		if err != nil {
 			logger.Debug(err.Error())
 		}
@@ -383,19 +384,36 @@ func (s *BaseStoreImpl) GetTagList(like string) ([]string, error) {
 	if err != nil {
 		logger.Debug(err.Error())
 		return nil, err
-	} else {
-		for cur.Next() {
-			var tag string
-			err := cur.Scan(&tag)
-			if err != nil {
-				logger.Debug(err.Error())
-				return nil, err
-			} else {
-				tags = append(tags, tag)
-			}
-		}
 	}
-	return tags, nil
+
+	out := &data.Output{}
+	cols, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+
+	out.Headers = append(out.Headers, cols...)
+
+	row := make([]interface{}, len(cols))
+	for i := range row {
+		row[i] = new(sql.RawBytes)
+	}
+
+	for rows.Next() {
+		err = rows.Scan(row...)
+		if err != nil {
+			return nil, err
+		}
+
+		values := make([]string, len(cols))
+		for i, v := range row {
+			values[i] = string(*v.(*sql.RawBytes))
+		}
+
+		out.Rows = append(out.Rows, values)
+	}
+
+	return out, nil
 }
 
 // GetDownDates получает список дат отключений в указанном временном диапазоне, отфильтрованный по тегу.
@@ -521,7 +539,7 @@ func (s *BaseStoreImpl) TemplateGet(name string) (string, error) {
 // Возвращает:
 // - string: результат выполнения шаблона.
 // - error: ошибка, если произошла во время выполнения.
-func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) ([][]string, error) {
+func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) (*data.Output, error) {
 	body, err := s.TemplateGet(name)
 	if err != nil {
 		return nil, err
@@ -626,34 +644,42 @@ func (s *BaseStoreImpl) TemplateAdd(name string, body string) error {
 	return nil
 }
 
-func (s *BaseStoreImpl) ExecQuery(query string) ([][]string, error) {
+func (s *BaseStoreImpl) ExecQuery(query string) (*data.Output, error) {
 	rows, err := s.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+
+	out := &data.Output{}
 
 	cols, err := rows.Columns()
 	if err != nil {
 		return nil, err
 	}
 
-	vals := make([]interface{}, len(cols))
-	for i := 0; i < len(cols); i++ {
-		vals[i] = new(sql.RawBytes)
+	out.Headers = append(out.Headers, cols...)
+
+	row := make([]interface{}, len(cols))
+	for i := range row {
+		row[i] = new(sql.RawBytes)
 	}
 
-	lines := [][]string{}
 	for rows.Next() {
-		err = rows.Scan(vals...)
+		err = rows.Scan(row...)
 		if err != nil {
 			return nil, err
 		}
 
-		m := []string{}
-		for i := range cols {
-			m = append(m, string(*vals[i].(*sql.RawBytes)))
+		// Convert row to []string
+		strRow := make([]string, len(row))
+		for i, v := range row {
+			strRow[i] = string(*v.(*sql.RawBytes))
 		}
-		lines = append(lines, m)
+
+		out.Rows = append(out.Rows, strRow)
+		out.Count = len(out.Rows)
 	}
-	return lines, nil
+
+	return out, nil
 }

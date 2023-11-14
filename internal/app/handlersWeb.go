@@ -243,7 +243,9 @@ func (a *App) handlePageTags(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte("#Error: " + err.Error()))
 				return
 			}
-			tagsList = append(tagsList, tags...)
+			for _, tag := range tags.Rows {
+				tagsList = append(tagsList, tag[0])
+			}
 		}
 	}
 

@@ -8,6 +8,20 @@ networks:
     name: database
       
 services:
+  redis:
+    image: redis 
+    container_name: redis
+    restart: always
+    ports:
+      - 6379:6379
+    networks:
+      - database
+    healthcheck:
+      test: redis-cli ping
+      interval: 3s
+      timeout: 1s
+      retries: 5
+
   clickhouse:
     build: /ch_runner 
     container_name: clickhouse
@@ -30,22 +44,8 @@ services:
       timeout: 1s
       retries: 5
 
-  redis:
-    image: redis 
-    container_name: redis
-    restart: always
-    ports:
-      - 6379:6379
-    networks:
-      - database
-    healthcheck:
-      test: redis-cli ping
-      interval: 3s
-      timeout: 1s
-      retries: 5
-
   robin: 
-    image: robin
+    build: /robin
     container_name: robin
     restart: always
     volumes:

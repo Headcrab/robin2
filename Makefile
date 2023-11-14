@@ -64,4 +64,4 @@ deploy_prod: undeploy docker
 undeploy:
 	@docker compose -f ./deploy/docker-compose.prod.yml down
 	@docker rmi robin-clickhouse
-	# @docker rmi $(PROJECT_NAME_LOW):latest
+	@docker rmi $(PROJECT_NAME_LOW):latest

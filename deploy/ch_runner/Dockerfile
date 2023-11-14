@@ -1,4 +1,4 @@
-FROM clickhouse/clickhouse-server:latest
+FROM clickhouse/clickhouse-server:head
 
 # 
 ENV TZ=Asia/Almaty
