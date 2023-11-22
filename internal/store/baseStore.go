@@ -345,16 +345,21 @@ func (s *BaseStoreImpl) GetTagFromToGroup(tag string, from time.Time, to time.Ti
 		return -1, errors.GroupError
 	}
 
-	var value float32
-	err := s.db.QueryRow(query).Scan(&value)
+	var value sql.NullFloat64
+	row := s.db.QueryRow(query)
+	err := row.Scan(&value)
 
 	if err != nil {
 		return -1, err
 	}
 
-	s.cache.SetStr(tag, fromStr+"|"+toStr+"|"+group, value)
+	if !value.Valid {
+		return -1, nil
+	}
 
-	return value, nil
+	s.cache.SetStr(tag, fromStr+"|"+toStr+"|"+group, float32(value.Float64))
+
+	return float32(value.Float64), nil
 }
 
 // GetTagList извлекает список тегов, соответствующих заданному шаблону.

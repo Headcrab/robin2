@@ -23,7 +23,7 @@ services:
       retries: 5
 
   clickhouse:
-    build: /ch_runner 
+    build: /clickhouse 
     container_name: clickhouse
     restart: always
     environment:
@@ -46,6 +46,11 @@ services:
 
   robin: 
     build: /robin
+    environment:
+      PROJECT_NAME : Robin
+      PROJECT_VERSION : 2.4.19
+      PORT : 8008
+    # image: robin
     container_name: robin
     restart: always
     volumes:

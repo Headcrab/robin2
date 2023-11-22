@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	// swagger "github.com/swaggo/http-swagger/v2"
 )
 
 func (a *App) handleFavicon(w http.ResponseWriter, r *http.Request) {
@@ -192,7 +193,7 @@ func (a *App) handlePageData(w http.ResponseWriter, r *http.Request) {
 			countStr, _ := strconv.Atoi(q.Get("count"))
 			count := int(countStr)
 			// tags, err = a.store.GetTagFromTo(q.Get("tag"), from, to)
-			tagsValues, err = a.store.GetTagCount(q.Get("tag"), from, to, count)
+			tagsValues, err = a.store.GetTagCountGroup(q.Get("tag"), from, to, count, "avg")
 			if err != nil {
 				fmt.Println("Ошибка при чтении ответа:", err)
 				return
@@ -252,4 +253,16 @@ func (a *App) handlePageTags(w http.ResponseWriter, r *http.Request) {
 	data := getOnePage(page, tagsList, pageNum, linesPerPage)
 	data["like"] = utils.ThenIf(like == "", "", like)
 	a.handlePageAny(page, data)(w, r)
+}
+
+func (a *App) handlePageSwagger(w http.ResponseWriter, r *http.Request) {
+	// get data from /swagger
+	page := "swagger"
+	data := map[string]interface{}{
+		"name":    "swagger",
+		"content": "string",
+	}
+
+	a.handlePageAny(page, data)(w, r)
+
 }

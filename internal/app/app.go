@@ -22,10 +22,9 @@ import (
 	"robin2/internal/utils"
 
 	"github.com/joho/godotenv"
+	swagger "github.com/swaggo/http-swagger/v2"
 
 	_ "robin2/docs"
-
-	swagger "github.com/swaggo/http-swagger/v2"
 )
 
 type App struct {
@@ -110,7 +109,8 @@ func (a *App) setupHTTPHandlers() http.Handler {
 		"/images/":       a.handleDirectory("images"),
 		"/scripts/":      a.handleDirectory("scripts"),
 		"/css/":          a.handleDirectory("css"),
-		"/swagger/":      swagger.Handler(swagger.URL("/swagger/doc.json")),
+		"/api/swagger/":  swagger.Handler(swagger.URL("/api/swagger/doc.json")),
+		"/swagger/":      a.handlePageSwagger,
 		"/templ/list/":   a.handleTemplateList,
 		"/templ/add/":    a.handleTemplateAdd,
 		"/templ/get/":    a.handleTemplateGet,

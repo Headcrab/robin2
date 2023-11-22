@@ -46,10 +46,13 @@ docker:
 	--build-arg PROJECT_NAME=${PROJECT_NAME} \
 	--build-arg PROJECT_VERSION=${NEW_VERSION} \
 	--build-arg PORT=${PORT} \
-	-f deploy/Dockerfile -t $(PROJECT_NAME_LOW) .
+	-f deploy/robin/Dockerfile -t $(PROJECT_NAME_LOW) .
+	@docker build \
+	--network=host \
+	-f deploy/clickhouse/Dockerfile -t robin-clickhouse .
 
 .PHONY: deploy
-deploy: undeploy docker
+deploy: 
 	@docker compose -f ./deploy/docker-compose.dev.yml up -d
 
 .PHONY: deploy_prod
