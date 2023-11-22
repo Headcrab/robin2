@@ -105,7 +105,7 @@ func (a *App) setupHTTPHandlers() http.Handler {
 		"/logs/":         a.handlePageLog,
 		"/data/":         a.handlePageData,
 		"/tags/":         a.handlePageTags,
-		"/":              a.handlePageAny("home", nil),
+		"/":              a.handlePageAny("home", map[string]interface{}{"descr": "Robin"}),
 		"/images/":       a.handleDirectory("images"),
 		"/scripts/":      a.handleDirectory("scripts"),
 		"/css/":          a.handleDirectory("css"),

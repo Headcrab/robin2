@@ -86,7 +86,7 @@ body {
   display: flex;
   /* font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; */
   font-family: var(--standart);
-  padding: 20px 0 45px 170px;
+  padding: 40px 0 45px 170px;
 }
 
 .fixed-bottom,
@@ -119,6 +119,13 @@ body {
 
 .fixed-top {
   top: 0;
+  /* height: 60px; */
+  padding: -10px 0px 0px 0px;
+  padding-left: 80px;
+  /* padding-top: 20px; */
+  padding-bottom: 20px;
+  vertical-align: top;
+  font-size: medium;
 }
 
 .fixed-top status-text {
@@ -139,7 +146,7 @@ body {
   left: 0;
   padding: 5px;
   position: fixed;
-  top: 40px;
+  top: 60px;
   width: 160px;
   z-index: 1000;
 }

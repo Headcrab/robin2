@@ -33,7 +33,7 @@ func (a *App) handleDirectory(d string) http.HandlerFunc {
 	}
 }
 
-func getOnePage(name string, data []string, pageNum, linesPerPage int) map[string]interface{} {
+func getOnePage(name string, descr string, data []string, pageNum, linesPerPage int) map[string]interface{} {
 	pagesTotal := len(data)/(linesPerPage+1) + 1
 	// pagesTotal = thenIf(pagesTotal == 0, 1, pagesTotal)
 	if pageNum > pagesTotal {
@@ -45,8 +45,9 @@ func getOnePage(name string, data []string, pageNum, linesPerPage int) map[strin
 	dataL := getDataSubset(data, pageNum, linesPerPage)
 
 	return map[string]interface{}{
-		name:   dataL,
-		"page": pageSwicher,
+		name:    dataL,
+		"descr": descr,
+		"page":  pageSwicher,
 	}
 }
 
@@ -124,6 +125,7 @@ func (a *App) handlePageAny(page string, data map[string]interface{}) func(w htt
 		dbs := a.getDbStatus()
 		appUptime := time.Since(a.startTime).Round(time.Second).String()
 		dataFull := map[string]interface{}{
+			"descr":   data["descr"],
 			"content": t,
 			"app":     map[string]interface{}{"name": a.name, "version": a.version, "apiserver": apiserver, "uptime": appUptime},
 			"db":      map[string]interface{}{"server": dbs.Name, "type": dbs.Type, "version": dbs.Version, "uptime": dbs.Uptime, "status": dbs.Status},
@@ -162,7 +164,7 @@ func (a *App) handlePageLog(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	a.handlePageAny(page, getOnePage(page, logData, pageNum, logPerPage))(w, r)
+	a.handlePageAny(page, getOnePage(page, "Лог", logData, pageNum, logPerPage))(w, r)
 
 }
 
@@ -214,7 +216,7 @@ func (a *App) handlePageData(w http.ResponseWriter, r *http.Request) {
 			data = append(data, fmt.Sprintf("%s|%f", v, tag[v]))
 		}
 	}
-	a.handlePageAny(page, getOnePage(page, data, pageNum, linesPerPage))(w, r)
+	a.handlePageAny(page, getOnePage(page, "Получение данных", data, pageNum, linesPerPage))(w, r)
 
 }
 
@@ -250,7 +252,7 @@ func (a *App) handlePageTags(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	data := getOnePage(page, tagsList, pageNum, linesPerPage)
+	data := getOnePage(page, "Тэги", tagsList, pageNum, linesPerPage)
 	data["like"] = utils.ThenIf(like == "", "", like)
 	a.handlePageAny(page, data)(w, r)
 }
@@ -259,6 +261,7 @@ func (a *App) handlePageSwagger(w http.ResponseWriter, r *http.Request) {
 	// get data from /swagger
 	page := "swagger"
 	data := map[string]interface{}{
+		"descr":   "Документация API",
 		"name":    "swagger",
 		"content": "string",
 	}
