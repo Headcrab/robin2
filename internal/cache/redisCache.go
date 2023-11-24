@@ -37,12 +37,12 @@ func NewRedisCache(cfg config.Config) (BaseCache, error) {
 }
 
 func (c *RedisCacheImpl) Connect() error {
-	cacheName := c.config.GetString("app.cache.current")
-	host := c.config.GetString("app.cache." + cacheName + ".host")
-	port := c.config.GetString("app.cache." + cacheName + ".port")
-	password := c.config.GetString("app.cache." + cacheName + ".password")
-	db := c.config.GetInt("app.cache." + cacheName + ".db")
-	c.ttl = time.Duration(c.config.GetInt("app.cache."+cacheName+".ttl")) * time.Hour
+	// cacheName := c.config.CurrCache.Name
+	host := c.config.CurrCache.Host
+	port := c.config.CurrCache.Port
+	password := c.config.CurrCache.Password
+	db := c.config.CurrCache.DB
+	c.ttl = time.Duration(c.config.CurrCache.TTL) * time.Hour
 	logger.Trace("RedisCacheImpl.Connect")
 	c.rds = redis.NewClient(&redis.Options{
 		Addr:     fmt.Sprintf("%s:%s", host, port),

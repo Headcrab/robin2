@@ -72,7 +72,7 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 	count := query.Get("count")
 	format := query.Get("format")
 
-	round := utils.ThenIf(roundStr != "", func() int { r, _ := strconv.Atoi(roundStr); return r }(), a.config.GetInt("app.round"))
+	round := utils.ThenIf(roundStr != "", func() int { r, _ := strconv.Atoi(roundStr); return r }(), a.config2.Round)
 
 	if tag != "" && date != "" {
 		tags := strings.Split(tag, ",")
@@ -124,7 +124,7 @@ func (a *App) handleAPIGetTagList(w http.ResponseWriter, r *http.Request) {
 	like := r.URL.Query().Get("like")
 	fmt := r.URL.Query().Get("format")
 	roundStr := r.URL.Query().Get("round")
-	round := utils.ThenIf(roundStr != "", func() int { r, _ := strconv.Atoi(roundStr); return r }(), a.config.GetInt("app.round"))
+	round := utils.ThenIf(roundStr != "", func() int { r, _ := strconv.Atoi(roundStr); return r }(), a.config2.Round)
 
 	// Retrieve list of tags
 	tags, err := a.store.GetTagList(like)
@@ -159,12 +159,12 @@ func (a *App) handleAPIGetTagDown(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		count = 0
 	}
-	fromT, err := utils.ExcelTimeToTime(from, a.config.GetStringSlice("app.date_formats"))
+	fromT, err := utils.ExcelTimeToTime(from, a.config2.DateFormats)
 	if err != nil {
 		w.Write([]byte("#Error: " + err.Error()))
 		return
 	}
-	toT, err := utils.ExcelTimeToTime(to, a.config.GetStringSlice("app.date_formats"))
+	toT, err := utils.ExcelTimeToTime(to, a.config2.DateFormats)
 	if err != nil {
 		w.Write([]byte("#Error: " + err.Error()))
 		return
@@ -217,13 +217,13 @@ func (a *App) handleAPIGetTagUp(w http.ResponseWriter, r *http.Request) {
 		count = 0
 	}
 
-	fromT, err := utils.ExcelTimeToTime(from, a.config.GetStringSlice("app.date_formats"))
+	fromT, err := utils.ExcelTimeToTime(from, a.config2.DateFormats)
 	if err != nil {
 		writer = []byte("#Error: " + err.Error())
 		return
 	}
 
-	toT, err := utils.ExcelTimeToTime(to, a.config.GetStringSlice("app.date_formats"))
+	toT, err := utils.ExcelTimeToTime(to, a.config2.DateFormats)
 	if err != nil {
 		writer = []byte("#Error: " + err.Error())
 		return
@@ -275,7 +275,7 @@ func (a *App) handleAPIInfo(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleAPIReloadConfig(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("reloading config file")
 
-	if err := a.config.Reload(); err != nil {
+	if err := a.config2.Reload(); err != nil {
 		logger.Fatal("Failed to read config file")
 	}
 	a.initDatabase()
@@ -290,7 +290,7 @@ func (a *App) handleAPIServerStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) getTagOnDate(tag, date, fmt string, round int) []byte {
-	dateTime, err := utils.ExcelTimeToTime(date, a.config.GetStringSlice("app.date_formats"))
+	dateTime, err := utils.ExcelTimeToTime(date, a.config2.DateFormats)
 	if err != nil {
 		return []byte("#Error: " + err.Error())
 	}
@@ -304,7 +304,7 @@ func (a *App) getTagOnDate(tag, date, fmt string, round int) []byte {
 }
 
 func (a *App) getTagsOnDate(tags []string, date, fmt string, round int) []byte {
-	dateTime, err := utils.ExcelTimeToTime(date, a.config.GetStringSlice("app.date_formats"))
+	dateTime, err := utils.ExcelTimeToTime(date, a.config2.DateFormats)
 	if err != nil {
 		return []byte("#Error: " + err.Error())
 	}
@@ -326,11 +326,11 @@ func (a *App) getTagsOnDate(tags []string, date, fmt string, round int) []byte {
 }
 
 func (a *App) getTagByCount(tag, from, to, count string, fmt string, round int) []byte {
-	fromT, err := utils.ExcelTimeToTime(from, a.config.GetStringSlice("app.date_formats"))
+	fromT, err := utils.ExcelTimeToTime(from, a.config2.DateFormats)
 	if err != nil {
 		return []byte(err.Error())
 	}
-	toT, err := utils.ExcelTimeToTime(to, a.config.GetStringSlice("app.date_formats"))
+	toT, err := utils.ExcelTimeToTime(to, a.config2.DateFormats)
 	if err != nil {
 		return []byte(err.Error())
 	}
@@ -348,11 +348,11 @@ func (a *App) getTagByCount(tag, from, to, count string, fmt string, round int) 
 }
 
 func (a *App) getTagFromToByCountWithGroup(tag, from, to, count string, group string, fmt string, round int) []byte {
-	fromT, err := utils.ExcelTimeToTime(from, a.config.GetStringSlice("app.date_formats"))
+	fromT, err := utils.ExcelTimeToTime(from, a.config2.DateFormats)
 	if err != nil {
 		return []byte(err.Error())
 	}
-	toT, err := utils.ExcelTimeToTime(to, a.config.GetStringSlice("app.date_formats"))
+	toT, err := utils.ExcelTimeToTime(to, a.config2.DateFormats)
 	if err != nil {
 		return []byte(err.Error())
 	}
@@ -369,11 +369,11 @@ func (a *App) getTagFromToByCountWithGroup(tag, from, to, count string, group st
 }
 
 func (a *App) getTagFromTo(tag, from, to string, fmt string, round int) []byte {
-	fromT, err := utils.ExcelTimeToTime(from, a.config.GetStringSlice("app.date_formats"))
+	fromT, err := utils.ExcelTimeToTime(from, a.config2.DateFormats)
 	if err != nil {
 		return []byte(err.Error())
 	}
-	toT, err := utils.ExcelTimeToTime(to, a.config.GetStringSlice("app.date_formats"))
+	toT, err := utils.ExcelTimeToTime(to, a.config2.DateFormats)
 	if err != nil {
 		return []byte(err.Error())
 	}
@@ -386,13 +386,13 @@ func (a *App) getTagFromTo(tag, from, to string, fmt string, round int) []byte {
 }
 
 func (a *App) getTagFromToWithGroup(tag, from, to, group string, fmt string, round int) []byte {
-	fromT, err := utils.ExcelTimeToTime(from, a.config.GetStringSlice("app.date_formats"))
+	fromT, err := utils.ExcelTimeToTime(from, a.config2.DateFormats)
 
 	if err != nil {
 		return []byte(err.Error())
 	}
 
-	toT, err := utils.ExcelTimeToTime(to, a.config.GetStringSlice("app.date_formats"))
+	toT, err := utils.ExcelTimeToTime(to, a.config2.DateFormats)
 
 	if err != nil {
 		return []byte(err.Error())

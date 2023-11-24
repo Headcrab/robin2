@@ -20,7 +20,7 @@ type MsSqlStoreImpl struct {
 
 func NewMsSqlStore(cfg config.Config) BaseStore {
 	logger.Debug("NewMsSqlStore")
-	round := cfg.GetInt("app.round")
+	round := cfg.Round
 	p := math.Pow(10, float64(round))
 	return BaseStore(&MsSqlStoreImpl{
 		MsSqlStore: &BaseStoreImpl{
@@ -41,7 +41,7 @@ func (s *MsSqlStoreImpl) Connect(name string, cache cache.BaseCache) error {
 		}
 	}
 	base.cache = cache
-	base.db, err = sql.Open(base.config.GetString("app.db."+name+".type"), base.marshalConnectionString(name))
+	base.db, err = sql.Open(base.config.CurrDB.Type, base.marshalConnectionString(name))
 	if err != nil {
 		logger.Error(err.Error())
 		return err

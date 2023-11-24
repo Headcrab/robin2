@@ -20,7 +20,7 @@ type ClickHouseStoreImpl struct {
 
 func NewClickHouseStore(cfg config.Config) BaseStore {
 	logger.Debug("NewClickHouseStore")
-	round := cfg.GetInt("app.round")
+	round := cfg.Round
 	p := math.Pow(10, float64(round))
 	return BaseStore(&ClickHouseStoreImpl{
 		ClickHouseStore: &BaseStoreImpl{
@@ -43,9 +43,7 @@ func (s *ClickHouseStoreImpl) Connect(name string, cache cache.BaseCache) error 
 
 	base.cache = cache
 
-	dbType := base.config.GetString("app.db." + name + ".type")
-
-	db, err := sql.Open(dbType, base.marshalConnectionString(name))
+	db, err := sql.Open(base.config.CurrDB.Type, base.marshalConnectionString(name))
 	if err != nil {
 		logger.Error(err.Error())
 		return err

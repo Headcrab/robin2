@@ -33,10 +33,11 @@ type App struct {
 	startTime time.Time
 	workDir   string
 	opCount   int64
-	config    config.Config
-	cache     cache.BaseCache
-	store     store.BaseStore
-	template  *template.Template
+	// config    config.ConfigOld
+	config2  config.Config
+	cache    cache.BaseCache
+	store    store.BaseStore
+	template *template.Template
 }
 
 type dbStatus struct {
@@ -49,7 +50,12 @@ type dbStatus struct {
 
 // NewApp creates a new instance of the App struct and returns a pointer to it.
 func NewApp() *App {
-	return &App{}
+	app := App{}
+	app.workDir = utils.GetWorkDir()
+	// app.config2 = config.Config{}
+	app.config2.Load(filepath.Join(app.workDir, "config", "robin.json"))
+	// conf = conf
+	return &app
 }
 
 func (a *App) Run() {
@@ -63,8 +69,8 @@ func (a *App) Run() {
 	a.initDatabase()
 
 	mux := a.setupHTTPHandlers()
-	logger.Info("listening on: " + strings.Join(utils.GetLocalhostIpAdresses(), " , ") + " port: " + a.config.GetString("app.port"))
-	err := http.ListenAndServe(":"+a.config.GetString("app.port"), mux)
+	logger.Info("listening on: " + strings.Join(utils.GetLocalhostIpAdresses(), " , ") + " port: " + strconv.Itoa(a.config2.Port))
+	err := http.ListenAndServe(":"+strconv.Itoa(a.config2.Port), mux)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
@@ -73,16 +79,11 @@ func (a *App) Run() {
 func (a *App) initDatabase() {
 	// Configure the logger
 	logger.Debug("initializing app")
-	a.config = config.GetConfig(a.workDir)
-	currCache := a.config.GetString("app.cache.current")
-	currCacheType := a.config.GetString("app.cache." + currCache + ".type")
-	currDB := a.config.GetString("app.db.current")
-	currDBType := a.config.GetString("app.db." + currDB + ".type")
 
-	a.cache = cache.NewFactory().NewCache(currCacheType, a.config)
-	a.store = store.NewFactory().NewStore(currDBType, a.config)
+	a.cache = cache.NewFactory().NewCache(a.config2.CurrCache.Type, a.config2)
+	a.store = store.NewFactory().NewStore(a.config2.CurrDB.Type, a.config2)
 
-	err := a.store.Connect(currDB, a.cache)
+	err := a.store.Connect(a.config2.CurrDB.Name, a.cache)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
@@ -187,11 +188,11 @@ func formatDataString(input string) template.HTML {
 //
 // Возвращает структуру dbstatus, содержащую статус, имя, тип, версию и время работы базы данных.
 func (a *App) getDbStatus() dbStatus {
-	dbName := a.config.GetString("app.db.current")
+	dbName := a.config2.CurrDB.Name
 	dbstatus := dbStatus{
 		Status: "green",
 		Name:   dbName,
-		Type:   a.config.GetString("app.db." + dbName + ".type"),
+		Type:   a.config2.CurrDB.Type,
 	}
 	var err error
 	var dbuptimeStr string

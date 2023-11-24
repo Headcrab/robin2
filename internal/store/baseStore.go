@@ -71,11 +71,13 @@ func thenIf[T any](condition bool, ifTrue T, ifFalse T) T {
 //
 // Возвращает сгенерированную строку подключения.
 func (s *BaseStoreImpl) marshalConnectionString(name string) string {
-	connStr := s.config.GetString("app.db." + name + ".connection_string")
-	for k, v := range s.config.GetStringMapString("app.db." + name) {
-		connStr = strings.ReplaceAll(connStr, "{"+k+"}", v)
-	}
-	s.round = s.config.GetInt("app.round")
+	connStr := s.config.CurrDB.ConnectionString
+	connStr = strings.ReplaceAll(connStr, "{host}", s.config.CurrDB.Host)
+	connStr = strings.ReplaceAll(connStr, "{port}", s.config.CurrDB.Port)
+	connStr = strings.ReplaceAll(connStr, "{user}", s.config.CurrDB.User)
+	connStr = strings.ReplaceAll(connStr, "{password}", s.config.CurrDB.Password)
+	connStr = strings.ReplaceAll(connStr, "{database}", s.config.CurrDB.Database)
+	s.round = s.config.Round
 	return connStr
 }
 
@@ -86,9 +88,9 @@ func (s *BaseStoreImpl) marshalConnectionString(name string) string {
 // хост и порт из конфигурации. Затем она находит IP-адрес хоста и записывает
 // детали соединения вместе с полученными IP-адресами.
 func (s *BaseStoreImpl) logConnection(dbName string) {
-	dbType := s.config.GetString("app.db." + dbName + ".type")
-	host := s.config.GetString("app.db." + dbName + ".host")
-	port := s.config.GetString("app.db." + dbName + ".port")
+	dbType := s.config.CurrDB.Type
+	host := s.config.CurrDB.Host
+	port := s.config.CurrDB.Port
 	nips, _ := net.LookupIP(host)
 	var ips []string
 	for _, ip := range nips {
@@ -113,7 +115,7 @@ func (s *BaseStoreImpl) replaceTemplate(repMap map[string]string, query string) 
 // а также ошибку, если возникла проблема при получении статуса.
 func (s *BaseStoreImpl) GetStatus() (string, string, error) {
 	var version, uptime string
-	err := s.db.QueryRow(s.config.GetString("app.db."+s.config.GetString("app.db.current")+".query.status")).Scan(&version, &uptime)
+	err := s.db.QueryRow(s.config.CurrDB.Query["status"]).Scan(&version, &uptime)
 	if err != nil {
 		return "", "", err
 	}
@@ -157,7 +159,7 @@ func (s *BaseStoreImpl) GetTagDate(tag_ string, date time.Time) (*data.Output, e
 				continue
 			}
 		}
-		query := s.config.GetString("app.db." + s.config.GetString("app.db.current") + ".query.get_tag_date")
+		query := s.config.CurrDB.Query["get_tag_date"]
 		query = s.replaceTemplate(map[string]string{"{tag}": tag, "{date}": date.Format("2006-01-02 15:04:05")}, query)
 		res := struct {
 			Tag   string
@@ -359,11 +361,11 @@ func (s *BaseStoreImpl) GetTagFromToGroup(tag string, from time.Time, to time.Ti
 
 	switch group {
 	case "avg", "sum", "min", "max":
-		query = s.config.GetString(fmt.Sprintf("app.db.%s.query.get_tag_from_to_group", s.config.GetString("app.db.current")))
+		query = s.config.CurrDB.Query["get_tag_from_to_group"]
 	case "dif":
-		query = s.config.GetString(fmt.Sprintf("app.db.%s.query.get_tag_from_to_dif", s.config.GetString("app.db.current")))
+		query = s.config.CurrDB.Query["get_tag_from_to_group_dif"]
 	case "count":
-		query = s.config.GetString(fmt.Sprintf("app.db.%s.query.get_tag_from_to_count", s.config.GetString("app.db.current")))
+		query = s.config.CurrDB.Query["get_tag_from_to_group_count"]
 	default:
 		return -1, errors.GroupError
 	}
@@ -412,7 +414,7 @@ func (s *BaseStoreImpl) GetTagList(like string) (*data.Output, error) {
 		like = "%"
 	}
 	like = s.replaceTemplate(map[string]string{"*": "%", "?": "_", " ": "%"}, like)
-	query := s.config.GetString("app.db." + s.config.GetString("app.db.current") + ".query.get_tag_list")
+	query := s.config.CurrDB.Query["get_tag_list"]
 	// replace {tag} with like
 	query = strings.Replace(query, "{tag}", like, -1)
 	// tags := make([]string, 0, 15000)
@@ -471,7 +473,7 @@ func (s *BaseStoreImpl) GetTagList(like string) (*data.Output, error) {
 func (s *BaseStoreImpl) GetDownDates(tag string, from time.Time, to time.Time) ([]time.Time, error) {
 	logger.Debug("GetDownDate " + tag + " : " + from.Format("2006-01-02 15:04:05") + " - " + to.Format("2006-01-02 15:04:05"))
 	var query string
-	query = s.config.GetString("app.db." + s.config.GetString("app.db.current") + ".query.get_down_dates")
+	query = s.config.CurrDB.Query["get_down_dates"]
 	fromStr := from.Format("2006-01-02 15:04:05")
 	toStr := to.Format("2006-01-02 15:04:05")
 	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{from}": fromStr, "{to}": toStr}, query)
@@ -517,7 +519,7 @@ func (s *BaseStoreImpl) GetDownDates(tag string, from time.Time, to time.Time) (
 func (s *BaseStoreImpl) GetUpDates(tag string, from time.Time, to time.Time) ([]time.Time, error) {
 	logger.Debug("GetUpDate " + tag + " : " + from.Format("2006-01-02 15:04:05") + " - " + to.Format("2006-01-02 15:04:05"))
 	var query string
-	query = s.config.GetString("app.db." + s.config.GetString("app.db.current") + ".query.get_up_dates")
+	query = s.config.CurrDB.Query["get_up_dates"]
 	fromStr := from.Format("2006-01-02 15:04:05")
 	toStr := to.Format("2006-01-02 15:04:05")
 	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{from}": fromStr, "{to}": toStr}, query)
@@ -593,12 +595,12 @@ func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) (*da
 
 	// todo: add cache
 
-	dbName := thenIf(params["db"] != "", params["db"], s.config.GetString("app.db.current"))
+	dbName := thenIf(params["db"] != "", params["db"], s.config.CurrDB.Name)
 	var storedb BaseStore
-	if dbName == s.config.GetString("app.db.current") {
+	if dbName == s.config.CurrDB.Name {
 		storedb = s
 	} else {
-		storedb = NewFactory().NewStore(s.config.GetString("app.db."+dbName+".type"), s.config)
+		storedb = NewFactory().NewStore(s.config.CurrDB.Type, s.config)
 		if storedb == nil {
 			return nil, errors.StoreError
 		}
