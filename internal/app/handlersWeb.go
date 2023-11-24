@@ -261,9 +261,9 @@ func (a *App) handlePageSwagger(w http.ResponseWriter, r *http.Request) {
 	// get data from /swagger
 	page := "swagger"
 	data := map[string]interface{}{
-		"descr":   "Документация API",
-		"name":    "swagger",
-		"content": "string",
+		"descr": "Документация API",
+		"name":  "swagger",
+		// "content": "string",
 	}
 
 	a.handlePageAny(page, data)(w, r)

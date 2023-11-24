@@ -69,8 +69,9 @@ func (r *ResponseFormatterString) Process(val interface{}) []byte {
 		// 	}
 		// }
 	case *data.Output:
-		if len(v.Headers) == 1 && len(v.Rows) == 1 {
-			return []byte(v.Rows[0][0])
+		// if len(v.Headers) == 1 && len(v.Rows) == 1 {
+		if len(v.Rows) == 1 {
+			return []byte(v.Rows[0][2])
 		}
 		s := ""
 		for _, v1 := range v.Headers {

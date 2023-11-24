@@ -310,11 +310,13 @@ func (a *App) getTagsOnDate(tags []string, date, fmt string, round int) []byte {
 	}
 
 	// trim spaces
-	for i, tag := range tags {
-		tags[i] = strings.TrimSpace(tag)
-	}
+	// for i, tag := range tags {
+	// 	tags[i] = strings.TrimSpace(tag)
+	// }
 
-	tagValue, err := a.store.GetTagsDate(tags, dateTime)
+	tag_ := strings.Join(tags, ",")
+
+	tagValue, err := a.store.GetTagDate(tag_, dateTime)
 	if err != nil {
 		return []byte("#Error: " + err.Error())
 	}

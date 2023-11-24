@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"robin2/internal/errors"
+	"strconv"
 	"strings"
 	"time"
 
@@ -23,8 +24,8 @@ import (
 
 type BaseStore interface {
 	Connect(name string, cache cache.BaseCache) error
-	GetTagDate(tag string, date time.Time) (float32, error)
-	GetTagsDate(tags []string, date time.Time) (map[string]float32, error)
+	GetTagDate(tag string, date time.Time) (*data.Output, error)
+	// GetTagsDate(tags []string, date time.Time) (, error)
 	GetTagCount(tag string, from time.Time, to time.Time, strCount int) (map[string]map[time.Time]float32, error)
 	GetTagCountGroup(tag string, from time.Time, to time.Time, strCount int, group string) (map[string]map[time.Time]float32, error)
 	GetTagFromTo(tag string, from time.Time, to time.Time) (map[string]map[time.Time]float32, error)
@@ -128,30 +129,58 @@ func (s *BaseStoreImpl) GetStatus() (string, string, error) {
 // Возвращает:
 // - float32: значение, связанное с тегом и датой.
 // - error: любая ошибка, возникшая в процессе получения значения.
-func (s *BaseStoreImpl) GetTagDate(tag string, date time.Time) (float32, error) {
+func (s *BaseStoreImpl) GetTagDate(tag_ string, date time.Time) (*data.Output, error) {
 	if date.IsZero() {
-		return 0, errors.InvalidDate
+		return nil, errors.InvalidDate
 	}
 	if s.db == nil {
-		return 0, errors.DbConnectionFailed
+		return nil, errors.DbConnectionFailed
 	}
-	if s.cache != nil {
-		if val, err := s.cache.Get(tag, date); err == nil {
-			return val, nil
-		}
-	}
-	query := s.config.GetString("app.db." + s.config.GetString("app.db.current") + ".query.get_tag_date")
-	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{date}": date.Format("2006-01-02 15:04:05")}, query)
 
-	var val float32
-	err := s.db.QueryRow(query).Scan(&val)
-	if err != nil {
-		return -1, err
+	tags := strings.Split(tag_, ",")
+
+	for i, tag := range tags {
+		tags[i] = strings.TrimSpace(tag)
 	}
-	if s.cache != nil && val != -1 {
-		s.cache.Set(tag, date, val)
+
+	out := &data.Output{
+		Headers: []string{"Tag", "Date", "Value"},
+		Rows:    make([][]string, 0),
+		Count:   0,
+		Err:     nil,
 	}
-	return val, nil
+
+	for _, tag := range tags {
+		if s.cache != nil {
+			if val, err := s.cache.Get(tag, date); err == nil {
+				out.Rows = append(out.Rows, []string{tag, date.Format("2006-01-02 15:04:05"), fmt.Sprintf("%f", val)})
+				continue
+			}
+		}
+		query := s.config.GetString("app.db." + s.config.GetString("app.db.current") + ".query.get_tag_date")
+		query = s.replaceTemplate(map[string]string{"{tag}": tag, "{date}": date.Format("2006-01-02 15:04:05")}, query)
+		res := struct {
+			Tag   string
+			Date  string
+			Value string
+		}{}
+		err := s.db.QueryRow(query).Scan(&res.Tag, &res.Date, &res.Value)
+		if err != nil {
+			continue
+		}
+		currTag := make([]string, 3)
+		currTag[0] = res.Tag
+		currTag[1] = date.Format("2006-01-02 15:04:05")
+		currTag[2] = res.Value
+		// currTag[2] = fmt.Sprintf("%f", res)
+		val := currTag[2]
+		if s.cache != nil && val != "-1" {
+			valFl, _ := strconv.ParseFloat(val, 32)
+			s.cache.Set(tag, date, float32(valFl))
+		}
+		out.Rows = append(out.Rows, currTag)
+	}
+	return out, nil
 }
 
 // GetTagsDate вычисляет значение указанных тегов в заданном количестве внутри временного диапазона.
@@ -161,24 +190,24 @@ func (s *BaseStoreImpl) GetTagDate(tag string, date time.Time) (float32, error) 
 // - date: Начальное время диапазона.
 //
 // Возвращает: map[string]float32, содержащий результаты по каждому тегу.
-func (s *BaseStoreImpl) GetTagsDate(tags []string, date time.Time) (map[string]float32, error) {
-	if date.IsZero() {
-		return nil, errors.InvalidDate
-	}
-	if s.db == nil {
-		return nil, errors.DbConnectionFailed
-	}
-	res := make(map[string]float32, len(tags))
+// func (s *BaseStoreImpl) GetTagsDate(tags []string, date time.Time) (map[string]float32, error) {
+// 	if date.IsZero() {
+// 		return nil, errors.InvalidDate
+// 	}
+// 	if s.db == nil {
+// 		return nil, errors.DbConnectionFailed
+// 	}
+// 	res := make(map[string]float32, len(tags))
 
-	for _, t := range tags {
-		val, err := s.GetTagDate(t, date)
-		if err != nil {
-			return nil, err
-		}
-		res[t] = val
-	}
-	return res, nil
-}
+// 	for _, t := range tags {
+// 		val, err := s.GetTagDate(t, date)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		res[t] = val
+// 	}
+// 	return res, nil
+// }
 
 // GetTagCount вычисляет значение указанного тега в заданном количестве внутри временного диапазона.
 //
@@ -210,11 +239,15 @@ func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, co
 		resDt := make(map[time.Time]float32, count)
 		for i := 0; i < count; i++ {
 			dateFrom := from.Add(time.Duration(tmDiff*float64(i)) * time.Second)
-			val, err := s.GetTagDate(t, dateFrom)
+			valOut, err := s.GetTagDate(t, dateFrom)
+			if err != nil {
+				return nil, err
+			}
+			val, err := strconv.ParseFloat(valOut.Rows[0][2], 32)
 			if err != nil {
 				val = -1
 			}
-			resDt[dateFrom] = val
+			resDt[dateFrom] = float32(val)
 		}
 		res[t] = resDt
 	}
@@ -288,11 +321,15 @@ func (s *BaseStoreImpl) GetTagFromTo(tag string, from time.Time, to time.Time) (
 			// if val, err := s.cache.Get(tag, dateFrom); err == nil {
 			// 	resDt[dateFrom] = s.Round(val)
 			// } else {
-			val, err := s.GetTagDate(t, dateFrom)
+			valOut, err := s.GetTagDate(t, dateFrom)
+			if err != nil {
+				return nil, err
+			}
+			val, err := strconv.ParseFloat(valOut.Rows[0][2], 32)
 			if err != nil {
 				val = -1
 			}
-			resDt[dateFrom] = val
+			resDt[dateFrom] = float32(val)
 			// if val != -1 {
 			// 	s.cache.Set(tag, dateFrom, val)
 			// }
