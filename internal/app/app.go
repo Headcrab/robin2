@@ -17,7 +17,7 @@ import (
 	"robin2/internal/cache"
 	"robin2/internal/config"
 	"robin2/internal/logger"
-	"robin2/internal/middleware/timing"
+	"robin2/internal/middleware"
 	"robin2/internal/store"
 	"robin2/internal/utils"
 
@@ -119,6 +119,7 @@ func (a *App) setupHTTPHandlers() http.Handler {
 		"/templ/delete/": a.handleTemplateDelete,
 		"/templ/exec/":   a.handleTemplateExec,
 		"/tag/decode/":   a.handleTagDecode,
+		"/api/v2/get/":   a.handleAPIV2GetTagOnDate,
 	}
 
 	// Register HTTP request handlers
@@ -142,7 +143,7 @@ func (a *App) setupHTTPHandlers() http.Handler {
 		panic(err)
 	}
 
-	return timing.New(mux)
+	return middleware.Log(middleware.Timing(mux))
 }
 
 func colorizeLogString(input string) template.HTML {

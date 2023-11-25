@@ -19,9 +19,14 @@ func New(format string) ResponseFormatter {
 	case "raw":
 		return &ResponseFormatterRaw{}
 
+	case "html":
+		return &ResponseFormatterHTML{}
+
+	case "str":
 	default:
 		return &ResponseFormatterString{}
 	}
+	return nil
 }
 
 type ResponseFormatter interface {
