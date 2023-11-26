@@ -35,20 +35,20 @@ func Test_tryParseDate(t *testing.T) {
 			name:     "invalid empty string",
 			date:     "",
 			expected: time.Time{},
-			err:      errors.InvalidDate,
+			err:      errors.ErrInvalidDate,
 		},
 		{
 			name:     "invalid 12.31.2022 00:00:00",
 			date:     "12.31.2022 00:00:00",
 			expected: time.Time{},
-			err:      errors.InvalidDate,
+			err:      errors.ErrInvalidDate,
 		},
 	}
 	app := NewApp()
 	app.initDatabase()
 	for _, test := range test_cases {
 		t.Run(test.name, func(t *testing.T) {
-			date, err := utils.TryParseDate(test.date, app.config2.DateFormats)
+			date, err := utils.TryParseDate(test.date, app.config.DateFormats)
 			if err != test.err {
 				t.Errorf("Test '%s' failed: expected error '%v', got '%v'", test.name, test.err, err)
 			}
@@ -132,20 +132,20 @@ func Test_excelTimeToTime(t *testing.T) {
 			name:     "invalid empty string",
 			time:     "",
 			expected: time.Time{},
-			err:      errors.InvalidDate,
+			err:      errors.ErrInvalidDate,
 		},
 		{
 			name:     "invalid 12.31.2022 00:00:00",
 			time:     "12.31.2022 00:00:00",
 			expected: time.Time{},
-			err:      errors.InvalidDate,
+			err:      errors.ErrInvalidDate,
 		},
 	}
 	app := NewApp()
 	// app.Init()
 	for _, test := range test_cases {
 		t.Run(test.name, func(t *testing.T) {
-			date, err := utils.ExcelTimeToTime(test.time, app.config2.DateFormats)
+			date, err := utils.ExcelTimeToTime(test.time, app.config.DateFormats)
 			if err != test.err {
 				t.Errorf("Test '%s' failed: expected error '%v', got '%v'", test.name, test.err, err)
 			}
@@ -165,13 +165,13 @@ func Benchmark_NewApp(b *testing.B) {
 func Benchmark_excelTimeToTime(b *testing.B) {
 	app := NewApp()
 	for i := 0; i < b.N; i++ {
-		utils.TryParseDate("2019-01-01", app.config2.DateFormats)
+		utils.TryParseDate("2019-01-01", app.config.DateFormats)
 	}
 }
 func Benchmark_tryParseDate(b *testing.B) {
 	app := NewApp()
 	// app := App{}
 	for i := 0; i < b.N; i++ {
-		utils.TryParseDate("2019-01-01", app.config2.DateFormats)
+		utils.TryParseDate("2019-01-01", app.config.DateFormats)
 	}
 }

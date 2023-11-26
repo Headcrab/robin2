@@ -16,7 +16,7 @@
         "2006-01-02T15:04:05.00-07:00",
         "2006-01-02T15:04:05.000-07:00"
     ],
-    "curr_db": "ch",
+    "curr_db": "clickhouse.docker",
     "db": [
         {
             "name": "hs0",
@@ -115,9 +115,9 @@
             }
         },
         {
-            "name": "ch",
+            "name": "clickhouse.docker",
             "type": "clickhouse",
-            "host": "localhost",
+            "host": "clickhouse",
             "port": "9000",
             "user": "admin",
             "password": "password123",
@@ -161,7 +161,7 @@
             "type": "redis",
             "ttl": 1,
             "active": "false",
-            "host": "host.docker.internal",
+            "host": "redis",
             "port": "6379",
             "password": "",
             "db": 0,

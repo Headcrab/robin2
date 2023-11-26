@@ -1,8 +1,10 @@
 package config
 
 import (
-	"errors"
+	// "errors"
+	"fmt"
 	"os"
+	"robin2/internal/errors"
 	"robin2/internal/logger"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -77,30 +79,30 @@ func (c *Config) Reload() error {
 	}
 
 	var currDB *Database
-	for _, db := range c.DB {
-		if db.Name == c.CurrDBName {
-			currDB = &db
+	for i := range c.DB {
+		if c.DB[i].Name == c.CurrDBName {
+			currDB = &c.DB[i]
 			break
 		}
 	}
 	if currDB == nil {
-		logger.Error("CurrDB not found")
-		return errors.New("CurrDB not found")
+		logger.Error(fmt.Sprintf("CurrDB '%s' not found", c.CurrDBName))
+		return errors.ErrCurrDBNotFound
 	} else {
 		c.CurrDB = currDB
 
 	}
 
 	var currCache *CacheConfig
-	for _, cache := range c.Cache {
-		if cache.Name == c.CurrCacheName {
-			currCache = &cache
+	for i := range c.Cache {
+		if c.Cache[i].Name == c.CurrCacheName {
+			currCache = &c.Cache[i]
 			break
 		}
 	}
 	if currCache == nil {
-		logger.Error("CurrCache not found")
-		return errors.New("CurrCache not found")
+		logger.Error(fmt.Sprintf("CurrCache '%s' not found", c.CurrCacheName))
+		return errors.ErrCurrCacheNotFound
 	} else {
 		c.CurrCache = currCache
 	}

@@ -133,10 +133,10 @@ func (s *BaseStoreImpl) GetStatus() (string, string, error) {
 // - error: любая ошибка, возникшая в процессе получения значения.
 func (s *BaseStoreImpl) GetTagDate(tag_ string, date time.Time) (*data.Output, error) {
 	if date.IsZero() {
-		return nil, errors.InvalidDate
+		return nil, errors.ErrInvalidDate
 	}
 	if s.db == nil {
-		return nil, errors.DbConnectionFailed
+		return nil, errors.ErrDbConnectionFailed
 	}
 
 	tags := strings.Split(tag_, ",")
@@ -225,10 +225,10 @@ func (s *BaseStoreImpl) GetTagDate(tag_ string, date time.Time) (*data.Output, e
 func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, count int) (map[string]map[time.Time]float32, error) {
 	logger.Debug(fmt.Sprintf("GetTagCount %s : %s - %s (%d)", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05"), count))
 	if count == 0 {
-		return nil, errors.CountIsEmpty
+		return nil, errors.ErrCountIsEmpty
 	}
 	if count < 1 {
-		return nil, errors.CountIsLessThanOne
+		return nil, errors.ErrCountIsLessThanOne
 	}
 
 	tmDiff := to.Sub(from).Seconds() / float64(count)
@@ -270,10 +270,10 @@ func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, co
 func (s *BaseStoreImpl) GetTagCountGroup(tag string, from time.Time, to time.Time, count int, group string) (map[string]map[time.Time]float32, error) {
 	logger.Debug(fmt.Sprintf("GetTagCount %s : %s - %s (%d)", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05"), count))
 	if count == 0 {
-		return nil, errors.CountIsEmpty
+		return nil, errors.ErrCountIsEmpty
 	}
 	if count < 1 {
-		return nil, errors.CountIsLessThanOne
+		return nil, errors.ErrCountIsLessThanOne
 	}
 
 	tmDiff := to.Sub(from).Seconds() / float64(count)
@@ -367,7 +367,7 @@ func (s *BaseStoreImpl) GetTagFromToGroup(tag string, from time.Time, to time.Ti
 	case "count":
 		query = s.config.CurrDB.Query["get_tag_from_to_group_count"]
 	default:
-		return -1, errors.GroupError
+		return -1, errors.ErrGroupError
 	}
 
 	fromStr, toStr := from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05")
@@ -381,7 +381,7 @@ func (s *BaseStoreImpl) GetTagFromToGroup(tag string, from time.Time, to time.Ti
 	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{from}": fromStr, "{to}": toStr, "{group}": group}, query)
 
 	if query == "" {
-		return -1, errors.GroupError
+		return -1, errors.ErrGroupError
 	}
 
 	var value sql.NullFloat64
@@ -478,7 +478,7 @@ func (s *BaseStoreImpl) GetDownDates(tag string, from time.Time, to time.Time) (
 	toStr := to.Format("2006-01-02 15:04:05")
 	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{from}": fromStr, "{to}": toStr}, query)
 	if query == "" {
-		return nil, errors.QueryError
+		return nil, errors.ErrQueryError
 	}
 	var dates []time.Time
 	cur, err := s.db.Query(query)
@@ -524,7 +524,7 @@ func (s *BaseStoreImpl) GetUpDates(tag string, from time.Time, to time.Time) ([]
 	toStr := to.Format("2006-01-02 15:04:05")
 	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{from}": fromStr, "{to}": toStr}, query)
 	if query == "" {
-		return nil, errors.QueryError
+		return nil, errors.ErrQueryError
 	}
 	var dates []time.Time
 	cur, err := s.db.Query(query)
@@ -602,7 +602,7 @@ func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) (*da
 	} else {
 		storedb = NewFactory().NewStore(s.config.CurrDB.Type, s.config)
 		if storedb == nil {
-			return nil, errors.StoreError
+			return nil, errors.ErrStoreError
 		}
 		err = storedb.Connect(dbName, nil)
 		if err != nil {

@@ -33,11 +33,10 @@ type App struct {
 	startTime time.Time
 	workDir   string
 	opCount   int64
-	// config    config.ConfigOld
-	config2  config.Config
-	cache    cache.BaseCache
-	store    store.BaseStore
-	template *template.Template
+	config    config.Config
+	cache     cache.BaseCache
+	store     store.BaseStore
+	template  *template.Template
 }
 
 type dbStatus struct {
@@ -48,48 +47,43 @@ type dbStatus struct {
 	Uptime  time.Duration
 }
 
-// NewApp creates a new instance of the App struct and returns a pointer to it.
 func NewApp() *App {
 	app := App{}
+	logger.Debug("initializing app")
 	app.workDir = utils.GetWorkDir()
-	// app.config2 = config.Config{}
-	app.config2.Load(filepath.Join(app.workDir, "config", "robin.json"))
-	// conf = conf
+	godotenv.Load(filepath.Join(app.workDir, ".env"), filepath.Join(app.workDir, "app.env"))
+	app.name = os.Getenv("PROJECT_NAME")
+	app.version = os.Getenv("PROJECT_VERSION")
+	app.config.Load(filepath.Join(app.workDir, "config", "robin.json"))
 	return &app
 }
 
 func (a *App) Run() {
 	a.startTime = time.Now()
-	a.workDir = utils.GetWorkDir()
-	godotenv.Load(a.workDir+"/.env", a.workDir+"/app.env")
-	a.name = os.Getenv("PROJECT_NAME")
-	a.version = os.Getenv("PROJECT_VERSION")
 	logger.Info(a.name + " " + a.version + " is running")
 
 	a.initDatabase()
 
-	mux := a.setupHTTPHandlers()
-	logger.Info("listening on: " + strings.Join(utils.GetLocalhostIpAdresses(), " , ") + " port: " + strconv.Itoa(a.config2.Port))
-	err := http.ListenAndServe(":"+strconv.Itoa(a.config2.Port), mux)
+	mux := a.initHTTPHandlers()
+	logger.Info("listening on: " + strings.Join(utils.GetLocalhostIpAdresses(), " , ") + " port: " + strconv.Itoa(a.config.Port))
+
+	err := http.ListenAndServe(":"+strconv.Itoa(a.config.Port), mux)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
 }
 
 func (a *App) initDatabase() {
-	// Configure the logger
-	logger.Debug("initializing app")
+	a.cache = cache.NewFactory().NewCache(a.config.CurrCache.Type, a.config)
+	a.store = store.NewFactory().NewStore(a.config.CurrDB.Type, a.config)
 
-	a.cache = cache.NewFactory().NewCache(a.config2.CurrCache.Type, a.config2)
-	a.store = store.NewFactory().NewStore(a.config2.CurrDB.Type, a.config2)
-
-	err := a.store.Connect(a.config2.CurrDB.Name, a.cache)
+	err := a.store.Connect(a.config.CurrDB.Name, a.cache)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
 }
 
-func (a *App) setupHTTPHandlers() http.Handler {
+func (a *App) initHTTPHandlers() http.Handler {
 	// a.template = template.New("tmpl")
 	mux := http.NewServeMux()
 	// Define HTTP request handlers
@@ -189,11 +183,11 @@ func formatDataString(input string) template.HTML {
 //
 // Возвращает структуру dbstatus, содержащую статус, имя, тип, версию и время работы базы данных.
 func (a *App) getDbStatus() dbStatus {
-	dbName := a.config2.CurrDB.Name
+	dbName := a.config.CurrDB.Name
 	dbstatus := dbStatus{
 		Status: "green",
 		Name:   dbName,
-		Type:   a.config2.CurrDB.Type,
+		Type:   a.config.CurrDB.Type,
 	}
 	var err error
 	var dbuptimeStr string

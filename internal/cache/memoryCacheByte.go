@@ -45,7 +45,7 @@ func (c *MemoryCacheBytesImpl) GetHash(key hash) (float32, error) {
 	defer MemoryCacheByteLock.Unlock()
 	t := c.cache[key]
 	if t == 0 {
-		return 0, errors.KeyNotFound
+		return 0, errors.ErrKeyNotFound
 	}
 	return t, nil
 }

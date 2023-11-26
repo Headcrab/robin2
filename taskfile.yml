@@ -50,8 +50,8 @@ tasks:
 
   docker:
     cmds:
-      - 'docker build --network=host --build-arg PROJECT_NAME={{.PROJECT_NAME}} --build-arg PROJECT_VERSION=${NEW_VERSION} --build-arg PORT={{.PORT}} -f deploy/robin/Dockerfile -t {{.PROJECT_NAME_LOW}} .'
-      - 'docker build --network=host -f deploy/clickhouse/Dockerfile -t robin-clickhouse .'
+      - 'docker build --build-arg PROJECT_NAME={{.PROJECT_NAME}} --build-arg PROJECT_VERSION={{.NEW_VERSION}} --build-arg PORT={{.PORT}} -f deploy/robin/Dockerfile -t {{.PROJECT_NAME_LOW}} .'
+      - 'docker build -f deploy/clickhouse/Dockerfile -t robin-clickhouse .'
 
   deploy:
     deps: ['undeploy','docker']
