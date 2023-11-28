@@ -65,7 +65,7 @@ func (r *ResponseFormatterJSON) Process(val interface{}) []byte {
 
 		return jsonData
 	}
-	return []byte("#Error: " + fmt.Sprint(val))
+	return []byte("ResponseFormatterJSON not supported: " + fmt.Sprint(val))
 }
 
 func mustMarshalJSON(v interface{}) []byte {

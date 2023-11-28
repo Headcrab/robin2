@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"robin2/internal/data"
 	"robin2/internal/decode"
 	"robin2/internal/format"
 	"robin2/internal/logger"
@@ -76,6 +77,9 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 
 	if tag != "" && date != "" {
 		tags := strings.Split(tag, ",")
+		for i := range tags {
+			tags[i] = strings.TrimSpace(tags[i])
+		}
 		if len(tags) > 1 {
 			writer = a.getTagsOnDate(tags, date, format, round)
 			return
@@ -309,19 +313,15 @@ func (a *App) getTagsOnDate(tags []string, date, fmt string, round int) []byte {
 		return []byte("#Error: " + err.Error())
 	}
 
-	// trim spaces
-	// for i, tag := range tags {
-	// 	tags[i] = strings.TrimSpace(tag)
-	// }
-
-	tag_ := strings.Join(tags, ",")
-
-	tagValue, err := a.store.GetTagDate(tag_, dateTime)
-	if err != nil {
-		return []byte("#Error: " + err.Error())
+	tagsVal := data.Tags{}
+	for _, tag := range tags {
+		tagValue, err := a.store.GetTagDate(tag, dateTime)
+		if err != nil {
+			continue
+		}
+		tagsVal = append(tagsVal, tagValue)
 	}
-
-	w := format.New(fmt).SetRound(round).Process(tagValue)
+	w := format.New(fmt).SetRound(round).Process(tagsVal)
 	return w
 }
 
@@ -348,22 +348,27 @@ func (a *App) getTagByCount(tag, from, to, count string, fmt string, round int) 
 }
 
 func (a *App) getTagFromToByCountWithGroup(tag, from, to, count string, group string, fmt string, round int) []byte {
+
 	fromT, err := utils.ExcelTimeToTime(from, a.config.DateFormats)
 	if err != nil {
 		return []byte(err.Error())
 	}
+
 	toT, err := utils.ExcelTimeToTime(to, a.config.DateFormats)
 	if err != nil {
 		return []byte(err.Error())
 	}
+
 	countT, err := strconv.Atoi(count)
 	if err != nil {
 		return []byte(err.Error())
 	}
+
 	tagValue, err := a.store.GetTagCountGroup(tag, fromT, toT, countT, group)
 	if err != nil {
 		return []byte("#Error: " + err.Error())
 	}
+
 	w := format.New(fmt).SetRound(round).Process(tagValue)
 	return w
 }

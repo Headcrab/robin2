@@ -144,8 +144,11 @@ function restoreParams() {
 function getSeason() {
     // Получаем сезон из текущей даты
     var date = new Date();
-    var month = date.getMonth();
+    var month = date.getMonth() + 1;
     var season = Math.floor(month / 3) + 1;
+    if (season > 4) {
+        season = 1;
+    }
     // winter, spring, summer, fall
     var seasons = ['winter', 'spring', 'summer', 'fall'];
     var seasonName = seasons[season - 1];

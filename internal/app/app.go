@@ -1,7 +1,7 @@
+package robin
+
 // todo: authenticate (in web only?)
 // todo: add tests
-
-package robin
 
 import (
 	"fmt"
@@ -34,8 +34,8 @@ type App struct {
 	workDir   string
 	opCount   int64
 	config    config.Config
-	cache     cache.BaseCache
-	store     store.BaseStore
+	cache     cache.Cache
+	store     store.Store
 	template  *template.Template
 }
 
@@ -54,6 +54,7 @@ func NewApp() *App {
 	godotenv.Load(filepath.Join(app.workDir, ".env"), filepath.Join(app.workDir, "app.env"))
 	app.name = os.Getenv("PROJECT_NAME")
 	app.version = os.Getenv("PROJECT_VERSION")
+	// app.config = config.New()
 	app.config.Load(filepath.Join(app.workDir, "config", "robin.json"))
 	return &app
 }
@@ -65,7 +66,8 @@ func (a *App) Run() {
 	a.initDatabase()
 
 	mux := a.initHTTPHandlers()
-	logger.Info("listening on: " + strings.Join(utils.GetLocalhostIpAdresses(), " , ") + " port: " + strconv.Itoa(a.config.Port))
+	logger.Info("listening on: " + strings.Join(utils.GetLocalhostIpAdresses(),
+		":"+strconv.Itoa(a.config.Port)+",") + ":" + strconv.Itoa(a.config.Port))
 
 	err := http.ListenAndServe(":"+strconv.Itoa(a.config.Port), mux)
 	if err != nil {
@@ -74,10 +76,10 @@ func (a *App) Run() {
 }
 
 func (a *App) initDatabase() {
-	a.cache = cache.NewFactory().NewCache(a.config.CurrCache.Type, a.config)
-	a.store = store.NewFactory().NewStore(a.config.CurrDB.Type, a.config)
+	a.cache = cache.New(a.config)
+	a.store = store.New(a.config)
 
-	err := a.store.Connect(a.config.CurrDB.Name, a.cache)
+	err := a.store.Connect("default", a.cache)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}

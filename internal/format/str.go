@@ -26,7 +26,8 @@ func (r *ResponseFormatterString) Process(val interface{}) []byte {
 	case map[string]map[time.Time]float32:
 		for k1, v1 := range v {
 			for k2, v2 := range v1 {
-				ret += k1 + "\t" + k2.Format("2006-01-02 15:04:05") + "\t" + Format(Round(v2, r.round)) + "\n"
+				// ret += k1 + "\t" + k2.Format("2006-01-02 15:04:05") + "\t" + Format(Round(v2, r.round)) + "\n"
+				ret += fmt.Sprintf("%v\t%v\t%v\n", k1, k2.Format("2006-01-02 15:04:05"), Format(Round(v2, r.round)))
 			}
 		}
 
@@ -86,8 +87,17 @@ func (r *ResponseFormatterString) Process(val interface{}) []byte {
 	case []string:
 		ret = strings.Join(v, "\n")
 
+	case *data.Tag:
+		ret = fmt.Sprintf("%v", Round(v.Value, r.round))
+
+	case data.Tags:
+		ret = ""
+		for _, v1 := range v {
+			ret += fmt.Sprintf("%v\t%v\t%v\n", v1.Name, v1.Date.Format("2006-01-02 15:04:05"), Round(v1.Value, r.round))
+		}
+
 	default:
-		ret = "#Error: " + fmt.Sprint(val)
+		ret = "ResponseFormatterString not supported:" + fmt.Sprint(val)
 	}
 	return []byte(fmt.Sprint(ret))
 }
