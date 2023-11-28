@@ -87,8 +87,8 @@ func parseTime(timeStr string, formats []string) (time.Time, error) {
 			return time.Time{}, errors.ErrNotAFloat
 		}
 
-		unixTime := (timeFloat - 25569) * 86400
-		return time.Unix(int64(unixTime), 0).UTC(), nil
+		unixTime := (timeFloat - 25569.0) * 86400.0
+		return time.Unix(int64(unixTime), 0.0).UTC(), nil
 	}
 
 	tm, err := TryParseDate(timeStr, formats)

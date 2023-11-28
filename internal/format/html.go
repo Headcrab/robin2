@@ -37,7 +37,7 @@ func (r *ResponseFormatterHTML) Process(val interface{}) []byte {
 		return mustMarshalHTML(v)
 	}
 
-	return []byte(fmt.Sprintf("%v", val))
+	return []byte("ResponseFormatterHTML not supported:" + fmt.Sprintf("%v", val))
 }
 
 func NewResponseFormatterHTML(round float64) *ResponseFormatterHTML {

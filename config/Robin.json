@@ -117,7 +117,7 @@
         {
             "name": "clickhouse.docker",
             "type": "clickhouse",
-            "host": "clickhouse",
+            "host": "localhost",
             "port": "9000",
             "user": "admin",
             "password": "password123",
@@ -125,12 +125,9 @@
             "timeout": 30,
             "connection_string": "clickhouse://{host}:{port}/{database}?username={user}&password={password}",
             "query": {
-                "get_tag_date2": "select h.TagName, h.DateTime, if(toDateTime('{date}','Asia/Almaty') > (select max(max) from runtime.max), -1, h.Value) as Value from history h where (h.TagName) = '{tag}' and h.DateTime <= toDateTime('{date}','Asia/Almaty') order by h.TagName, h.DateTime desc limit 1",
-                "get_tag_date": "select if(toDateTime('{date}','Asia/Almaty') > (select max(max) from runtime.max), -1, h.Value) as Value from history h where (h.TagName) = '{tag}' and h.DateTime <= toDateTime('{date}','Asia/Almaty') order by h.TagName, h.DateTime desc limit 1",
-                "get_tag_from_to": "select h.DateTime, h.Value from history h where (h.TagName) = '{tag}' AND h.DateTime >= '{from}' AND h.DateTime < '{to}' order by h.DateTime",
-                "get_tag_from_to_group2": "select {group}(h.Value) from history h where (h.TagName) = '{tag}' AND h.DateTime >= '{from}' AND h.DateTime < '{to}' group by h.TagName",
-                "get_tag_from_to_group3": "select COALESCE((select {group}(h.Value) Value from runtime.history h where h.TagName = '{tag}' and h.DateTime >= '{from}' and h.DateTime < '{to}' group by h.TagName),(select h.Value Value from runtime.history h where h.TagName = '{tag}' and h.DateTime < '{from}' order by h.DateTime desc limit 1),-1) Value",
-                "get_tag_from_to_group": "select {group}(Value) from(WITH '{tag}' as tagName, toDateTime('{from}') as startDate, toDateTime('{to}') as endDate SELECT h.TagName, toStartOfMinute(h.DateTime) AS DateTime, AVG(h.Value) AS Value FROM (SELECT h.TagName, h.DateTime, h.Value FROM runtime.history h WHERE h.TagName = tagName AND h.DateTime BETWEEN startDate AND endDate UNION ALL SELECT h.TagName, startDate, h.Value FROM runtime.history h WHERE h.TagName = tagName AND h.DateTime <= startDate ORDER BY DateTime DESC LIMIT 1 UNION ALL SELECT h.TagName, endDate, h.Value FROM runtime.history h WHERE h.TagName = tagName AND h.DateTime <= endDate ORDER BY DateTime DESC LIMIT 1) h GROUP BY h.TagName, toStartOfMinute(h.DateTime) ORDER BY toStartOfMinute(h.DateTime) WITH FILL STEP INTERVAL 1 minute INTERPOLATE(TagName, Value) ) group by TagName",
+                "get_tag_date": "select h.TagName, h.DateTime, if(toDateTime('{date}','Asia/Almaty') > (select max(max) from runtime.max), -1, h.Value) as Value from history h where (h.TagName) = '{tag}' and h.DateTime <= toDateTime('{date}','Asia/Almaty') order by h.TagName, h.DateTime desc limit 1",
+                "get_tag_from_to": "WITH '{tag}' as tagName, toDateTime('{from}') as startDate, toDateTime('{to}') as endDate SELECT h.TagName, toStartOfSecond(h.DateTime) AS DateTime, avg(h.Value) AS Value FROM (SELECT h.TagName, h.DateTime, h.Value FROM runtime.history h WHERE h.TagName = tagName AND h.DateTime BETWEEN startDate AND endDate UNION ALL SELECT h.TagName, startDate, h.Value FROM runtime.history h WHERE h.TagName = tagName AND h.DateTime <= startDate ORDER BY DateTime DESC LIMIT 1 UNION ALL SELECT h.TagName, endDate, h.Value FROM runtime.history h WHERE h.TagName = tagName AND h.DateTime <= endDate ORDER BY DateTime DESC LIMIT 1) h GROUP BY h.TagName, toStartOfSecond(h.DateTime) ORDER BY toStartOfSecond(h.DateTime) WITH FILL STEP INTERVAL 1 second INTERPOLATE(TagName, Value)",
+                "get_tag_from_to_group": "select {group}(Value) from(WITH '{tag}' as tagName, toDateTime('{from}') as startDate, toDateTime('{to}') as endDate SELECT h.TagName, toStartOfSecond(h.DateTime) AS DateTime, avg(h.Value) AS Value FROM (SELECT h.TagName, h.DateTime, h.Value FROM runtime.history h WHERE h.TagName = tagName AND h.DateTime BETWEEN startDate AND endDate UNION ALL SELECT h.TagName, startDate, h.Value FROM runtime.history h WHERE h.TagName = tagName AND h.DateTime <= startDate ORDER BY DateTime DESC LIMIT 1 UNION ALL SELECT h.TagName, endDate, h.Value FROM runtime.history h WHERE h.TagName = tagName AND h.DateTime <= endDate ORDER BY DateTime DESC LIMIT 1) h GROUP BY h.TagName, toStartOfSecond(h.DateTime) ORDER BY toStartOfSecond(h.DateTime) WITH FILL STEP INTERVAL 1 second INTERPOLATE(TagName, Value)) group by TagName",
                 "get_tag_from_to_dif": "select (ht.Value-hf.Value) Value from (select h.Value from history h where (h.TagName) = '{tag}' and h.DateTime <= toDateTime('{from}') order by h.DateTime desc limit 1) as hf, (select h.Value from history h where (h.TagName) = '{tag}' and h.DateTime <= toDateTime('{to}') order by h.DateTime desc limit 1) as ht",
                 "get_tag_from_to_count": "select count(h.Value) Value from historian h where (h.TagName) = '{tag}' AND h.DateTime >= '{from}' AND h.DateTime < '{to}'",
                 "get_tag_list": "select t.TagName from runtime.tag t where (t.TagName) like '{tag}' group by t.TagName order by t.TagName;",
@@ -147,7 +144,7 @@
             "type": "redis",
             "ttl": 1,
             "active": "false",
-            "host": "127.0.0.1",
+            "host": "localhost",
             "port": "6379",
             "password": "",
             "db": 0,
@@ -161,7 +158,7 @@
             "type": "redis",
             "ttl": 1,
             "active": "false",
-            "host": "redis",
+            "host": "localhost",
             "port": "6379",
             "password": "",
             "db": 0,
@@ -169,6 +166,10 @@
             "max_idle_conns": 10,
             "conn_max_lifetime": 60,
             "connection_string": "redis://{host}:{port}/{db}"
+        },
+        {
+            "name": "memory",
+            "type": "memory"
         }
     ]
 }

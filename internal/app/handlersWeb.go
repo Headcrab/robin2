@@ -7,9 +7,9 @@ import (
 	"html/template"
 	"net/http"
 	"path/filepath"
+	"robin2/internal/data"
 	"robin2/internal/logger"
 	"robin2/internal/utils"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -168,7 +168,7 @@ func (a *App) handlePageLog(w http.ResponseWriter, r *http.Request) {
 
 }
 
-var tagsValues map[string]map[time.Time]float32
+var tagsValues data.Tags
 
 func (a *App) handlePageData(w http.ResponseWriter, r *http.Request) {
 	// procTimeBegin := time.Now()
@@ -205,16 +205,7 @@ func (a *App) handlePageData(w http.ResponseWriter, r *http.Request) {
 
 	data := []string{}
 	for _, tag := range tagsValues {
-		times := make([]time.Time, 0, len(tag))
-		for k := range tag {
-			times = append(times, k)
-		}
-		sort.Slice(times, func(i, j int) bool {
-			return times[i].Before(times[j])
-		})
-		for _, v := range times {
-			data = append(data, fmt.Sprintf("%s|%f", v, tag[v]))
-		}
+		data = append(data, fmt.Sprintf("%s|%f", tag.Name, tag.Value))
 	}
 	a.handlePageAny(page, getOnePage(page, "Получение данных", data, pageNum, linesPerPage))(w, r)
 

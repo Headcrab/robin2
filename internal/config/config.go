@@ -55,6 +55,10 @@ type CacheConfig struct {
 	ConnectionString string `json:"connection_string"`
 }
 
+func New() *Config {
+	return &Config{}
+}
+
 func (c *Config) Load(fileName string) {
 	c.FileName = fileName
 	err := c.Reload()

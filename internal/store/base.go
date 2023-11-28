@@ -1,14 +1,14 @@
+package store
+
 // todo: ? rebuild all funcs to return map[string]map[time.Time]float32
 // fix: rebuild all funcs to return []map[string]float32
 // bug: templates works on clickhouse only! rewrite logic and config for templates
-package store
 
 import (
 	"database/sql"
 	"fmt"
 	"net"
 	"robin2/internal/errors"
-	"strconv"
 	"strings"
 	"time"
 
@@ -16,50 +16,18 @@ import (
 	"robin2/internal/config"
 	"robin2/internal/data"
 	"robin2/internal/logger"
+	"robin2/internal/utils"
 
 	"github.com/google/uuid"
 )
 
-/*------------------------------------------------------------------*/
-
-type BaseStore interface {
-	Connect(name string, cache cache.BaseCache) error
-	GetTagDate(tag string, date time.Time) (*data.Output, error)
-	// GetTagsDate(tags []string, date time.Time) (, error)
-	GetTagCount(tag string, from time.Time, to time.Time, strCount int) (map[string]map[time.Time]float32, error)
-	GetTagCountGroup(tag string, from time.Time, to time.Time, strCount int, group string) (map[string]map[time.Time]float32, error)
-	GetTagFromTo(tag string, from time.Time, to time.Time) (map[string]map[time.Time]float32, error)
-	GetTagFromToGroup(tag string, from time.Time, to time.Time, group string) (float32, error)
-	GetTagList(like string) (*data.Output, error)
-	GetDownDates(tag string, from time.Time, to time.Time) ([]time.Time, error)
-	GetUpDates(tag string, from time.Time, to time.Time) ([]time.Time, error)
-	GetStatus() (string, string, error)
-
-	TemplateList(like string) (map[string]string, error)
-	TemplateExec(name string, params map[string]string) (*data.Output, error)
-
-	TemplateAdd(name string, body string) error
-	TemplateSet(name string, body string) error
-	TemplateGet(name string) (string, error)
-	TemplateDel(name string) error
-
-	ExecQuery(query string) (*data.Output, error)
-}
-
-type BaseStoreImpl struct {
-	BaseStore
+type Base struct {
+	// Store
 	db            *sql.DB
 	config        config.Config
-	cache         cache.BaseCache
+	cache         cache.Cache
 	roundConstant float64
 	round         int
-}
-
-func thenIf[T any](condition bool, ifTrue T, ifFalse T) T {
-	if condition {
-		return ifTrue
-	}
-	return ifFalse
 }
 
 // marshalConnectionString генерирует строку подключения на основе настроек конфигурации.
@@ -70,7 +38,7 @@ func thenIf[T any](condition bool, ifTrue T, ifFalse T) T {
 // конфигурации.
 //
 // Возвращает сгенерированную строку подключения.
-func (s *BaseStoreImpl) marshalConnectionString(name string) string {
+func (s *Base) marshalConnectionString(name string) string {
 	connStr := s.config.CurrDB.ConnectionString
 	connStr = strings.ReplaceAll(connStr, "{host}", s.config.CurrDB.Host)
 	connStr = strings.ReplaceAll(connStr, "{port}", s.config.CurrDB.Port)
@@ -87,7 +55,7 @@ func (s *BaseStoreImpl) marshalConnectionString(name string) string {
 // чтобы записать детали соединения. Она использует имя базы данных, чтобы получить
 // хост и порт из конфигурации. Затем она находит IP-адрес хоста и записывает
 // детали соединения вместе с полученными IP-адресами.
-func (s *BaseStoreImpl) logConnection(dbName string) {
+func (s *Base) logConnection(dbName string) {
 	dbType := s.config.CurrDB.Type
 	host := s.config.CurrDB.Host
 	port := s.config.CurrDB.Port
@@ -102,7 +70,7 @@ func (s *BaseStoreImpl) logConnection(dbName string) {
 // replaceTemplate заменяет все строки в query на соответствующие значения из repMap.
 //
 // repMap: map[string]string, содержащий все заменяемые значения
-func (s *BaseStoreImpl) replaceTemplate(repMap map[string]string, query string) string {
+func (s *Base) replaceTemplate(repMap map[string]string, query string) string {
 	for k, v := range repMap {
 		query = strings.ReplaceAll(query, k, v)
 	}
@@ -113,7 +81,7 @@ func (s *BaseStoreImpl) replaceTemplate(repMap map[string]string, query string) 
 //
 // Он возвращает две строки, представляющие версию и время работы,
 // а также ошибку, если возникла проблема при получении статуса.
-func (s *BaseStoreImpl) GetStatus() (string, string, error) {
+func (s *Base) GetStatus() (string, string, error) {
 	var version, uptime string
 	err := s.db.QueryRow(s.config.CurrDB.Query["status"]).Scan(&version, &uptime)
 	if err != nil {
@@ -131,7 +99,7 @@ func (s *BaseStoreImpl) GetStatus() (string, string, error) {
 // Возвращает:
 // - float32: значение, связанное с тегом и датой.
 // - error: любая ошибка, возникшая в процессе получения значения.
-func (s *BaseStoreImpl) GetTagDate(tag_ string, date time.Time) (*data.Output, error) {
+func (s *Base) GetTagDate(tag string, date time.Time) (*data.Tag, error) {
 	if date.IsZero() {
 		return nil, errors.ErrInvalidDate
 	}
@@ -139,76 +107,43 @@ func (s *BaseStoreImpl) GetTagDate(tag_ string, date time.Time) (*data.Output, e
 		return nil, errors.ErrDbConnectionFailed
 	}
 
-	tags := strings.Split(tag_, ",")
-
-	for i, tag := range tags {
-		tags[i] = strings.TrimSpace(tag)
+	currTag := data.Tag{
+		Name:  tag,
+		Date:  date,
+		Value: -1,
 	}
 
-	out := &data.Output{
-		Headers: []string{"Tag", "Date", "Value"},
-		Rows:    make([][]string, 0),
-		Count:   0,
-		Err:     nil,
+	// day := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+	// _, err := s.cache.Get(tag+"|"+day.Format("2006-01-02"), day)
+	// if err != nil {
+	// 	s.cacheDay(tag, day)
+	// }
+
+	if val, err := s.cache.Get(tag, date); err == nil {
+		currTag.Value = val
+		return &currTag, nil
 	}
 
-	for _, tag := range tags {
-		if s.cache != nil {
-			if val, err := s.cache.Get(tag, date); err == nil {
-				out.Rows = append(out.Rows, []string{tag, date.Format("2006-01-02 15:04:05"), fmt.Sprintf("%f", val)})
-				continue
-			}
-		}
-		query := s.config.CurrDB.Query["get_tag_date"]
-		query = s.replaceTemplate(map[string]string{"{tag}": tag, "{date}": date.Format("2006-01-02 15:04:05")}, query)
-		res := struct {
-			Tag   string
-			Date  string
-			Value string
-		}{}
-		err := s.db.QueryRow(query).Scan(&res.Tag, &res.Date, &res.Value)
-		if err != nil {
-			continue
-		}
-		currTag := make([]string, 3)
-		currTag[0] = res.Tag
-		currTag[1] = date.Format("2006-01-02 15:04:05")
-		currTag[2] = res.Value
-		// currTag[2] = fmt.Sprintf("%f", res)
-		val := currTag[2]
-		if s.cache != nil && val != "-1" {
-			valFl, _ := strconv.ParseFloat(val, 32)
-			s.cache.Set(tag, date, float32(valFl))
-		}
-		out.Rows = append(out.Rows, currTag)
+	query := s.config.CurrDB.Query["get_tag_date"]
+	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{date}": date.Format("2006-01-02 15:04:05")}, query)
+	res := data.Tag{}
+	err := s.db.QueryRow(query).Scan(&res.Name, &res.Date, &res.Value)
+	if err != nil {
+		return nil, err
 	}
-	return out, nil
+	currTag.Value = res.Value
+
+	if s.cache != nil && res.Value != -1 {
+		s.cache.Set(res.Name, date, float32(res.Value))
+	}
+
+	return &currTag, nil
 }
 
-// GetTagsDate вычисляет значение указанных тегов в заданном количестве внутри временного диапазона.
-//
-// Параметры:
-// - tag: Теги, который нужно посчитать.
-// - date: Начальное время диапазона.
-//
-// Возвращает: map[string]float32, содержащий результаты по каждому тегу.
-// func (s *BaseStoreImpl) GetTagsDate(tags []string, date time.Time) (map[string]float32, error) {
-// 	if date.IsZero() {
-// 		return nil, errors.InvalidDate
-// 	}
-// 	if s.db == nil {
-// 		return nil, errors.DbConnectionFailed
-// 	}
-// 	res := make(map[string]float32, len(tags))
-
-// 	for _, t := range tags {
-// 		val, err := s.GetTagDate(t, date)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		res[t] = val
-// 	}
-// 	return res, nil
+// func (s *Base) cacheDay(tag string, day time.Time) {
+// 	to := day.AddDate(0, 0, 1)
+// 	s.GetTagFromToUncached(tag, day, to)
+// 	s.cache.Set(tag+"|"+day.Format("2006-01-02"), day, 1)
 // }
 
 // GetTagCount вычисляет значение указанного тега в заданном количестве внутри временного диапазона.
@@ -222,7 +157,7 @@ func (s *BaseStoreImpl) GetTagDate(tag_ string, date time.Time) (*data.Output, e
 // Возвращает:
 // - map[string]map[time.Time]float32: Карта, содержащая количество тегов для каждого тега и временного интервала.
 // - error: Ошибка, если количество равно нулю или меньше единицы.
-func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, count int) (map[string]map[time.Time]float32, error) {
+func (s *Base) GetTagCount(tag string, from time.Time, to time.Time, count int) (map[string]map[time.Time]float32, error) {
 	logger.Debug(fmt.Sprintf("GetTagCount %s : %s - %s (%d)", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05"), count))
 	if count == 0 {
 		return nil, errors.ErrCountIsEmpty
@@ -245,10 +180,7 @@ func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, co
 			if err != nil {
 				return nil, err
 			}
-			val, err := strconv.ParseFloat(valOut.Rows[0][2], 32)
-			if err != nil {
-				val = -1
-			}
+			val := valOut.Value
 			resDt[dateFrom] = float32(val)
 		}
 		res[t] = resDt
@@ -267,7 +199,7 @@ func (s *BaseStoreImpl) GetTagCount(tag string, from time.Time, to time.Time, co
 //
 // Возвращает map[string]map[time.Time]float32, представляющую количество тегов, сгруппированных по интервалам времени,
 // и ошибку, если она есть.
-func (s *BaseStoreImpl) GetTagCountGroup(tag string, from time.Time, to time.Time, count int, group string) (map[string]map[time.Time]float32, error) {
+func (s *Base) GetTagCountGroup(tag string, from time.Time, to time.Time, count int, group string) (data.Tags, error) {
 	logger.Debug(fmt.Sprintf("GetTagCount %s : %s - %s (%d)", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05"), count))
 	if count == 0 {
 		return nil, errors.ErrCountIsEmpty
@@ -281,19 +213,56 @@ func (s *BaseStoreImpl) GetTagCountGroup(tag string, from time.Time, to time.Tim
 	for i, t := range tags {
 		tags[i] = strings.TrimSpace(t)
 	}
-	res := make(map[string]map[time.Time]float32, len(tags))
-	for _, t := range tags {
-		resDt := make(map[time.Time]float32, count)
-		for i := 1; i <= count; i++ {
-			dateFrom := from.Add(time.Duration(tmDiff*float64(i-1)) * time.Second)
-			dateTo := from.Add(time.Duration(tmDiff*float64(i)) * time.Second)
-			val, err := s.GetTagFromToGroup(t, dateFrom, dateTo, group)
-			if err != nil {
-				val = -1
+	res := data.Tags{}
+
+	if group == "avgm" {
+		for _, t := range tags {
+			allPeriod := data.Tags{}
+			for i := 1; i <= count; i++ {
+
+				dateFrom := from.Add(time.Duration(tmDiff*float64(i-1)) * time.Second)
+				dateTo := from.Add(time.Duration(tmDiff*float64(i)) * time.Second)
+				fromStr := dateFrom.Format("2006-01-02 15:04:05")
+				toStr := dateTo.Format("2006-01-02 15:04:05")
+
+				val, err := s.cache.GetStr(t, fromStr+"|"+toStr+"|"+group)
+				if err != nil {
+					if len(allPeriod) == 0 {
+						allPeriod, err = s.GetTagFromTo(t, from, to)
+						if err != nil {
+							return nil, err
+						}
+					}
+					val = allPeriod.GetFromTo(dateFrom, dateTo).Average(t)
+					if val != -1 {
+						s.cache.SetStr(t, fromStr+"|"+toStr+"|"+group, val)
+					}
+				}
+				resDt := data.Tag{
+					Name:  t,
+					Date:  dateTo,
+					Value: val,
+				}
+				res = append(res, &resDt)
 			}
-			resDt[dateFrom] = val
 		}
-		res[t] = resDt
+	} else {
+		for _, t := range tags {
+			for i := 1; i <= count; i++ {
+				dateFrom := from.Add(time.Duration(tmDiff*float64(i-1)) * time.Second)
+				dateTo := from.Add(time.Duration(tmDiff*float64(i)) * time.Second)
+				val, err := s.GetTagFromToGroup(t, dateFrom, dateTo, group)
+				resDt := data.Tag{
+					Name:  t,
+					Date:  dateTo,
+					Value: val,
+				}
+				if err != nil {
+					val = -1
+				}
+				res = append(res, &resDt)
+			}
+		}
 	}
 	return res, nil
 }
@@ -308,38 +277,102 @@ func (s *BaseStoreImpl) GetTagCountGroup(tag string, from time.Time, to time.Tim
 // Возвращает:
 // - Карта значений тега для каждого временного штампа в указанном диапазоне.
 // - Ошибку, если возникла проблема при извлечении данных.
-func (s *BaseStoreImpl) GetTagFromTo(tag string, from time.Time, to time.Time) (map[string]map[time.Time]float32, error) {
+func (s *Base) GetTagFromTo(tag string, from time.Time, to time.Time) (data.Tags, error) {
 	logger.Debug(fmt.Sprintf("GetTagFromTo %s : %s - %s", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05")))
-	count := int(to.Sub(from).Seconds())
+
 	tags := strings.Split(tag, ",")
 	for i, t := range tags {
 		tags[i] = strings.TrimSpace(t)
 	}
-	res := make(map[string]map[time.Time]float32, len(tags))
+
+	res := data.Tags{}
+
 	for _, t := range tags {
-		resDt := make(map[time.Time]float32, count)
-		for i := 0; i < count; i++ {
-			dateFrom := from.Add(time.Duration(i) * time.Second)
-			// if val, err := s.cache.Get(tag, dateFrom); err == nil {
-			// 	resDt[dateFrom] = s.Round(val)
-			// } else {
-			valOut, err := s.GetTagDate(t, dateFrom)
+
+		query := s.replaceTemplate(map[string]string{
+			"{tag}":  t,
+			"{from}": from.Format("2006-01-02 15:04:05"),
+			"{to}":   to.Format("2006-01-02 15:04:05"),
+		}, s.config.CurrDB.Query["get_tag_from_to"])
+
+		rows, err := s.db.Query(query)
+		if err != nil {
+			return nil, err
+		}
+
+		for rows.Next() {
+			var tag string
+			var date time.Time
+			var val float32
+			err = rows.Scan(&tag, &date, &val)
 			if err != nil {
 				return nil, err
 			}
-			val, err := strconv.ParseFloat(valOut.Rows[0][2], 32)
-			if err != nil {
-				val = -1
+
+			// for i := 1; i <= int(to.Sub(from).Seconds()); i++ {
+			// 	date := from.Add(time.Duration(i) * time.Second)
+			// 	currTag, err := s.GetTagDate(t, date)
+			// 	if err != nil {
+			// 		return nil, err
+			// 	}
+			// 	res = append(res, currTag)
+			// }
+			currTag := data.Tag{
+				Name:  t,
+				Date:  date,
+				Value: val,
 			}
-			resDt[dateFrom] = float32(val)
-			// if val != -1 {
-			// 	s.cache.Set(tag, dateFrom, val)
-			// }
-			// }
+			res = append(res, &currTag)
 		}
-		res[t] = resDt
+		rows.Close()
 	}
 	return res, nil
+}
+
+func (s *Base) GetTagFromToUncached(tag string, from time.Time, to time.Time) (data.Tags, error) {
+	//	logger.Debug(fmt.Sprintf("GetTagFromToUncached %s : %s - %s", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05")))
+
+	tags := strings.Split(tag, ",")
+	for i, t := range tags {
+		tags[i] = strings.TrimSpace(t)
+	}
+
+	// res := data.Tags{}
+
+	for _, t := range tags {
+
+		query := s.replaceTemplate(map[string]string{
+			"{tag}":  t,
+			"{from}": from.Format("2006-01-02 15:04:05"),
+			"{to}":   to.Format("2006-01-02 15:04:05"),
+		}, s.config.CurrDB.Query["get_tag_from_to"])
+
+		rows, err := s.db.Query(query)
+		if err != nil {
+			return nil, err
+		}
+
+		for rows.Next() {
+			var tag string
+			var date time.Time
+			var val float32
+			err = rows.Scan(&tag, &date, &val)
+			if err != nil {
+				continue
+			}
+			// currTag := data.Tag{
+			// 	Name:  tag,
+			// 	Date:  date,
+			// 	Value: val,
+			// }
+			s.cache.Set(tag, date, val)
+			// res = append(res, &currTag)
+		}
+
+		rows.Close()
+	}
+
+	return nil, nil
 }
 
 // GetTagFromToGroup извлекает значение типа float32 для указанного тега в заданном временном диапазоне и группе.
@@ -353,29 +386,38 @@ func (s *BaseStoreImpl) GetTagFromTo(tag string, from time.Time, to time.Time) (
 // Возвращает:
 // - float32: Извлеченное значение.
 // - error: Ошибка, если извлечение не удалось.
-func (s *BaseStoreImpl) GetTagFromToGroup(tag string, from time.Time, to time.Time, group string) (float32, error) {
+func (s *Base) GetTagFromToGroup(tag string, from time.Time, to time.Time, group string) (float32, error) {
 	logger.Debug(fmt.Sprintf("GetTagFromTo %s: %s - %s (%s)", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05"), group))
 
 	group = strings.ToLower(group)
 	var query string
 
+	fromStr, toStr := from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05")
+	if val, err := s.cache.GetStr(tag, fromStr+"|"+toStr+"|"+group); err == nil {
+		return val, nil
+	}
+
 	switch group {
 	case "avg", "sum", "min", "max":
 		query = s.config.CurrDB.Query["get_tag_from_to_group"]
+
 	case "dif":
 		query = s.config.CurrDB.Query["get_tag_from_to_group_dif"]
+
 	case "count":
 		query = s.config.CurrDB.Query["get_tag_from_to_group_count"]
+
+	case "avgm":
+		t, err := s.GetTagFromTo(tag, from, to)
+		if err != nil {
+			return -1, err
+		}
+		val := t.Average(tag)
+		s.cache.SetStr(tag, fromStr+"|"+toStr+"|"+group, val)
+		return val, nil
+
 	default:
 		return -1, errors.ErrGroupError
-	}
-
-	fromStr, toStr := from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05")
-
-	// check cache
-
-	if val, err := s.cache.GetStr(tag, fromStr+"|"+toStr+"|"+group); err == nil {
-		return val, nil
 	}
 
 	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{from}": fromStr, "{to}": toStr, "{group}": group}, query)
@@ -409,7 +451,7 @@ func (s *BaseStoreImpl) GetTagFromToGroup(tag string, from time.Time, to time.Ti
 // Возвращает:
 // - map[string][]string: Карта, содержащая теги, сгруппированные по категориям.
 // - error: Ошибка, если запрос к базе данных не выполнен.
-func (s *BaseStoreImpl) GetTagList(like string) (*data.Output, error) {
+func (s *Base) GetTagList(like string) (*data.Output, error) {
 	if like == "" {
 		like = "%"
 	}
@@ -470,7 +512,7 @@ func (s *BaseStoreImpl) GetTagList(like string) (*data.Output, error) {
 // Возвращает:
 // - []time.Time: срез time.Time, представляющий даты отключений в указанном диапазоне.
 // - error: ошибка, если возникла в процессе получения данных.
-func (s *BaseStoreImpl) GetDownDates(tag string, from time.Time, to time.Time) ([]time.Time, error) {
+func (s *Base) GetDownDates(tag string, from time.Time, to time.Time) ([]time.Time, error) {
 	logger.Debug("GetDownDate " + tag + " : " + from.Format("2006-01-02 15:04:05") + " - " + to.Format("2006-01-02 15:04:05"))
 	var query string
 	query = s.config.CurrDB.Query["get_down_dates"]
@@ -516,7 +558,7 @@ func (s *BaseStoreImpl) GetDownDates(tag string, from time.Time, to time.Time) (
 // Возвращает:
 // - []time.Time: Список объектов time.Time, удовлетворяющих заданным критериям.
 // - error: Объект ошибки, если возникла проблема при получении объектов time.Time.
-func (s *BaseStoreImpl) GetUpDates(tag string, from time.Time, to time.Time) ([]time.Time, error) {
+func (s *Base) GetUpDates(tag string, from time.Time, to time.Time) ([]time.Time, error) {
 	logger.Debug("GetUpDate " + tag + " : " + from.Format("2006-01-02 15:04:05") + " - " + to.Format("2006-01-02 15:04:05"))
 	var query string
 	query = s.config.CurrDB.Query["get_up_dates"]
@@ -560,7 +602,7 @@ func (s *BaseStoreImpl) GetUpDates(tag string, from time.Time, to time.Time) ([]
 // Возвращает:
 // - string: тело шаблона.
 // - error: ошибка, если шаблон не может быть найден или происходит ошибка при получении.
-func (s *BaseStoreImpl) TemplateGet(name string) (string, error) {
+func (s *Base) TemplateGet(name string) (string, error) {
 	var body string
 	err := s.db.QueryRow("SELECT t.Body from runtime.templates t where t.Name = '" + name + "'").Scan(&body)
 	if err != nil {
@@ -583,7 +625,7 @@ func (s *BaseStoreImpl) TemplateGet(name string) (string, error) {
 // Возвращает:
 // - string: результат выполнения шаблона.
 // - error: ошибка, если произошла во время выполнения.
-func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) (*data.Output, error) {
+func (s *Base) TemplateExec(name string, params map[string]string) (*data.Output, error) {
 	body, err := s.TemplateGet(name)
 	if err != nil {
 		return nil, err
@@ -595,20 +637,20 @@ func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) (*da
 
 	// todo: add cache
 
-	dbName := thenIf(params["db"] != "", params["db"], s.config.CurrDB.Name)
-	var storedb BaseStore
-	if dbName == s.config.CurrDB.Name {
-		storedb = s
-	} else {
-		storedb = NewFactory().NewStore(s.config.CurrDB.Type, s.config)
-		if storedb == nil {
-			return nil, errors.ErrStoreError
-		}
-		err = storedb.Connect(dbName, nil)
-		if err != nil {
-			return nil, err
-		}
+	dbName := utils.ThenIf(params["db"] != "", params["db"], s.config.CurrDB.Name)
+	// var storedb *Store
+	// if dbName != s.config.CurrDB.Name {
+	storedb := New(s.config)
+	if storedb == nil {
+		return nil, errors.ErrStoreError
 	}
+	err = storedb.Connect(dbName, nil)
+	if err != nil {
+		return nil, err
+	}
+	// } else {
+	// 	storedb = &s
+	// }
 
 	rows, err := storedb.ExecQuery(body)
 	if err != nil {
@@ -623,7 +665,7 @@ func (s *BaseStoreImpl) TemplateExec(name string, params map[string]string) (*da
 // Параметр `like` используется для указания шаблона для сопоставления имен шаблонов. Если `like` является пустой строкой, шаблон по умолчанию устанавливается на "%".
 // Функция возвращает карту map[string]string, содержащую имена шаблонов в качестве ключей и их тела в качестве значений.
 // Если произошла ошибка при выполнении запроса к базе данных, функция возвращает nil и ошибку.
-func (s *BaseStoreImpl) TemplateList(like string) (map[string]string, error) {
+func (s *Base) TemplateList(like string) (map[string]string, error) {
 	tmpl := map[string]string{}
 	if like == "" {
 		like = "%"
@@ -651,7 +693,7 @@ func (s *BaseStoreImpl) TemplateList(like string) (map[string]string, error) {
 // - body: новое тело шаблона.
 // Возвращает:
 // - error: если произошла ошибка при обновлении шаблона.
-func (s *BaseStoreImpl) TemplateSet(name string, body string) error {
+func (s *Base) TemplateSet(name string, body string) error {
 	_, err := s.db.Exec("UPDATE runtime.templates SET Body = ? WHERE Name = ?", body, name)
 	if err != nil {
 		return err
@@ -663,7 +705,7 @@ func (s *BaseStoreImpl) TemplateSet(name string, body string) error {
 //
 // name - Имя шаблона, который должен быть удален.
 // error - Возвращает ошибку, если удаление не удалось.
-func (s *BaseStoreImpl) TemplateDel(name string) error {
+func (s *Base) TemplateDel(name string) error {
 	// _, err := s.db.Exec("DELETE FROM runtime.templates WHERE Name = ?", name)
 	_, err := s.db.Exec("ALTER TABLE runtime.templates DELETE WHERE Name = ?", name)
 	if err != nil {
@@ -679,7 +721,7 @@ func (s *BaseStoreImpl) TemplateDel(name string) error {
 // - body: строка, представляющая тело шаблона.
 //
 // Возвращает ошибку, указывающую на любые проблемы, возникшие во время операции.
-func (s *BaseStoreImpl) TemplateAdd(name string, body string) error {
+func (s *Base) TemplateAdd(name string, body string) error {
 	id := uuid.New().String()
 	_, err := s.db.Exec("INSERT INTO runtime.templates (ID, Name, Body) VALUES (?, ?, ?)", id, name, body)
 	if err != nil {
@@ -688,7 +730,7 @@ func (s *BaseStoreImpl) TemplateAdd(name string, body string) error {
 	return nil
 }
 
-func (s *BaseStoreImpl) ExecQuery(query string) (*data.Output, error) {
+func (s *Base) ExecQuery(query string) (*data.Output, error) {
 	rows, err := s.db.Query(query)
 	if err != nil {
 		return nil, err

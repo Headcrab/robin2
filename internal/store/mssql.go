@@ -10,48 +10,44 @@ import (
 	_ "github.com/denisenkom/go-mssqldb"
 )
 
-type MsSqlStore interface {
-	BaseStore
+type MsSql struct {
+	Base
 }
 
-type MsSqlStoreImpl struct {
-	MsSqlStore
-}
-
-func NewMsSqlStore(cfg config.Config) BaseStore {
+func NewMsSql(cfg config.Config) *MsSql {
 	logger.Debug("NewMsSqlStore")
 	round := cfg.Round
 	p := math.Pow(10, float64(round))
-	return BaseStore(&MsSqlStoreImpl{
-		MsSqlStore: &BaseStoreImpl{
+	t := MsSql{
+		Base: Base{
 			roundConstant: p,
 			config:        cfg,
 		},
-	})
+	}
+	return &t
 }
 
-func (s *MsSqlStoreImpl) Connect(name string, cache cache.BaseCache) error {
+func (s *MsSql) Connect(name string, cache cache.Cache) error {
 	logger.Debug("MsSqlStoreImpl.Connect")
 	var err error
-	base := s.MsSqlStore.(*BaseStoreImpl)
-	if base.db != nil {
-		err = base.db.Close()
+	if s.Base.db != nil {
+		err = s.Base.db.Close()
 		if err != nil {
 			logger.Error(err.Error())
 		}
 	}
-	base.cache = cache
-	base.db, err = sql.Open(base.config.CurrDB.Type, base.marshalConnectionString(name))
+	s.cache = cache
+	s.Base.db, err = sql.Open(s.Base.config.CurrDB.Type, s.Base.marshalConnectionString(name))
 	if err != nil {
 		logger.Error(err.Error())
 		return err
 	}
 	// defer base.db.Close()
-	err = base.db.Ping()
+	err = s.Base.db.Ping()
 	if err != nil {
 		logger.Error(err.Error())
 		return err
 	}
-	base.logConnection(name)
+	s.Base.logConnection(name)
 	return nil
 }
