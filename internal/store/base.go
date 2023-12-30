@@ -390,6 +390,52 @@ func (s *Base) GetTagFromTo(tag string, from time.Time, to time.Time) (data.Tags
 	return res, nil
 }
 
+func (s *Base) GetTagFromToUncached(tag string, from time.Time, to time.Time) (data.Tags, error) {
+	//	logger.Debug(fmt.Sprintf("GetTagFromToUncached %s : %s - %s", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05")))
+
+	tags := strings.Split(tag, ",")
+	for i, t := range tags {
+		tags[i] = strings.TrimSpace(t)
+	}
+
+	// res := data.Tags{}
+
+	for _, t := range tags {
+
+		query := s.replaceTemplate(map[string]string{
+			"{tag}":  t,
+			"{from}": from.Format("2006-01-02 15:04:05"),
+			"{to}":   to.Format("2006-01-02 15:04:05"),
+		}, s.config.CurrDB.Query["get_tag_from_to"])
+
+		rows, err := s.db.Query(query)
+		if err != nil {
+			return nil, err
+		}
+
+		for rows.Next() {
+			var tag string
+			var date time.Time
+			var val float32
+			err = rows.Scan(&tag, &date, &val)
+			if err != nil {
+				continue
+			}
+			// currTag := data.Tag{
+			// 	Name:  tag,
+			// 	Date:  date,
+			// 	Value: val,
+			// }
+			s.cache.Set(tag, date, val)
+			// res = append(res, &currTag)
+		}
+
+		rows.Close()
+	}
+
+	return nil, nil
+}
+
 // GetTagFromToGroup извлекает значение типа float32 для указанного тега в заданном временном диапазоне и группе.
 //
 // Параметры:
