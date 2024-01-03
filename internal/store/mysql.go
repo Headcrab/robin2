@@ -38,7 +38,7 @@ func (s *MySql) Connect(name string, cache cache.Cache) error {
 		}
 	}
 	s.cache = cache
-	s.Base.db, err = sql.Open(s.Base.config.CurrDB.Type, s.Base.marshalConnectionString(name))
+	s.Base.db, err = sql.Open(s.Base.config.CurrDB.Type, s.Base.GenerateConnectionString(name))
 	if err != nil {
 		logger.Error(err.Error())
 		return err

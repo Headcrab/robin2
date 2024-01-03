@@ -31,7 +31,7 @@ type Base struct {
 	round         int
 }
 
-// marshalConnectionString генерирует строку подключения на основе настроек конфигурации.
+// GenerateConnectionString генерирует строку подключения на основе настроек конфигурации.
 //
 // Он извлекает строку подключения из конфигурации, используя имя базы данных, и заменяет все
 // заполнители в строке подключения соответствующими значениями из конфигурации.
@@ -39,7 +39,7 @@ type Base struct {
 // конфигурации.
 //
 // Возвращает сгенерированную строку подключения.
-func (s *Base) marshalConnectionString(name string) string {
+func (s *Base) GenerateConnectionString(name string) string {
 	connStr := s.config.CurrDB.ConnectionString
 	connStr = strings.ReplaceAll(connStr, "{host}", s.config.CurrDB.Host)
 	connStr = strings.ReplaceAll(connStr, "{port}", s.config.CurrDB.Port)

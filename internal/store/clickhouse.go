@@ -40,7 +40,7 @@ func (s *Clickhouse) Connect(name string, cache cache.Cache) error {
 	s.cache = cache
 
 	var err error
-	s.db, err = sql.Open(s.config.CurrDB.Type, s.marshalConnectionString(name))
+	s.db, err = sql.Open(s.config.CurrDB.Type, s.GenerateConnectionString(name))
 	if err != nil {
 		logger.Error(err.Error())
 		return err
