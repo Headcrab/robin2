@@ -68,7 +68,7 @@ func ThenIf[T any](condition bool, ifTrue T, ifFalse T) T {
 // The function returns a time.Time object and an error.
 func ExcelTimeToTime(timeStr string, formats []string) (time.Time, error) {
 	if timeStr == "" {
-		return time.Time{}, errors.InvalidDate
+		return time.Time{}, errors.ErrInvalidDate
 	}
 
 	parsed, err := parseTime(timeStr, formats)
@@ -84,11 +84,11 @@ func parseTime(timeStr string, formats []string) (time.Time, error) {
 		timeStr = strings.Replace(timeStr, ",", ".", 1)
 		timeFloat, err := strconv.ParseFloat(timeStr, 64)
 		if err != nil {
-			return time.Time{}, errors.NotAFloat
+			return time.Time{}, errors.ErrNotAFloat
 		}
 
-		unixTime := (timeFloat - 25569) * 86400
-		return time.Unix(int64(unixTime), 0).UTC(), nil
+		unixTime := (timeFloat - 25569.0) * 86400.0
+		return time.Unix(int64(unixTime), 0.0).UTC(), nil
 	}
 
 	tm, err := TryParseDate(timeStr, formats)
@@ -109,7 +109,7 @@ func parseTime(timeStr string, formats []string) (time.Time, error) {
 func TryParseDate(date string, formats []string) (time.Time, error) {
 	// if date is empty, return error
 	if date == "" {
-		return time.Time{}, errors.InvalidDate
+		return time.Time{}, errors.ErrInvalidDate
 	}
 	// if date is not empty, try to parse it to time.Time
 	// if date is not valid, return error
@@ -120,5 +120,5 @@ func TryParseDate(date string, formats []string) (time.Time, error) {
 			return t, nil
 		}
 	}
-	return time.Time{}, errors.InvalidDate
+	return time.Time{}, errors.ErrInvalidDate
 }

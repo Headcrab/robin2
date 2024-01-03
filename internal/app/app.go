@@ -1,7 +1,7 @@
+package robin
+
 // todo: authenticate (in web only?)
 // todo: add tests
-
-package robin
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ import (
 	"robin2/internal/cache"
 	"robin2/internal/config"
 	"robin2/internal/logger"
-	"robin2/internal/middleware/timing"
+	"robin2/internal/middleware"
 	"robin2/internal/store"
 	"robin2/internal/utils"
 
@@ -34,8 +34,8 @@ type App struct {
 	workDir   string
 	opCount   int64
 	config    config.Config
-	cache     cache.BaseCache
-	store     store.BaseStore
+	cache     cache.Cache
+	store     store.Store
 	template  *template.Template
 }
 
@@ -47,48 +47,45 @@ type dbStatus struct {
 	Uptime  time.Duration
 }
 
-// NewApp creates a new instance of the App struct and returns a pointer to it.
 func NewApp() *App {
-	return &App{}
+	app := App{}
+	logger.Debug("initializing app")
+	app.workDir = utils.GetWorkDir()
+	godotenv.Load(filepath.Join(app.workDir, ".env"), filepath.Join(app.workDir, "app.env"))
+	app.name = os.Getenv("PROJECT_NAME")
+	app.version = os.Getenv("PROJECT_VERSION")
+	// app.config = config.New()
+	app.config.Load(filepath.Join(app.workDir, "config", "robin.json"))
+	return &app
 }
 
 func (a *App) Run() {
 	a.startTime = time.Now()
-	a.workDir = utils.GetWorkDir()
-	godotenv.Load(a.workDir+"/.env", a.workDir+"/app.env")
-	a.name = os.Getenv("PROJECT_NAME")
-	a.version = os.Getenv("PROJECT_VERSION")
 	logger.Info(a.name + " " + a.version + " is running")
 
 	a.initDatabase()
 
-	mux := a.setupHTTPHandlers()
-	logger.Info("listening on: " + strings.Join(utils.GetLocalhostIpAdresses(), " , ") + " port: " + a.config.GetString("app.port"))
-	err := http.ListenAndServe(":"+a.config.GetString("app.port"), mux)
+	mux := a.initHTTPHandlers()
+	logger.Info("listening on: " + strings.Join(utils.GetLocalhostIpAdresses(),
+		":"+strconv.Itoa(a.config.Port)+",") + ":" + strconv.Itoa(a.config.Port))
+
+	err := http.ListenAndServe(":"+strconv.Itoa(a.config.Port), mux)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
 }
 
 func (a *App) initDatabase() {
-	// Configure the logger
-	logger.Debug("initializing app")
-	a.config = config.GetConfig(a.workDir)
-	currCache := a.config.GetString("app.cache.current")
-	currCacheType := a.config.GetString("app.cache." + currCache + ".type")
-	currDB := a.config.GetString("app.db.current")
-	currDBType := a.config.GetString("app.db." + currDB + ".type")
+	a.cache = cache.New(a.config)
+	a.store = store.New(a.config)
 
-	a.cache = cache.NewFactory().NewCache(currCacheType, a.config)
-	a.store = store.NewFactory().NewStore(currDBType, a.config)
-
-	err := a.store.Connect(currDB, a.cache)
+	err := a.store.Connect("default", a.cache)
 	if err != nil {
 		logger.Fatal(err.Error())
 	}
 }
 
-func (a *App) setupHTTPHandlers() http.Handler {
+func (a *App) initHTTPHandlers() http.Handler {
 	// a.template = template.New("tmpl")
 	mux := http.NewServeMux()
 	// Define HTTP request handlers
@@ -118,6 +115,7 @@ func (a *App) setupHTTPHandlers() http.Handler {
 		"/templ/delete/": a.handleTemplateDelete,
 		"/templ/exec/":   a.handleTemplateExec,
 		"/tag/decode/":   a.handleTagDecode,
+		"/api/v2/get/":   a.handleAPIV2GetTagOnDate,
 	}
 
 	// Register HTTP request handlers
@@ -141,7 +139,7 @@ func (a *App) setupHTTPHandlers() http.Handler {
 		panic(err)
 	}
 
-	return timing.New(mux)
+	return middleware.Log(middleware.Timing(mux))
 }
 
 func colorizeLogString(input string) template.HTML {
@@ -187,11 +185,11 @@ func formatDataString(input string) template.HTML {
 //
 // Возвращает структуру dbstatus, содержащую статус, имя, тип, версию и время работы базы данных.
 func (a *App) getDbStatus() dbStatus {
-	dbName := a.config.GetString("app.db.current")
+	dbName := a.config.CurrDB.Name
 	dbstatus := dbStatus{
 		Status: "green",
 		Name:   dbName,
-		Type:   a.config.GetString("app.db." + dbName + ".type"),
+		Type:   a.config.CurrDB.Type,
 	}
 	var err error
 	var dbuptimeStr string

@@ -1,4 +1,4 @@
-package timing
+package middleware
 
 import (
 	"bytes"
@@ -20,7 +20,7 @@ func (rw *responseWriterWrapper) Write(b []byte) (int, error) {
 	return rw.body.Write(b)
 }
 
-func New(next http.Handler) http.Handler {
+func Timing(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		wrapper := &responseWriterWrapper{ResponseWriter: w, body: new(bytes.Buffer)}

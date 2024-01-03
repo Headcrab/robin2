@@ -1,7 +1,10 @@
-FROM golang:1.21.3-alpine AS builder
+FROM golang:1.21.5-alpine AS builder
+
 ARG PROJECT_NAME
-ENV PROJECT_NAME=$PROJECT_NAME
+ENV PROJECT_NAME=$PROJECT_NAME 
+
 WORKDIR /$PROJECT_NAME
+RUN echo $PROJECT_NAME
 COPY cmd cmd   
 COPY docs docs
 COPY internal internal
@@ -14,15 +17,16 @@ RUN apk update && apk add upx
 RUN upx ./bin/$PROJECT_NAME
 
 FROM alpine:latest AS runner
-RUN apk update && apk add tzdata
 ENV TZ=Asia/Almaty
-RUN apk update && apk add mc
 ARG PROJECT_NAME
 ENV PROJECT_NAME=$PROJECT_NAME
 ARG PROJECT_VERSION
 ENV PROJECT_VERSION=$PROJECT_VERSION
-ARG PORT=
+ARG PORT
 ENV PORT=$PORT
+
+RUN apk update && apk add tzdata
+RUN apk update && apk add mc
 
 WORKDIR /$PROJECT_NAME
 COPY --from=builder $PROJECT_NAME/bin/$PROJECT_NAME bin/

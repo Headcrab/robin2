@@ -45,11 +45,19 @@ services:
       retries: 5
 
   robin: 
-    build: /robin
     environment:
-      PROJECT_NAME : Robin
-      PROJECT_VERSION : 2.4.19
-      PORT : 8008
+      - PROJECT_NAME=${PROJECT_NAME}
+      - PROJECT_VERSION=${PROJECT_VERSION}
+      - PORT=${PORT}
+    build:
+      context: ../
+      dockerfile: deploy/robin/Dockerfile
+      no_cache: true
+      args:
+        - PROJECT_NAME
+        - PROJECT_VERSION
+        - PORT
+
     # image: robin
     container_name: robin
     restart: always

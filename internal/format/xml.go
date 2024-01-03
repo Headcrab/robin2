@@ -92,7 +92,7 @@ func (r *ResponseFormatterXML) Process(val interface{}) []byte {
 		s += "</data>"
 		return []byte(s)
 	}
-	return []byte("#Error: Unknown output type " + fmt.Sprint(val))
+	return []byte("ResponseFormatterXML not supported:" + fmt.Sprint(val))
 }
 
 func mustMarshalXML(v interface{}) []byte {

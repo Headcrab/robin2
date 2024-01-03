@@ -1,34 +1,43 @@
 function loadPage(url) {
-
-    p = saveParams();
-
+    const p = saveParams();
     const loaderElement = document.getElementById('loader');
+    const TIMEOUT = 60000; // Установить таймаут в миллисекундах, например 5000 для 5 секунд
 
     if (!loaderElement) {
         console.error('Element with ID "loader" not found.');
         return;
     }
 
-    // Показываем анимацию загрузки
     loaderElement.style.display = 'flex';
 
-    // Загружаем новую страницу
-    fetch(url)
-        .then(response => response.text())
+    // Создаем обещание для таймаута
+    const timeoutPromise = new Promise((resolve, reject) => {
+        setTimeout(() => {
+            reject(new Error('Превышено время ожидания запроса'));
+        }, TIMEOUT);
+    });
+
+    // Используем Promise.race для установки таймаута на fetch
+    Promise.race([fetch(url), timeoutPromise])
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Ошибка сети');
+            }
+            return response.text();
+        })
         .then(data => {
-            // Скрываем анимацию загрузки и отображаем новую страницу
             loaderElement.style.display = 'none';
             document.body.innerHTML = data;
-
-            // Обновляем URL в адресной строке
             history.pushState(null, '', url);
             initialize();
             restoreParams(p);
         })
         .catch(error => {
+            loaderElement.style.display = 'none';
             console.error('Error:', error);
+            // Здесь можно добавить обработку ошибки в пользовательском интерфейсе
+            alert(error.message); // Например, показать сообщение об ошибке
         });
-
 }
 
 function fetchStatus() {
@@ -135,8 +144,11 @@ function restoreParams() {
 function getSeason() {
     // Получаем сезон из текущей даты
     var date = new Date();
-    var month = date.getMonth();
+    var month = date.getMonth() + 1;
     var season = Math.floor(month / 3) + 1;
+    if (season > 4) {
+        season = 1;
+    }
     // winter, spring, summer, fall
     var seasons = ['winter', 'spring', 'summer', 'fall'];
     var seasonName = seasons[season - 1];
