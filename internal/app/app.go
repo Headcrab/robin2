@@ -51,7 +51,10 @@ func NewApp() *App {
 	app := App{}
 	logger.Debug("initializing app")
 	app.workDir = utils.GetWorkDir()
-	godotenv.Load(filepath.Join(app.workDir, ".env"), filepath.Join(app.workDir, "app.env"))
+	err := godotenv.Load(filepath.Join(app.workDir, ".env"))
+	if err != nil {
+		logger.Info(err.Error())
+	}
 	app.name = os.Getenv("PROJECT_NAME")
 	app.version = os.Getenv("PROJECT_VERSION")
 	// app.config = config.New()

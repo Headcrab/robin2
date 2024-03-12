@@ -1,0 +1,558 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "contact": {}
+    },
+    "paths": {
+        "/api/info/": {
+            "get": {
+                "description": "Возвращает информацию о приложении",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Полчить информацию",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/log/": {
+            "get": {
+                "description": "Возвращает логи приложения",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Получить лог",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Формат вывода (str - по умолчанию, json, raw)",
+                        "name": "format",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/reload/": {
+            "get": {
+                "description": "Презагружает конфигурационный файл приложения в случае изменения",
+                "produces": [
+                    "plain/text"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Презагрузить конфигурационный файл",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/get/tag/": {
+            "get": {
+                "description": "Возвращает значение тега на выбранную дату.",
+                "produces": [
+                    "plain/text json"
+                ],
+                "tags": [
+                    "Tag"
+                ],
+                "summary": "Получить значение тега",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Наименование тега",
+                        "name": "tag",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата",
+                        "name": "date",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата начала периода",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата окончания периода",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Функция группировки (avg, sum, count, min, max)",
+                        "name": "group",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Количество значений",
+                        "name": "count",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Округление, знаков после запятой (по умолчанию 2)",
+                        "name": "round",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Формат вывода (str - по умолчанию, json, raw)",
+                        "name": "format",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/get/tag/down/": {
+            "get": {
+                "description": "Возвращает дату и время отключения оборудования",
+                "produces": [
+                    "plain/text"
+                ],
+                "tags": [
+                    "Tag"
+                ],
+                "summary": "Получить даты отключения оборудования",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Наименование тега",
+                        "name": "tag",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата начала периода",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата окончания периода",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Номер отключения после даты начала (0 - первое отключение)",
+                        "name": "count",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/get/tag/list/": {
+            "get": {
+                "description": "Возвращает список всех тегов по маске",
+                "produces": [
+                    "plain/text"
+                ],
+                "tags": [
+                    "Tag"
+                ],
+                "summary": "Получить список тегов",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Маска поиска",
+                        "name": "like",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Формат вывода (str - по умолчанию, json, raw)",
+                        "name": "format",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/get/tag/up/": {
+            "get": {
+                "description": "Возвращает дату и время включения оборудования",
+                "produces": [
+                    "plain/text"
+                ],
+                "tags": [
+                    "Tag"
+                ],
+                "summary": "Получить даты включения оборудования",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Наименование тега",
+                        "name": "tag",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата начала периода",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Дата окончания периода",
+                        "name": "to",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Номер включения после даты начала (0 - первое включение)",
+                        "name": "count",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tag/decode/": {
+            "get": {
+                "description": "Возвращает расшифровку имени тега",
+                "produces": [
+                    "plain/text json"
+                ],
+                "tags": [
+                    "Tag"
+                ],
+                "summary": "Получить расшифровку имени тега",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Наименование тега",
+                        "name": "tag",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Формат вывода (str - по умолчанию, json, raw)",
+                        "name": "format",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/templ/add": {
+            "get": {
+                "description": "Добавляет шаблон",
+                "produces": [
+                    "plain/text"
+                ],
+                "tags": [
+                    "Template"
+                ],
+                "summary": "Добавить шаблон",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Имя шаблона",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Тело шаблона",
+                        "name": "body",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/templ/del": {
+            "get": {
+                "description": "Удаляет шаблон",
+                "produces": [
+                    "plain/text"
+                ],
+                "tags": [
+                    "Template"
+                ],
+                "summary": "Удалить шаблон",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Имя шаблона",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/templ/edit": {
+            "get": {
+                "description": "Изменяет тело шаблона",
+                "produces": [
+                    "plain/text"
+                ],
+                "tags": [
+                    "Template"
+                ],
+                "summary": "Изменить тело шаблона",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Имя шаблона",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Тело шаблона",
+                        "name": "body",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/templ/exec": {
+            "get": {
+                "description": "Выполняет шаблон",
+                "produces": [
+                    "plain/text"
+                ],
+                "tags": [
+                    "Template"
+                ],
+                "summary": "Выполнить шаблон",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Имя шаблона",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Имя базы данных",
+                        "name": "db",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Формат вывода (str - по умолчанию, json, raw)",
+                        "name": "format",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "description": "Список аргументов",
+                        "name": "args",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "x-try-it-out-enabled": false
+            }
+        },
+        "/templ/get": {
+            "get": {
+                "description": "Возвращает тело шаблона",
+                "produces": [
+                    "plain/text"
+                ],
+                "tags": [
+                    "Template"
+                ],
+                "summary": "Получить тело шаблона",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Имя шаблона",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/templ/list": {
+            "get": {
+                "description": "Возвращает список шаблонов",
+                "produces": [
+                    "plain/text"
+                ],
+                "tags": [
+                    "Template"
+                ],
+                "summary": "Получить список шаблонов",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Маска поиска шаблона",
+                        "name": "like",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

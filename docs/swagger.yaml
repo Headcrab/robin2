@@ -1,0 +1,366 @@
+info:
+  contact: {}
+paths:
+  /api/info/:
+    get:
+      description: Возвращает информацию о приложении
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Полчить информацию
+      tags:
+      - System
+  /api/log/:
+    get:
+      description: Возвращает логи приложения
+      parameters:
+      - description: Формат вывода (str - по умолчанию, json, raw)
+        in: query
+        name: format
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Получить лог
+      tags:
+      - System
+  /api/reload/:
+    get:
+      description: Презагружает конфигурационный файл приложения в случае изменения
+      produces:
+      - plain/text
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Презагрузить конфигурационный файл
+      tags:
+      - System
+  /get/tag/:
+    get:
+      description: Возвращает значение тега на выбранную дату.
+      parameters:
+      - description: Наименование тега
+        in: query
+        name: tag
+        required: true
+        type: string
+      - description: Дата
+        in: query
+        name: date
+        type: string
+      - description: Дата начала периода
+        in: query
+        name: from
+        type: string
+      - description: Дата окончания периода
+        in: query
+        name: to
+        type: string
+      - description: Функция группировки (avg, sum, count, min, max)
+        in: query
+        name: group
+        type: string
+      - description: Количество значений
+        in: query
+        name: count
+        type: string
+      - description: Округление, знаков после запятой (по умолчанию 2)
+        in: query
+        name: round
+        type: string
+      - description: Формат вывода (str - по умолчанию, json, raw)
+        in: query
+        name: format
+        type: string
+      produces:
+      - plain/text json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Получить значение тега
+      tags:
+      - Tag
+  /get/tag/down/:
+    get:
+      description: Возвращает дату и время отключения оборудования
+      parameters:
+      - description: Наименование тега
+        in: query
+        name: tag
+        required: true
+        type: string
+      - description: Дата начала периода
+        in: query
+        name: from
+        type: string
+      - description: Дата окончания периода
+        in: query
+        name: to
+        type: string
+      - description: Номер отключения после даты начала (0 - первое отключение)
+        in: query
+        name: count
+        type: string
+      produces:
+      - plain/text
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Получить даты отключения оборудования
+      tags:
+      - Tag
+  /get/tag/list/:
+    get:
+      description: Возвращает список всех тегов по маске
+      parameters:
+      - description: Маска поиска
+        in: query
+        name: like
+        type: string
+      - description: Формат вывода (str - по умолчанию, json, raw)
+        in: query
+        name: format
+        type: string
+      produces:
+      - plain/text
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Получить список тегов
+      tags:
+      - Tag
+  /get/tag/up/:
+    get:
+      description: Возвращает дату и время включения оборудования
+      parameters:
+      - description: Наименование тега
+        in: query
+        name: tag
+        required: true
+        type: string
+      - description: Дата начала периода
+        in: query
+        name: from
+        type: string
+      - description: Дата окончания периода
+        in: query
+        name: to
+        type: string
+      - description: Номер включения после даты начала (0 - первое включение)
+        in: query
+        name: count
+        type: string
+      produces:
+      - plain/text
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Получить даты включения оборудования
+      tags:
+      - Tag
+  /tag/decode/:
+    get:
+      description: Возвращает расшифровку имени тега
+      parameters:
+      - description: Наименование тега
+        in: query
+        name: tag
+        required: true
+        type: string
+      - description: Формат вывода (str - по умолчанию, json, raw)
+        in: query
+        name: format
+        type: string
+      produces:
+      - plain/text json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Получить расшифровку имени тега
+      tags:
+      - Tag
+  /templ/add:
+    get:
+      description: Добавляет шаблон
+      parameters:
+      - description: Имя шаблона
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Тело шаблона
+        in: query
+        name: body
+        required: true
+        type: string
+      produces:
+      - plain/text
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Добавить шаблон
+      tags:
+      - Template
+  /templ/del:
+    get:
+      description: Удаляет шаблон
+      parameters:
+      - description: Имя шаблона
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - plain/text
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Удалить шаблон
+      tags:
+      - Template
+  /templ/edit:
+    get:
+      description: Изменяет тело шаблона
+      parameters:
+      - description: Имя шаблона
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Тело шаблона
+        in: query
+        name: body
+        required: true
+        type: string
+      produces:
+      - plain/text
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Изменить тело шаблона
+      tags:
+      - Template
+  /templ/exec:
+    get:
+      description: Выполняет шаблон
+      parameters:
+      - description: Имя шаблона
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: Имя базы данных
+        in: query
+        name: db
+        type: string
+      - description: Формат вывода (str - по умолчанию, json, raw)
+        in: query
+        name: format
+        type: string
+      - description: Список аргументов
+        in: query
+        name: args
+        type: array
+      produces:
+      - plain/text
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Выполнить шаблон
+      tags:
+      - Template
+      x-try-it-out-enabled: false
+  /templ/get:
+    get:
+      description: Возвращает тело шаблона
+      parameters:
+      - description: Имя шаблона
+        in: query
+        name: name
+        required: true
+        type: string
+      produces:
+      - plain/text
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Получить тело шаблона
+      tags:
+      - Template
+  /templ/list:
+    get:
+      description: Возвращает список шаблонов
+      parameters:
+      - description: Маска поиска шаблона
+        in: query
+        name: like
+        type: string
+      produces:
+      - plain/text
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Получить список шаблонов
+      tags:
+      - Template
+swagger: "2.0"

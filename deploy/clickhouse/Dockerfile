@@ -3,7 +3,11 @@ FROM clickhouse/clickhouse-server:head
 # 
 ENV TZ=Asia/Almaty
 # Установка cron и других необходимых пакетов
-RUN apt-get update && apt-get install -y tzdata && apt-get install -y cron && apt-get install mc -y && apt-get install -y sshfs
+RUN apt-get update 
+RUN apt-get install -y tzdata 
+RUN apt-get install -y cron 
+RUN apt-get install -y mc 
+RUN apt-get install -y sshfs
 # Добавление скрипта
 ADD script_download.sh /etc/cron.d/script_download.sh
 # Дать права на исполнение скрипту

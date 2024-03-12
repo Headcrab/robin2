@@ -1,4 +1,4 @@
-FROM golang:1.21.5-alpine AS builder
+FROM golang:1.22.0-alpine AS builder
 
 ARG PROJECT_NAME
 ENV PROJECT_NAME=$PROJECT_NAME 
@@ -13,6 +13,9 @@ COPY go.mod go.mod
 # RUN go mod tidy 
 # RUN go mod download
 RUN CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath -o ./bin/$PROJECT_NAME ./cmd/
+# RUN echo "nameserver 8.8.8.8" > /etc/resolv.conf && echo "nameserver 8.8.4.4" >> /etc/resolv.conf \
+#   && echo "nameserver 1.1.1.1" >> /etc/resolv.conf \
+#   && echo "nameserver 194.67.2.114" >> /etc/resolv.conf && echo "nameserver 194.67.1.154" >> /etc/resolv.conf
 RUN apk update && apk add upx
 RUN upx ./bin/$PROJECT_NAME
 

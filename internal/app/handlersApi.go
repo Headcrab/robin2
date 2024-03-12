@@ -29,7 +29,10 @@ func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 	formatStr := r.URL.Query().Get("format")
 	logs, err := logger.GetLogHistory()
 	if err != nil {
-		w.Write([]byte("#Error: " + err.Error()))
+		if _,err := w.Write([]byte("#Error: " + err.Error())); err != nil {
+			logger.Error(fmt.Sprintf("Ошибка при записи ответа: %v", err))
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 		return
 	}
 	tagValue := format.New(formatStr).Process(logs)
@@ -38,7 +41,11 @@ func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 	// 	w.Write([]byte("#Error: " + err.Error()))
 	// 	return
 	// }
-	w.Write(tagValue)
+
+	if _,err := w.Write(tagValue); err != nil {
+		logger.Error(fmt.Sprintf("Ошибка при записи ответа: %v", err))
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
 }
 
 // @Summary Получить значение тега
@@ -58,7 +65,10 @@ func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 	writer := []byte("Error: unknown error")
 	defer func() {
-		w.Write(writer)
+		if _,err := w.Write(writer); err != nil {
+			logger.Error(fmt.Sprintf("Ошибка при записи ответа: %v", err))
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 	}()
 
 	a.opCount++
@@ -121,7 +131,10 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleAPIGetTagList(w http.ResponseWriter, r *http.Request) {
 	writer := []byte("#Error: unknown error")
 	defer func() {
-		w.Write(writer)
+		if _,err := w.Write(writer); err != nil {
+			logger.Error(fmt.Sprintf("Ошибка при записи ответа: %v", err))
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 	}()
 
 	// Extract query parameter
@@ -153,7 +166,9 @@ func (a *App) handleAPIGetTagList(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleAPIGetTagDown(w http.ResponseWriter, r *http.Request) {
 	tag := r.URL.Query().Get("tag")
 	if tag == "" {
-		w.Write([]byte("#Error: tag is empty"))
+		if _,err := w.Write([]byte("#Error: tag is empty")); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 		return
 	}
 	from := r.URL.Query().Get("from")
@@ -165,28 +180,40 @@ func (a *App) handleAPIGetTagDown(w http.ResponseWriter, r *http.Request) {
 	}
 	fromT, err := utils.ExcelTimeToTime(from, a.config.DateFormats)
 	if err != nil {
-		w.Write([]byte("#Error: " + err.Error()))
+		if _,err = w.Write([]byte("#Error: " + err.Error())); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 		return
 	}
 	toT, err := utils.ExcelTimeToTime(to, a.config.DateFormats)
 	if err != nil {
-		w.Write([]byte("#Error: " + err.Error()))
+		if _,err = w.Write([]byte("#Error: " + err.Error())); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 		return
 	}
 	v, err := a.store.GetDownDates(tag, fromT, toT)
 	if err != nil {
-		w.Write([]byte("#Error: " + err.Error()))
+		if _,err = w.Write([]byte("#Error: " + err.Error())); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 		return
 	} else {
 		if err != nil {
-			w.Write([]byte("#Error: " + err.Error()))
+			if _,err = w.Write([]byte("#Error: " + err.Error())); err != nil {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			}
 			return
 		}
 		if (count >= 0) && (count < len(v)) {
 			val := v[count].Format("2006-01-02 15:04:05")
-			w.Write([]byte(val))
+			if _,err = w.Write([]byte(val)); err != nil {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			}
 		} else {
-			w.Write([]byte(""))
+			if _,err = w.Write([]byte("")); err != nil {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			}
 		}
 	}
 }
@@ -204,7 +231,10 @@ func (a *App) handleAPIGetTagDown(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleAPIGetTagUp(w http.ResponseWriter, r *http.Request) {
 	writer := []byte("#Error: unknown error")
 	defer func() {
-		w.Write(writer)
+		if _,err := w.Write(writer); err != nil {
+			logger.Error(fmt.Sprintf("Ошибка при записи ответа: %v", err))
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 	}()
 
 	tag := r.URL.Query().Get("tag")
@@ -437,7 +467,9 @@ func (a *App) handleTagDecode(w http.ResponseWriter, r *http.Request) {
 	formatStr := r.URL.Query().Get("format")
 
 	if tag == "" {
-		w.Write([]byte("#Error: tag is empty"))
+		if _,err := w.Write([]byte("#Error: tag is empty")); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 		return
 	}
 	tags := strings.Split(tag, ",")
@@ -449,7 +481,9 @@ func (a *App) handleTagDecode(w http.ResponseWriter, r *http.Request) {
 	var dec decode.Decoder
 	err := dec.LoadJSONData(filepath.Join(a.workDir, "config"))
 	if err != nil {
-		w.Write([]byte("#Error: " + err.Error()))
+		if _,err := w.Write([]byte("#Error: " + err.Error())); err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 		return
 	}
 	for _, t := range tags {
@@ -461,5 +495,7 @@ func (a *App) handleTagDecode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s := format.New(formatStr).Process(ret)
-	w.Write([]byte(s))
+	if _,err := w.Write([]byte(s)); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
 }

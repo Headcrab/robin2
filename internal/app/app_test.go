@@ -2,6 +2,7 @@ package robin
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -164,14 +165,18 @@ func Benchmark_NewApp(b *testing.B) {
 }
 func Benchmark_excelTimeToTime(b *testing.B) {
 	app := NewApp()
+	var err error
 	for i := 0; i < b.N; i++ {
-		utils.TryParseDate("2019-01-01", app.config.DateFormats)
+		_, err = utils.TryParseDate("2019-01-01", app.config.DateFormats)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }
 func Benchmark_tryParseDate(b *testing.B) {
 	app := NewApp()
 	// app := App{}
 	for i := 0; i < b.N; i++ {
-		utils.TryParseDate("2019-01-01", app.config.DateFormats)
+		_, _ = utils.TryParseDate("2019-01-01", app.config.DateFormats)
 	}
 }

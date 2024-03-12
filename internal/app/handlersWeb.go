@@ -159,7 +159,10 @@ func (a *App) handlePageLog(w http.ResponseWriter, r *http.Request) {
 		logData, err = logger.GetLogHistory()
 		if err != nil {
 			errorMsg := "#Error: " + err.Error()
-			w.Write([]byte(errorMsg))
+			_, err := w.Write([]byte(errorMsg))
+			if err != nil {
+				logger.Error(fmt.Sprintf("Error writing response: %v", err))
+			}
 			logger.Error(errorMsg)
 			return
 		}
@@ -205,7 +208,7 @@ func (a *App) handlePageData(w http.ResponseWriter, r *http.Request) {
 
 	data := []string{}
 	for _, tag := range tagsValues {
-		data = append(data, fmt.Sprintf("%s|%f", tag.Name, tag.Value))
+		data = append(data, fmt.Sprintf("%s|%f", tag.Date, tag.Value))
 	}
 	a.handlePageAny(page, getOnePage(page, "Получение данных", data, pageNum, linesPerPage))(w, r)
 
@@ -234,7 +237,10 @@ func (a *App) handlePageTags(w http.ResponseWriter, r *http.Request) {
 		if tagsList == nil {
 			tags, err := a.store.GetTagList(like)
 			if err != nil {
-				w.Write([]byte("#Error: " + err.Error()))
+				_, err := w.Write([]byte("#Error: " + err.Error()))
+				if err != nil {
+					logger.Error(fmt.Sprintf("Error writing response: %v", err))
+				}
 				return
 			}
 			for _, tag := range tags.Rows {

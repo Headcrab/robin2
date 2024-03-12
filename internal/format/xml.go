@@ -91,6 +91,17 @@ func (r *ResponseFormatterXML) Process(val interface{}) []byte {
 		}
 		s += "</data>"
 		return []byte(s)
+	case data.Tags:
+		s := "<data>\n"
+		for _, v1 := range v {
+			s += "\t<row>\n"
+			s += "\t\t<TagName>" + v1.Name + "</TagName>\n"
+			s += "\t\t<DateTime>" + v1.Date.Format("2006-01-02 15:04:05") + "</DateTime>\n"
+			s += "\t\t<Value>" + fmt.Sprintf("%v", Format(Round(v1.Value, r.round))) + "</Value>\n"
+			s += "\t</row>\n"
+		}
+		s += "</data>"
+		return []byte(s)
 	}
 	return []byte("ResponseFormatterXML not supported:" + fmt.Sprint(val))
 }

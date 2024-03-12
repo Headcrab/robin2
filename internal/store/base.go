@@ -135,7 +135,10 @@ func (s *Base) GetTagDate(tag string, date time.Time) (*data.Tag, error) {
 	currTag.Value = res.Value
 
 	if s.cache != nil && res.Value != -1 {
-		s.cache.Set(res.Name, date, float32(res.Value))
+		err = s.cache.Set(res.Name, date, float32(res.Value))
+		if err != nil {
+			logger.Error(err.Error())
+		}
 	}
 
 	return &currTag, nil
@@ -254,13 +257,13 @@ func (s *Base) GetTagCountGroup(tag string, from time.Time, to time.Time, count 
 				dateFrom := from.Add(time.Duration(tmDiff*float64(i-1)) * time.Second)
 				dateTo := from.Add(time.Duration(tmDiff*float64(i)) * time.Second)
 				val, err := s.GetTagFromToGroup(t, dateFrom, dateTo, group)
+				if err != nil {
+					val = -1
+				}
 				resDt := data.Tag{
 					Name:  t,
 					Date:  dateTo,
 					Value: val,
-				}
-				if err != nil {
-					val = -1
 				}
 				res = append(res, &resDt)
 			}

@@ -23,10 +23,11 @@ func New(format string) ResponseFormatter {
 		return &ResponseFormatterHTML{}
 
 	case "str":
+		return &ResponseFormatterString{}
 	default:
 		return &ResponseFormatterString{}
 	}
-	return nil
+	// return nil
 }
 
 type ResponseFormatter interface {

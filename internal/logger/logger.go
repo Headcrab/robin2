@@ -111,7 +111,6 @@ func Fatal(msg string) {
 }
 
 func checkFileLog() {
-	var logPath = "./"
 	var logName = "robin" + time.Now().Format("_2006_01_02_15_04_05") + ".log"
 	// cp, _ := os.Getwd()
 	// fmt.Println("currPath: " + cp)
@@ -119,7 +118,7 @@ func checkFileLog() {
 		var logPathes = []string{"../bin/log/", "../../bin/log/", "./log/", "../log/", "../../log/"}
 		for _, path := range logPathes {
 			if isPathExists(path) {
-				logPath = path
+				logPath := path
 				var err error
 				file, err = os.OpenFile(logPath+logName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err != nil {

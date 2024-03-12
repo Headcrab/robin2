@@ -64,6 +64,8 @@ func (r *ResponseFormatterJSON) Process(val interface{}) []byte {
 		}
 
 		return jsonData
+	case data.Tags:
+		return mustMarshalJSON(v)
 	}
 	return []byte("ResponseFormatterJSON not supported: " + fmt.Sprint(val))
 }

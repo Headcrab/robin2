@@ -23,7 +23,11 @@ func NewMemory(cfg config.Config) (Memory, error) {
 		cache:  make(Memcache),
 		config: cfg,
 	}
-	t.Connect()
+	err := t.Connect()
+	if err != nil {
+		logger.Error(err.Error())
+		return t, err
+	}
 	logger.Trace("NewMemoryCache")
 	return t, nil
 }

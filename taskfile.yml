@@ -1,18 +1,10 @@
 version: '3'
 
-dotenv: ['app.env', '.env']
+dotenv: ['.env']
 
 vars:
-  MAJOR : 
-    sh: echo {{.PROJECT_VERSION}} | cut -d. -f1
-  MINOR : 
-    sh: echo {{.PROJECT_VERSION}} | cut -d. -f2
-  BUILD : 
-    sh: echo {{.PROJECT_VERSION}} | cut -d. -f3
-  NEW_BUILD : 
-    sh: echo $(({{.BUILD}}+1))
   NEW_VERSION : 
-    sh: echo {{.MAJOR}}.{{.MINOR}}.{{.NEW_BUILD}}
+    sh: echo {{.PROJECT_VERSION}} | awk -F. -v OFS=. '{$3++; print $1, $2, $3}'
   PROJECT_NAME_LOW:
     sh: echo {{.PROJECT_NAME}} | tr A-Z a-z
 
@@ -28,8 +20,7 @@ tasks:
 
   update_version:
     cmds:
-      - update_env -f app.env -p PROJECT_VERSION -v {{.NEW_VERSION}}
-      - echo {{.PROJECT_NAME}} {{.NEW_VERSION}}
+      - sed -i -E "s/PROJECT_VERSION.*/PROJECT_VERSION={{.NEW_VERSION}}/" .env
 
   upx:
     deps: ['update_version', 'build']

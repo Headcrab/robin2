@@ -4,8 +4,9 @@
 <head>
   <meta charset="utf-8" />
   <title>Система получения данных АСУТП</title>
-  <!-- <link rel="stylesheet" href="../css/bootstrap.min.css"> -->
-  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/bootstrap.min.css">
+  <!-- <link rel="stylesheet" href="../css/styles.css"> -->
+  <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.0.3/css/pico.conditional.min.css" /> -->
   <!-- <script src="../scripts/bootstrap.bundle.min.js"></script> -->
   <script src="../scripts/script.js"></script>
 </head>
@@ -17,11 +18,13 @@
 <div id="apiserver" style="display: none;">{{.app.apiserver}}</div>
 
 <body>
-  {{ template "header.html" . }}
+  <section class="pico">
+    {{ template "header.html" . }}
 
-  {{ template "navigation.html" . }}
-  {{.content}}
-  {{ template "footer.html" . }}
+    {{ template "navigation.html" . }}
+    {{.content}}
+    {{ template "footer.html" . }}
+  </section>
 </body>
 
 </html>
