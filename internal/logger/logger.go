@@ -43,8 +43,8 @@ func consoleLog() *zerolog.Logger {
 
 		tmp := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "02.01.2006 15:04:05"}).
 			// Level(zerolog.TraceLevel).
-			// Level(zerolog.DebugLevel).
-			Level(zerolog.InfoLevel).
+			Level(zerolog.DebugLevel).
+			// Level(zerolog.InfoLevel).
 			With().Timestamp().Logger()
 		consoleLogPtr = &tmp
 		consoleLogPtr.Debug().Msg("Initializing logger")

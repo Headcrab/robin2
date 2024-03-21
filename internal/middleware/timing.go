@@ -8,7 +8,7 @@ import (
 
 type responseWriterWrapper struct {
 	http.ResponseWriter
-	body   *bytes.Buffer
+	body   bytes.Buffer
 	status int
 }
 
@@ -23,7 +23,7 @@ func (rw *responseWriterWrapper) Write(b []byte) (int, error) {
 func Timing(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		wrapper := &responseWriterWrapper{ResponseWriter: w, body: new(bytes.Buffer)}
+		wrapper := &responseWriterWrapper{ResponseWriter: w}
 
 		next.ServeHTTP(wrapper, r)
 
@@ -33,6 +33,6 @@ func Timing(next http.Handler) http.Handler {
 		if wrapper.status != 0 {
 			wrapper.ResponseWriter.WriteHeader(wrapper.status)
 		}
-		wrapper.body.WriteTo(wrapper.ResponseWriter)
+		_, _ = wrapper.body.WriteTo(wrapper.ResponseWriter)
 	})
 }

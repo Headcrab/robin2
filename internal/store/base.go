@@ -56,7 +56,7 @@ func (s *Base) GenerateConnectionString(name string) string {
 // чтобы записать детали соединения. Она использует имя базы данных, чтобы получить
 // хост и порт из конфигурации. Затем она находит IP-адрес хоста и записывает
 // детали соединения вместе с полученными IP-адресами.
-func (s *Base) logConnection(dbName string) {
+func (s *Base) logConnection(_ string) {
 	dbType := s.config.CurrDB.Type
 	host := s.config.CurrDB.Host
 	port := s.config.CurrDB.Port
