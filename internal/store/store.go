@@ -36,7 +36,7 @@ type Store interface {
 	GetTagList(like string) (*data.Output, error)
 	GetDownDates(tag string, from time.Time, to time.Time) ([]time.Time, error)
 	GetUpDates(tag string, from time.Time, to time.Time) ([]time.Time, error)
-	GetStatus() (string, string, error)
+	GetStatus() (string, time.Duration, error)
 
 	TemplateList(like string) (map[string]string, error)
 	TemplateExec(name string, params map[string]string) (*data.Output, error)

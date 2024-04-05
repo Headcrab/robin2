@@ -70,7 +70,7 @@ func (a *App) Run() {
 
 	mux := a.initHTTPHandlers()
 	logger.Info("listening on: " + strings.Join(utils.GetLocalhostIpAdresses(),
-		":"+strconv.Itoa(a.config.Port)+",") + ":" + strconv.Itoa(a.config.Port))
+		":"+strconv.Itoa(a.config.Port)+", ") + ":" + strconv.Itoa(a.config.Port))
 
 	err := http.ListenAndServe(":"+strconv.Itoa(a.config.Port), mux)
 	if err != nil {
@@ -146,13 +146,13 @@ func (a *App) initHTTPHandlers() http.Handler {
 }
 
 func colorizeLogString(input string) template.HTML {
-	st := strings.Split(input, " ")
-	if len(st) > 2 {
-		st[0] = "<span class='date'>" + st[0]
-		st[1] = st[1] + "</span>"
-		st[2] = "<span class='level " + st[2] + "'>" + st[2] + "</span> <span class='level other'>"
+	parts := strings.Split(input, " ")
+	if len(parts) > 2 {
+		parts[0] = "<span class='date'>" + parts[0]
+		parts[1] = parts[1] + "</span>"
+		parts[2] = "<span class='level " + parts[2] + "'>" + parts[2] + "</span> <span class='level other'>"
 	}
-	return template.HTML(strings.Join(st, " ") + "</span>")
+	return template.HTML(strings.Join(parts, " ") + "</span>")
 }
 
 // formatDataString форматирует входную строку в HTML-шаблон.
@@ -195,14 +195,10 @@ func (a *App) getDbStatus() dbStatus {
 		Type:   a.config.CurrDB.Type,
 	}
 	var err error
-	var dbuptimeStr string
-	dbstatus.Version, dbuptimeStr, err = a.store.GetStatus()
+	dbstatus.Version, dbstatus.Uptime, err = a.store.GetStatus()
 	if err != nil {
 		dbstatus.Status = "red"
 	}
-	dbstatus.Uptime, err = time.ParseDuration(utils.ThenIf(dbuptimeStr != "", dbuptimeStr+"s", "0s"))
-	if err != nil {
-		dbstatus.Status = "red"
-	}
+
 	return dbstatus
 }

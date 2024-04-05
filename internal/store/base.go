@@ -82,13 +82,14 @@ func (s *Base) replaceTemplate(repMap map[string]string, query string) string {
 //
 // Он возвращает две строки, представляющие версию и время работы,
 // а также ошибку, если возникла проблема при получении статуса.
-func (s *Base) GetStatus() (string, string, error) {
-	var version, uptime string
+func (s *Base) GetStatus() (string, time.Duration, error) {
+	var version string
+	var uptime time.Duration
 	err := s.db.QueryRow(s.config.CurrDB.Query["status"]).Scan(&version, &uptime)
 	if err != nil {
-		return "", "", err
+		return "", 0, err
 	}
-	return version, uptime, nil
+	return version, uptime * time.Second, nil
 }
 
 // GetTagDate получает значение, связанное с определенным тегом и датой из хранилища.
@@ -240,7 +241,10 @@ func (s *Base) GetTagCountGroup(tag string, from time.Time, to time.Time, count 
 					}
 					val = allPeriod.GetFromTo(dateFrom, dateTo).Average(t)
 					if val != -1 {
-						s.cache.SetStr(t, fromStr+"|"+toStr+"|"+group, val)
+						err := s.cache.SetStr(t, fromStr+"|"+toStr+"|"+group, val)
+						if err != nil {
+							logger.Error(err.Error())
+						}
 					}
 				}
 				resDt := data.Tag{
@@ -429,7 +433,10 @@ func (s *Base) GetTagFromToUncached(tag string, from time.Time, to time.Time) (d
 			// 	Date:  date,
 			// 	Value: val,
 			// }
-			s.cache.Set(tag, date, val)
+			err = s.cache.Set(tag, date, val)
+			if err != nil {
+				logger.Error(err.Error())
+			}
 			// res = append(res, &currTag)
 		}
 
@@ -477,7 +484,10 @@ func (s *Base) GetTagFromToGroup(tag string, from time.Time, to time.Time, group
 			return -1, err
 		}
 		val := t.Average(tag)
-		s.cache.SetStr(tag, fromStr+"|"+toStr+"|"+group, val)
+		err = s.cache.SetStr(tag, fromStr+"|"+toStr+"|"+group, val)
+		if err != nil {
+			logger.Error(err.Error())
+		}
 		return val, nil
 
 	default:
@@ -502,7 +512,10 @@ func (s *Base) GetTagFromToGroup(tag string, from time.Time, to time.Time, group
 		return -1, nil
 	}
 
-	s.cache.SetStr(tag, fromStr+"|"+toStr+"|"+group, float32(value.Float64))
+	err = s.cache.SetStr(tag, fromStr+"|"+toStr+"|"+group, float32(value.Float64))
+	if err != nil {
+		logger.Error(err.Error())
+	}
 
 	return float32(value.Float64), nil
 }
