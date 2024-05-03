@@ -1,6 +1,9 @@
 package data
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Output struct {
 	Headers []string
@@ -10,9 +13,9 @@ type Output struct {
 }
 
 type Tag struct {
-	Name  string
-	Date  time.Time
-	Value float32
+	Name  string    `json:"name"`
+	Date  time.Time `json:"date"`
+	Value float32   `json:"value"`
 }
 
 type Tags []*Tag
@@ -50,8 +53,65 @@ func (t Tags) GetFromTo(from, to time.Time) Tags {
 	return tags
 }
 
-// type TagVal float32
+// Функция для преобразования Tags в формат JSON для Grafana
+func (tags Tags) ToGrafanaTimeSeries() ([]byte, error) {
+	// Группировка данных по имени тега
+	seriesMap := make(map[string][][2]interface{})
+	for _, tag := range tags {
+		if tag != nil {
+			// Добавление точек данных в соответствующий временной ряд
+			seriesMap[tag.Name] = append(seriesMap[tag.Name], [2]interface{}{
+				tag.Value,
+				tag.Date.UnixNano() / int64(time.Millisecond), // Преобразование времени в миллисекунды
+			})
+		}
+	}
 
-// type TagDate map[time.Time]TagVal
+	// Создание слайса для JSON ответа
+	var series []map[string]interface{}
+	for name, datapoints := range seriesMap {
+		series = append(series, map[string]interface{}{
+			"target":     name,
+			"datapoints": datapoints,
+		})
+	}
 
-// type TagMap map[string]TagDate
+	// Конвертация в JSON
+	return json.Marshal(series)
+}
+
+type Metric struct {
+	Name  string  `json:"name"`
+	Value float32 `json:"value"`
+}
+
+type TimePoint struct {
+	Time string   `json:"time"`
+	Data []Metric `json:"data"`
+}
+
+func (tags Tags) ToCustomFormat() ([]byte, error) {
+	// Словарь для хранения временных данных, ключом является строка времени
+	timeDataMap := make(map[string][]Metric)
+
+	for _, tag := range tags {
+		// Форматируем время в строку согласно примеру
+		timeStr := tag.Date.Format(time.RFC3339Nano)
+		metric := Metric{
+			Name:  tag.Name,
+			Value: tag.Value,
+		}
+		timeDataMap[timeStr] = append(timeDataMap[timeStr], metric)
+	}
+
+	// Создаем результативный массив временных точек
+	var result []TimePoint
+	for timeStr, metrics := range timeDataMap {
+		result = append(result, TimePoint{
+			Time: timeStr,
+			Data: metrics,
+		})
+	}
+
+	return json.Marshal(result)
+}

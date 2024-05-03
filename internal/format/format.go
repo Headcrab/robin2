@@ -13,6 +13,9 @@ func New(format string) ResponseFormatter {
 	case "json":
 		return &ResponseFormatterJSON{}
 
+	case "grafana":
+		return &ResponseFormatterGrafana{}
+
 	case "xml":
 		return &ResponseFormatterXML{}
 

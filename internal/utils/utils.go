@@ -87,6 +87,13 @@ func parseTime(timeStr string, formats []string) (time.Time, error) {
 			return time.Time{}, errors.ErrNotAFloat
 		}
 
+		if timeFloat > 1000000000 {
+			// Преобразование метки времени из миллисекунд в time.Time
+			t := time.Unix(0, int64(timeFloat)*int64(time.Millisecond))
+			// Форматирование времени
+			return t, nil
+		}
+
 		unixTime := (timeFloat - 25569.0) * 86400.0
 		return time.Unix(int64(unixTime), 0.0).UTC(), nil
 	}

@@ -1,4 +1,4 @@
-version: '3.8'
+# version: '3.8'
 
 name: robin
 
@@ -25,7 +25,7 @@ services:
       retries: 5
 
   clickhouse:
-    build: /clickhouse 
+    build: clickhouse 
     container_name: clickhouse
     restart: always
     environment:
@@ -34,7 +34,7 @@ services:
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: '1'
     volumes:
       - clickhouse:/var/lib/clickhouse
-      - x:/docker/copy_to_clickhouse:/var/lib/clickhouse/copyed
+      - ~/docker/copy_to_clickhouse:/var/lib/clickhouse/copyed
     ports:
       - 8123:8123
       - 9000:9000
@@ -67,8 +67,8 @@ services:
     container_name: robin
     restart: always
     volumes:
-      - x:/docker/configs/Robin:/Robin/config
-      - x:/docker/logs/Robin:/Robin/log
+      - ~/docker/configs/Robin:/Robin/config
+      - ~/docker/logs/Robin:/Robin/log
     ports:
       - 8008:8008
     extra_hosts:
