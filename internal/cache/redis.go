@@ -14,6 +14,10 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+func init() {
+	Register("redis", NewRedis)
+}
+
 var RedisCacheLock = &sync.Mutex{}
 
 type Redis struct {
@@ -23,7 +27,7 @@ type Redis struct {
 	ttl    time.Duration
 }
 
-func NewRedis(cfg config.Config) (*Redis, error) {
+func NewRedis(cfg config.Config) (Cache, error) {
 	t := Redis{
 		config: cfg,
 	}

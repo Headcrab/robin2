@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+func init() {
+	Register("memoryByte", NewMemoryByte)
+}
+
 var MemoryCacheByteLock = &sync.Mutex{}
 
 type hash [16]byte
@@ -19,7 +23,7 @@ type MemoryByte struct {
 	config config.Config
 }
 
-func NewMemoryByte(cfg config.Config) (*MemoryByte, error) {
+func NewMemoryByte(cfg config.Config) (Cache, error) {
 	t := MemoryByte{
 		cache:  make(map[hash]float32),
 		config: cfg,

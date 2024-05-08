@@ -10,11 +10,15 @@ import (
 	_ "github.com/denisenkom/go-mssqldb"
 )
 
+func init() {
+	Register("mssql", NewMsSql)
+}
+
 type MsSql struct {
 	Base
 }
 
-func NewMsSql(cfg config.Config) *MsSql {
+func NewMsSql(cfg config.Config) (Store, error) {
 	logger.Debug("NewMsSqlStore")
 	round := cfg.Round
 	p := math.Pow(10, float64(round))
@@ -24,7 +28,7 @@ func NewMsSql(cfg config.Config) *MsSql {
 			config:        cfg,
 		},
 	}
-	return &t
+	return &t, nil
 }
 
 func (s *MsSql) Connect(name string, cache cache.Cache) error {

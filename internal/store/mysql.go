@@ -11,11 +11,15 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+func init() {
+	Register("mysql", NewMySql)
+}
+
 type MySql struct {
 	Base
 }
 
-func NewMySql(cfg config.Config) *MySql {
+func NewMySql(cfg config.Config) (Store, error) {
 	logger.Debug("NewMySqlStore")
 	round := cfg.Round
 	p := math.Pow(10, float64(round))
@@ -25,7 +29,7 @@ func NewMySql(cfg config.Config) *MySql {
 			config:        cfg,
 		},
 	}
-	return &t
+	return &t, nil
 }
 
 func (s *MySql) Connect(name string, cache cache.Cache) error {

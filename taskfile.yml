@@ -16,7 +16,12 @@ tasks:
   build:
     deps: ['update_version', 'swagger'] 
     cmds:
-      - GOOS=windows CGO_ENABLED=0 go build -ldflags "-s -w -X main.Name={{.PROJECT_NAME}} -X main.AppVersion={{.NEW_VERSION}}" -trimpath -o ./bin/{{.PROJECT_NAME}}.exe {{.PROJECT_PATH}}
+      - |
+        if [ "{{.GOOS}}" = "windows" ]; then
+          CGO_ENABLED=0 go build -ldflags "-s -w -X main.Name={{.PROJECT_NAME}} -X main.AppVersion={{.NEW_VERSION}}" -trimpath -o ./bin/{{.PROJECT_NAME}}.exe {{.PROJECT_PATH}}
+        else
+          CGO_ENABLED=0 go build -ldflags "-s -w -X main.Name={{.PROJECT_NAME}} -X main.AppVersion={{.NEW_VERSION}}" -trimpath -o ./bin/{{.PROJECT_NAME}} {{.PROJECT_PATH}}
+        fi
 
   update_version:
     cmds:

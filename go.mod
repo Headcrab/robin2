@@ -1,6 +1,6 @@
 module robin2
 
-go 1.22.2
+go 1.22.3
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.23.2
@@ -20,6 +20,7 @@ require (
 	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	golang.org/x/text v0.15.0 // indirect
 	olympos.io/encoding/edn v0.0.0-20201019073823-d3554ca0b0a3 // indirect
 )
 

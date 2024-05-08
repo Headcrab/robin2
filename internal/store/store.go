@@ -6,23 +6,26 @@ import (
 	"robin2/internal/cache"
 	"robin2/internal/config"
 	"robin2/internal/data"
-	"robin2/internal/logger"
+	"robin2/internal/errors"
 )
 
-func New(cfg config.Config) Store {
-	switch cfg.CurrDB.Type {
-	case "mysql":
-		logger.Debug("store.New.mysql")
-		return NewMySql(cfg)
-	case "mssql":
-		logger.Debug("store.New.mssql")
-		return NewMsSql(cfg)
-	case "clickhouse":
-		logger.Debug("store.New.clickhouse")
-		return NewClickhouse(cfg)
+var registry map[string]func(config.Config) (Store, error)
+
+func Register(name string, f func(config.Config) (Store, error)) {
+	if registry == nil {
+		registry = make(map[string]func(config.Config) (Store, error))
 	}
-	logger.Error("store.New.default: " + cfg.CurrDB.Type)
-	return nil
+	registry[name] = f
+}
+
+func New(cfg config.Config) (Store, error) {
+	f, ok := registry[cfg.CurrDB.Type]
+	if !ok {
+		err := errors.ErrCurrDBNotFound
+		// logger.Error(err.Error())
+		return nil, err
+	}
+	return f(cfg)
 }
 
 type Store interface {

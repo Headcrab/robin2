@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+func init() {
+	Register("memory", NewMemory)
+}
+
 var MemoryCacheLock = &sync.Mutex{}
 
 type Memcache map[string]map[time.Time]float32
@@ -18,7 +22,7 @@ type Memory struct {
 	config config.Config
 }
 
-func NewMemory(cfg config.Config) (Memory, error) {
+func NewMemory(cfg config.Config) (Cache, error) {
 	t := Memory{
 		cache:  make(Memcache),
 		config: cfg,

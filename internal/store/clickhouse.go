@@ -10,11 +10,15 @@ import (
 	_ "github.com/ClickHouse/clickhouse-go/v2"
 )
 
+func init() {
+	Register("clickhouse", NewClickhouse)
+}
+
 type Clickhouse struct {
 	Base
 }
 
-func NewClickhouse(cfg config.Config) *Clickhouse {
+func NewClickhouse(cfg config.Config) (Store, error) {
 	logger.Debug("NewClickHouseStore")
 	round := cfg.Round
 	p := math.Pow(10, float64(round))
@@ -24,7 +28,7 @@ func NewClickhouse(cfg config.Config) *Clickhouse {
 			config:        cfg,
 		},
 	}
-	return &t
+	return &t, nil
 }
 
 func (s *Clickhouse) Connect(name string, cache cache.Cache) error {

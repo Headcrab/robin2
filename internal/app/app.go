@@ -4,11 +4,14 @@ package robin
 // todo: add tests
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"net/http"
 	"strconv"
@@ -58,7 +61,7 @@ func NewApp() *App {
 	app.name = os.Getenv("PROJECT_NAME")
 	app.version = os.Getenv("PROJECT_VERSION")
 	// app.config = config.New()
-	app.config.Load(filepath.Join(app.workDir, "config", "robin.json"))
+	app.config.Load(filepath.Join(app.workDir, "config", "Robin.json"))
 	return &app
 }
 
@@ -66,26 +69,58 @@ func (a *App) Run() {
 	a.startTime = time.Now()
 	logger.Info(a.name + " " + a.version + " is running")
 
-	a.initDatabase()
+	if err := a.initDatabase(); err != nil {
+		logger.Fatal(err.Error())
+	}
 
 	mux := a.initHTTPHandlers()
+	if mux == nil {
+		logger.Fatal("Failed to initialize HTTP handlers")
+	}
+
 	logger.Info("listening on: " + strings.Join(utils.GetLocalhostIpAdresses(),
 		":"+strconv.Itoa(a.config.Port)+", ") + ":" + strconv.Itoa(a.config.Port))
 
-	err := http.ListenAndServe(":"+strconv.Itoa(a.config.Port), mux)
-	if err != nil {
+	srv := &http.Server{
+		Addr:    ":" + strconv.Itoa(a.config.Port),
+		Handler: mux,
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal(err.Error())
+		}
+	}()
+
+	// Add a mechanism to gracefully shut down the server
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
 		logger.Fatal(err.Error())
 	}
 }
 
-func (a *App) initDatabase() {
-	a.cache = cache.New(a.config)
-	a.store = store.New(a.config)
-
-	err := a.store.Connect("default", a.cache)
+func (a *App) initDatabase() error {
+	var err error
+	a.cache, err = cache.New(a.config)
 	if err != nil {
-		logger.Fatal(err.Error())
+		return err
 	}
+	a.store, err = store.New(a.config)
+	if err != nil {
+		return err
+	}
+
+	err = a.store.Connect("default", a.cache)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *App) initHTTPHandlers() http.Handler {

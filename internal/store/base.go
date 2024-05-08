@@ -717,9 +717,9 @@ func (s *Base) TemplateExec(name string, params map[string]string) (*data.Output
 	dbName := utils.ThenIf(params["db"] != "", params["db"], s.config.CurrDB.Name)
 	// var storedb *Store
 	// if dbName != s.config.CurrDB.Name {
-	storedb := New(s.config)
-	if storedb == nil {
-		return nil, errors.ErrStoreError
+	storedb, err := New(s.config)
+	if err != nil {
+		return nil, err
 	}
 	err = storedb.Connect(dbName, nil)
 	if err != nil {

@@ -2,9 +2,19 @@ package cache
 
 import (
 	"robin2/internal/config"
+	"robin2/internal/errors"
 	"robin2/internal/logger"
 	"time"
 )
+
+var registry map[string]func(config.Config) (Cache, error)
+
+func Register(name string, f func(config.Config) (Cache, error)) {
+	if registry == nil {
+		registry = make(map[string]func(config.Config) (Cache, error))
+	}
+	registry[name] = f
+}
 
 type Cache interface {
 	Connect() error
@@ -15,33 +25,12 @@ type Cache interface {
 	SetStr(tag string, field string, value float32) error
 }
 
-func New(cfg config.Config) Cache {
-	switch cfg.CurrCache.Type {
-	case "memory":
-		logger.Debug("NewCache.memory")
-		t, err := NewMemory(cfg)
-		if err != nil {
-			logger.Error(err.Error())
-			return nil
-		}
-		return t
-	case "memoryBytes":
-		logger.Debug("NewCache.memoryBytes")
-		t, err := NewMemoryByte(cfg)
-		if err != nil {
-			logger.Error(err.Error())
-			return nil
-		}
-		return t
-	case "redis":
-		logger.Debug("NewCache.redis")
-		t, err := NewRedis(cfg)
-		if err != nil {
-			logger.Error(err.Error())
-			return nil
-		}
-		return t
+func New(cfg config.Config) (Cache, error) {
+	f, ok := registry[cfg.CurrCache.Type]
+	if !ok {
+		err := errors.ErrCurrCacheNotFound
+		logger.Error(err.Error())
+		return nil, err
 	}
-	logger.Error("cache type not found")
-	return nil
+	return f(cfg)
 }
