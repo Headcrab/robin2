@@ -19,6 +19,7 @@ import (
 
 	"robin2/internal/cache"
 	"robin2/internal/config"
+	"robin2/internal/format"
 	"robin2/internal/logger"
 	"robin2/internal/middleware"
 	"robin2/internal/store"
@@ -31,15 +32,16 @@ import (
 )
 
 type App struct {
-	name      string
-	version   string
-	startTime time.Time
-	workDir   string
-	opCount   int64
-	config    config.Config
-	cache     cache.Cache
-	store     store.Store
-	template  *template.Template
+	name          string
+	version       string
+	startTime     time.Time
+	workDir       string
+	opCount       int64
+	config        config.Config
+	cache         cache.Cache
+	store         store.Store
+	template      *template.Template
+	formatterPool *format.FormatterPool
 }
 
 type dbStatus struct {
@@ -62,6 +64,7 @@ func NewApp() *App {
 	app.version = os.Getenv("PROJECT_VERSION")
 	// app.config = config.New()
 	app.config.Load(filepath.Join(app.workDir, "config", "Robin.json"))
+	app.formatterPool = format.NewFormatterPool(10)
 	return &app
 }
 

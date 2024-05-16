@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+func init() {
+	Register("xml", &ResponseFormatterXML{})
+}
+
 type ResponseFormatterXML struct {
 	round float64
 }

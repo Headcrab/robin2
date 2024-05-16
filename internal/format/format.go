@@ -6,31 +6,30 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync"
 )
 
-func New(format string) ResponseFormatter {
-	switch format {
-	case "json":
-		return &ResponseFormatterJSON{}
+var (
+	registry map[string]ResponseFormatter
+	once     sync.Once
+)
 
-	case "grafana":
-		return &ResponseFormatterGrafana{}
+func Register(name string, format ResponseFormatter) {
+	once.Do(func() {
+		registry = make(map[string]ResponseFormatter)
+	})
+	registry[name] = format
+}
 
-	case "xml":
-		return &ResponseFormatterXML{}
-
-	case "raw":
-		return &ResponseFormatterRaw{}
-
-	case "html":
-		return &ResponseFormatterHTML{}
-
-	case "str":
-		return &ResponseFormatterString{}
-	default:
-		return &ResponseFormatterString{}
+func New(format string) (ResponseFormatter, error) {
+	once.Do(func() {
+		registry = make(map[string]ResponseFormatter)
+	})
+	formatter, ok := registry[format]
+	if !ok {
+		return nil, fmt.Errorf("formatter '%s' not found", format)
 	}
-	// return nil
+	return formatter, nil
 }
 
 type ResponseFormatter interface {
@@ -57,4 +56,32 @@ func (r *ResponseFormatterRaw) Process(val interface{}) []byte {
 func (r *ResponseFormatterRaw) SetRound(r2 int) ResponseFormatter {
 	r.round = float64(r2)
 	return r
+}
+
+type FormatterPool struct {
+	formatters chan ResponseFormatter
+}
+
+func NewFormatterPool(size int) *FormatterPool {
+	return &FormatterPool{
+		formatters: make(chan ResponseFormatter, size),
+	}
+}
+
+func (p *FormatterPool) Get(format string) (ResponseFormatter, error) {
+	select {
+	case f := <-p.formatters:
+		return f, nil
+	default:
+		fmtr, err := New(format)
+		return fmtr, err
+	}
+}
+
+func (p *FormatterPool) Put(f ResponseFormatter) {
+	select {
+	case p.formatters <- f:
+	default:
+		// пул переполнен, пропускаем форматтер
+	}
 }

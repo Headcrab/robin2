@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+func init() {
+	Register("grafana", &ResponseFormatterGrafana{})
+}
+
 type ResponseFormatterGrafana struct {
 	round float64
 }

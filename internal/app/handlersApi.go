@@ -24,24 +24,37 @@ import (
 // @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
 func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("rendered log page")
-	// w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	// w.Header().Set("Content-Type", "application/json")
+
+	// Получим формат из параметров запроса
 	formatStr := r.URL.Query().Get("format")
+	if formatStr == "" {
+		formatStr = "text" // Устанавливаем формат по умолчанию, если он не указан
+	}
+
+	// Установим заголовки для ответа
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	w.Header().Set("Content-Type", fmt.Sprintf("application/%s", formatStr))
+
+	// Получим историю логов
 	logs, err := logger.GetLogHistory()
 	if err != nil {
-		if _, err := w.Write([]byte("#Error: " + err.Error())); err != nil {
-			logger.Error(fmt.Sprintf("Ошибка при записи ответа: %v", err))
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		logger.Error(fmt.Sprintf("Ошибка при получении логов: %v", err))
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	tagValue := format.New(formatStr).Process(logs)
-	// tagValue, err := json.MarshalIndent(logs, "", "  ")
-	// if err != nil {
-	// 	w.Write([]byte("#Error: " + err.Error()))
-	// 	return
-	// }
 
+	// Создадим форматировщик на основе параметра format
+	fmtr, err := format.New(formatStr)
+	if err != nil {
+		logger.Error(fmt.Sprintf("Ошибка при создании форматировщика: %v", err))
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Отформатируем логи
+	tagValue := fmtr.Process(logs)
+
+	// Запишем ответ
 	if _, err := w.Write(tagValue); err != nil {
 		logger.Error(fmt.Sprintf("Ошибка при записи ответа: %v", err))
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -128,29 +141,42 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 // @Router /get/tag/list/ [get]
 // @Param like query string false "Маска поиска"
 // @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
+// handleAPIGetTagList обрабатывает HTTP-запрос на получение списка тегов.
+// Параметры запроса:
+//   - like: строка для фильтрации тегов
+//   - format: формат вывода (например, JSON, XML)
+//   - round: количество знаков после запятой для округления значений
 func (a *App) handleAPIGetTagList(w http.ResponseWriter, r *http.Request) {
-	writer := []byte("#Error: unknown error")
-	defer func() {
-		if _, err := w.Write(writer); err != nil {
-			logger.Error(fmt.Sprintf("Ошибка при записи ответа: %v", err))
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
-	}()
-
-	// Extract query parameter
+	// Извлечение параметров запроса
 	like := r.URL.Query().Get("like")
-	fmt := r.URL.Query().Get("format")
-	roundStr := r.URL.Query().Get("round")
-	round := utils.ThenIf(roundStr != "", func() int { r, _ := strconv.Atoi(roundStr); return r }(), a.config.Round)
+	format := r.URL.Query().Get("format")
 
-	// Retrieve list of tags
+	// Установка заголовков для ответа
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	w.Header().Set("Content-Type", fmt.Sprintf("application/%s", format))
+
+	// Получение списка тегов из хранилища
 	tags, err := a.store.GetTagList(like)
 	if err != nil {
-		writer = []byte("#Error: " + err.Error())
+		http.Error(w, "Ошибка получения списка тегов: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	writer = format.New(fmt).SetRound(round).Process(tags)
+	// Получение форматтера из пула
+	fmtr, err := a.formatterPool.Get(format)
+	if err != nil {
+		http.Error(w, "Неподдерживаемый формат вывода: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer a.formatterPool.Put(fmtr) // Возврат форматтера в пул
+
+	// Сборка ответа в буфере
+	buf := fmtr.Process(tags)
+
+	// Отправка ответа клиенту
+	if _, err := w.Write(buf); err != nil {
+		http.Error(w, "Ошибка записи ответа: "+err.Error(), http.StatusInternalServerError)
+	}
 }
 
 // @Summary Получить даты отключения оборудования
@@ -307,12 +333,29 @@ func (a *App) handleAPIInfo(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {array} string
 // @Router /api/reload/ [get]
 func (a *App) handleAPIReloadConfig(w http.ResponseWriter, r *http.Request) {
-	logger.Trace("reloading config file")
+	logger.Trace("Reloading config file")
 
+	// Перезагрузка конфигурации
 	if err := a.config.Reload(); err != nil {
-		logger.Fatal("Failed to read config file")
+		logger.Error(fmt.Sprintf("Failed to read config file: %s", err))
+		http.Error(w, "Failed to read config file", http.StatusInternalServerError)
+		return
 	}
-	a.initDatabase()
+
+	// Инициализация базы данных
+	if err := a.initDatabase(); err != nil {
+		logger.Error(fmt.Sprintf("Failed to initialize database: %s", err))
+		http.Error(w, "Failed to initialize database", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info("Configuration reloaded and database initialized successfully")
+	w.WriteHeader(http.StatusOK)
+	_, err := w.Write([]byte("Configuration reloaded and database initialized successfully"))
+	if err != nil {
+		logger.Error(fmt.Sprintf("Failed to write response: %s", err))
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
 }
 
 func (a *App) handleAPIServerStatus(w http.ResponseWriter, r *http.Request) {
@@ -333,7 +376,11 @@ func (a *App) getTagOnDate(tag, date, fmt string, round int) []byte {
 		return []byte("#Error: " + err.Error())
 	}
 
-	w := format.New(fmt).SetRound(round).Process(tagValue)
+	fmtr, err := format.New(fmt)
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
+	w := fmtr.SetRound(round).Process(tagValue)
 	return w
 }
 
@@ -351,7 +398,11 @@ func (a *App) getTagsOnDate(tags []string, date, fmt string, round int) []byte {
 		}
 		tagsVal = append(tagsVal, tagValue)
 	}
-	w := format.New(fmt).SetRound(round).Process(tagsVal)
+	fmtr, err := format.New(fmt)
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
+	w := fmtr.SetRound(round).Process(tagsVal)
 	return w
 }
 
@@ -373,7 +424,11 @@ func (a *App) getTagByCount(tag, from, to, count string, fmt string, round int) 
 		return []byte("#Error: " + err.Error())
 	}
 
-	w := format.New(fmt).SetRound(round).Process(tagValue)
+	fmtr, err := format.New(fmt)
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
+	w := fmtr.SetRound(round).Process(tagValue)
 	return w
 }
 
@@ -399,7 +454,11 @@ func (a *App) getTagFromToByCountWithGroup(tag, from, to, count string, group st
 		return []byte("#Error: " + err.Error())
 	}
 
-	w := format.New(fmt).SetRound(round).Process(tagValue)
+	fmtr, err := format.New(fmt)
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
+	w := fmtr.SetRound(round).Process(tagValue)
 	return w
 }
 
@@ -416,7 +475,11 @@ func (a *App) getTagFromTo(tag, from, to string, fmt string, round int) []byte {
 	if err != nil {
 		return []byte("#Error: " + err.Error())
 	}
-	w := format.New(fmt).SetRound(round).Process(tagValue)
+	fmtr, err := format.New(fmt)
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
+	w := fmtr.SetRound(round).Process(tagValue)
 	return w
 }
 
@@ -446,10 +509,14 @@ func (a *App) getTagFromToWithGroup(tag, from, to, group string, fmt string, rou
 
 	}
 	var w []byte
+	fmtr, err := format.New(fmt)
+	if err != nil {
+		return []byte("#Error: " + err.Error())
+	}
 	if len(tdv) == 1 {
-		w = format.New(fmt).SetRound(round).Process(tdv[tags[0]][toT])
+		w = fmtr.SetRound(round).Process(tdv[tags[0]][toT])
 	} else {
-		w = format.New(fmt).SetRound(round).Process(tdv)
+		w = fmtr.SetRound(round).Process(tdv)
 	}
 	return w
 }
@@ -466,35 +533,52 @@ func (a *App) handleTagDecode(w http.ResponseWriter, r *http.Request) {
 	tag := r.URL.Query().Get("tag")
 	formatStr := r.URL.Query().Get("format")
 
+	// устанавливаем заголовоки для ответа
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	w.Header().Set("Content-Type", "application/json")
+
 	if tag == "" {
-		if _, err := w.Write([]byte("#Error: tag is empty")); err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		http.Error(w, "#Error: tag is empty", http.StatusBadRequest)
 		return
 	}
+
 	tags := strings.Split(tag, ",")
 	for i := range tags {
 		tags[i] = strings.TrimSpace(tags[i])
 	}
 
+	// Создаем map для хранения декодированных тегов
 	ret := make(map[string]map[string]string)
+
+	// Создаем экземпляр decode.Decoder и загружаем JSON данные
 	var dec decode.Decoder
 	err := dec.LoadJSONData(filepath.Join(a.workDir, "config"))
 	if err != nil {
-		if _, err := w.Write([]byte("#Error: " + err.Error())); err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		http.Error(w, "#Error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Добавляем теги в декодер и декодируем их
 	for _, t := range tags {
 		dec.Tags = append(dec.Tags, decode.Tag{Name: t})
-		dec.DecodeTags()
 	}
+	dec.DecodeTags()
+
+	// Читаем декодированные теги из канала
 	for item := range dec.DecodedTagsChan {
 		ret[item["tag_name"]] = item
 	}
 
-	s := format.New(formatStr).Process(ret)
+	// Создаем форматтер и обрабатываем результат
+	fmtr, err := format.New(formatStr)
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+	s := fmtr.Process(ret)
+
+	// Устанавливаем заголовок Content-Type и пишем ответ
+	w.Header().Set("Content-Type", "application/json")
 	if _, err := w.Write([]byte(s)); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}

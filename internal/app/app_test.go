@@ -46,7 +46,10 @@ func Test_tryParseDate(t *testing.T) {
 		},
 	}
 	app := NewApp()
-	app.initDatabase()
+	err := app.initDatabase()
+	if err != nil {
+		t.Errorf("Error initializing database: %v", err)
+	}
 	for _, test := range test_cases {
 		t.Run(test.name, func(t *testing.T) {
 			date, err := utils.TryParseDate(test.date, app.config.DateFormats)
@@ -78,7 +81,10 @@ func Test_endpoint_get_tag_list(t *testing.T) {
 		},
 	}
 	app := NewApp()
-	app.initDatabase()
+	err := app.initDatabase()
+	if err != nil {
+		t.Errorf("Error initializing database: %v", err)
+	}
 	for _, test := range test_cases {
 		t.Run(test.name, func(t *testing.T) {
 			// test request, get response

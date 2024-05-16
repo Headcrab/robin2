@@ -113,5 +113,5 @@ func (tags Tags) ToCustomFormat() ([]byte, error) {
 		})
 	}
 
-	return json.Marshal(result)
+	return json.MarshalIndent(result, "", "  ")
 }

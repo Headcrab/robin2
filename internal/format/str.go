@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+func init() {
+	Register("text", &ResponseFormatterString{})
+}
+
 type ResponseFormatterString struct {
 	round float64
 }

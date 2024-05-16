@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+func init() {
+	Register("json", &ResponseFormatterJSON{})
+}
+
 type ResponseFormatterJSON struct {
 	round float64
 }
@@ -65,9 +69,23 @@ func (r *ResponseFormatterJSON) Process(val interface{}) []byte {
 
 		return jsonData
 	case data.Tags:
-		return mustMarshalJSON(v)
+		scc := make([]ResponseFormatJSON, 0, len(v))
+		for _, v1 := range v {
+			scc = append(scc, ResponseFormatJSON{
+				Date:  v1.Date.Format("2006-01-02 15:04:05"),
+				Tag:   v1.Name,
+				Value: fmt.Sprintf("%v", Round(v1.Value, r.round)),
+			})
+		}
+		return mustMarshalJSON(scc)
 	}
 	return []byte("ResponseFormatterJSON not supported: " + fmt.Sprint(val))
+}
+
+type ResponseFormatJSON struct {
+	Date  string `json:"date"`
+	Tag   string `json:"tag"`
+	Value string `json:"value"`
 }
 
 func mustMarshalJSON(v interface{}) []byte {

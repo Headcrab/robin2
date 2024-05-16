@@ -233,5 +233,10 @@ func (a *App) handleTemplateExec(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writer = format.New(formatStr).Process(b)
+	fmtr, err := format.New(formatStr)
+	if err != nil {
+		writer = []byte("#Error: " + err.Error())
+		return
+	}
+	writer = fmtr.Process(b)
 }
