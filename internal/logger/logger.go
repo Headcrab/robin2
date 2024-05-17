@@ -1,157 +1,278 @@
-// todo: configurable log levels (console, file)
-// todo: log size limit
-// todo: log rotation time
-// todo: log name by start time
-// todo: change log to slog
 package logger
 
 import (
+	"context"
+	"encoding/json"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/rs/zerolog"
+	"log/slog"
+
+	"github.com/joho/godotenv"
 )
 
-// log singleton
 var (
-	//  lock = &sync.Mutex{}
-	//  fileLock = &sync.Mutex{}
 	once          sync.Once
 	onceFile      sync.Once
-	consoleLogPtr *zerolog.Logger
-	fileLogPtr    *zerolog.Logger
+	consoleLogPtr *slog.Logger
+	fileLogPtr    *slog.Logger
 	file          *os.File
 )
 
 type LogLevel int
 
-// const (
-// 	Trace = iota
-// 	Debug
-// 	Info
-// 	Warn
-// 	Error
-// 	Fatal
-// )
+const (
+	LevelTrace LogLevel = iota
+	LevelDebug
+	LevelInfo
+	LevelWarn
+	LevelError
+	LevelFatal
+)
 
-func consoleLog() *zerolog.Logger {
-	// lock.Lock()
-	// defer lock.Unlock()
+// переменные, объявленные для извлечения значений из .env
+var (
+	logRotationSize    int64
+	logRotationTime    time.Duration
+	logPath            string
+	defaultLogFileName string
+	logLevel           string
+)
+
+// инициализация переменных из .env файла
+func init() {
+	err := godotenv.Load(filepath.Join(GetWorkDir(), ".env"))
+	if err != nil {
+		slog.Error("Error loading .env file")
+	}
+
+	logRotationSize, err = strconv.ParseInt(getEnv("LOG_ROTATION_SIZE", "100000"), 10, 64)
+	if err != nil {
+		slog.Error("Error parsing LOG_ROTATION_SIZE: %v", err)
+	}
+
+	logRotationTime, err = time.ParseDuration(getEnv("LOG_ROTATION_TIME", "24h"))
+	if err != nil {
+		slog.Error("Error parsing LOG_ROTATION_TIME: %v", err)
+	}
+
+	logPath = getEnv("LOG_PATH", "./log/")
+	defaultLogFileName = getEnv("LOG_DEFAULT_FILE_NAME", "robin.log")
+	logLevel = getEnv("LOG_LEVEL", "info")
+
+}
+
+// вспомогательная функция для получения значения переменной из .env файла
+func getEnv(key, defaultValue string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return defaultValue
+}
+
+func GetWorkDir() string {
+	executablePath, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		slog.Debug(err.Error())
+		return ""
+	}
+
+	dir := filepath.Dir(executablePath)
+	slog.Debug("working dir set to: " + dir)
+
+	return dir
+}
+
+func getLogLevel(level LogLevel) slog.Level {
+	switch level {
+	case LevelTrace:
+		return slog.LevelDebug - 1
+	case LevelDebug:
+		return slog.LevelDebug
+	case LevelInfo:
+		return slog.LevelInfo
+	case LevelWarn:
+		return slog.LevelWarn
+	case LevelError:
+		return slog.LevelError
+	case LevelFatal:
+		return slog.LevelError + 1
+	default:
+		return slog.LevelInfo
+	}
+}
+
+func consoleLog() *slog.Logger {
 	once.Do(func() {
-
-		tmp := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: "02.01.2006 15:04:05"}).
-			// Level(zerolog.TraceLevel).
-			Level(zerolog.DebugLevel).
-			// Level(zerolog.InfoLevel).
-			With().Timestamp().Logger()
-		consoleLogPtr = &tmp
-		consoleLogPtr.Debug().Msg("Initializing logger")
+		consoleLogPtr = slog.New(
+			slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: getLogLevel(strToLogLevel(logLevel))}))
+		consoleLogPtr.Info("Initializing console logger")
 	})
 	return consoleLogPtr
 }
 
-func fileLog() *zerolog.Logger {
-	// fileLock.Lock()
-	// defer fileLock.Unlock()
+func fileLog() *slog.Logger {
 	onceFile.Do(func() {
 		checkFileLog()
-		// defer file.Close()
-		tmp := zerolog.New(zerolog.ConsoleWriter{Out: file, TimeFormat: "02.01.2006 15:04:05", NoColor: true}).
-			// Level(zerolog.TraceLevel).
-			Level(zerolog.DebugLevel).
-			// Level(zerolog.InfoLevel).
-			With().Timestamp().Logger()
-		fileLogPtr = &tmp
-		// fileLogPtr.Debug().Msg("Initializing file logger")
+		fileLogPtr = slog.New(
+			slog.NewJSONHandler(file, &slog.HandlerOptions{Level: getLogLevel(strToLogLevel(logLevel))}))
+		fileLogPtr.Info("Initializing file logger")
 	})
 	return fileLogPtr
 }
 
 func isPathExists(s string) bool {
 	_, err := os.Stat(s)
-	if err == nil {
-		return true
-	}
-	if os.IsNotExist(err) {
-		return false
-	}
-	return true
+	return err == nil || os.IsExist(err)
 }
 
+// методы логирования для различного уровня логов
 func Trace(msg string) {
-	consoleLog().Trace().Msg(msg)
-	fileLog().Trace().Msg(msg)
+	logMessage(LevelTrace, msg)
 }
 
 func Debug(msg string) {
-	consoleLog().Debug().Msg(msg)
-	fileLog().Debug().Msg(msg)
+	logMessage(LevelDebug, msg)
 }
 
 func Info(msg string) {
-	consoleLog().Info().Msg(msg)
-	fileLog().Info().Msg(msg)
+	logMessage(LevelInfo, msg)
 }
 
 func Warn(msg string) {
-	consoleLog().Warn().Msg(msg)
-	fileLog().Warn().Msg(msg)
+	logMessage(LevelWarn, msg)
 }
 
 func Error(msg string) {
-	consoleLog().Error().Msg(msg)
-	fileLog().Error().Msg(msg)
+	logMessage(LevelError, msg)
 }
 
 func Fatal(msg string) {
-	consoleLog().Fatal().Msg(msg)
-	fileLog().Fatal().Msg(msg)
+	logMessage(LevelFatal, msg)
+}
+
+func logMessage(level LogLevel, msg string) {
+	consoleLog().LogAttrs(context.Background(), getLogLevel(level), msg)
+	fileLog().LogAttrs(context.Background(), getLogLevel(level), msg)
 }
 
 func checkFileLog() {
-	var logName = "robin" + time.Now().Format("_2006_01_02_15_04_05") + ".log"
-	// cp, _ := os.Getwd()
-	// fmt.Println("currPath: " + cp)
-	if file == nil {
-		var logPathes = []string{"../bin/log/", "../../bin/log/", "./log/", "../log/", "../../log/"}
-		for _, path := range logPathes {
-			if isPathExists(path) {
-				logPath := path
-				var err error
-				file, err = os.OpenFile(logPath+logName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-				if err != nil {
-					consoleLog().Fatal().Err(err).Msg("Error opening log file")
-				}
-			}
-		}
-	} else {
-		logName = file.Name()
-		// file.Close()
-		s, _ := os.Stat(logName)
-		if s.Size() > 100000 {
-			// file.Close()
-			logName = "robin" + time.Now().Format("_2006_01_02_15_04_05") + ".log"
-		}
-		var err error
-		file, err = os.OpenFile(logName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			consoleLog().Fatal().Err(err).Msg("Error opening log file")
-		}
+	closed := checkFileClosed(file)
+	if file == nil || closed || isFileSizeExceeded(file) || isTimeExceeded(file) {
+		file = createNewLogFile()
 	}
 }
 
-// todo: return json
-// todo: ? add level selector
-func GetLogHistory() ([]string, error) {
+func checkFileClosed(f *os.File) bool {
+	if f == nil {
+		return true
+	}
+	_, err := f.Stat()
+	return err != nil
+}
+
+func isFileSizeExceeded(f *os.File) bool {
+	info, err := f.Stat()
+	if err != nil {
+		consoleLog().Error("Cannot get file info", err)
+		return false
+	}
+	return info.Size() > logRotationSize
+}
+
+func isTimeExceeded(f *os.File) bool {
+	info, err := f.Stat()
+	if err != nil {
+		consoleLog().Error("Cannot get file info", err)
+		return false
+	}
+	modTime := info.ModTime()
+	return time.Since(modTime) > logRotationTime
+}
+
+func createNewLogFile() *os.File {
+	if !isPathExists(logPath) {
+		err := os.MkdirAll(logPath, os.ModePerm)
+		if err != nil {
+			consoleLog().Error("Failed to create log directory", err)
+		}
+	}
+	logFileName := logPath + getLogFileName()
+	f, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		consoleLog().Error("Error opening log file", err)
+	}
+	return f
+}
+
+func getLogFileName() string {
+	return defaultLogFileName
+}
+
+type LogItem struct {
+	Date  time.Time
+	Msg   string
+	Level string
+}
+
+type LogHistory []LogItem
+
+func GetLogHistory() (LogHistory, error) {
 	checkFileLog()
 	defer file.Close()
 	f, err := os.ReadFile(file.Name())
 	if err != nil {
-		return nil, err
+		return LogHistory{}, err
 	}
-	// split to []string by new line
-	s := strings.Split(strings.TrimSuffix(string(f), "\n"), "\n")
-	return s, nil
+	return parseLog(string(f)), nil
+}
+
+func parseLog(log string) []LogItem {
+	var logItems []LogItem
+	lines := strings.Split(log, "\n")
+	for _, line := range lines {
+		if line == "" {
+			continue
+		}
+		logItems = append(logItems, parseLogLine(line))
+	}
+	return logItems
+}
+
+func parseLogLine(line string) LogItem {
+	// parse json string
+	var logItem LogItem
+	err := json.Unmarshal([]byte(line), &logItem)
+	if err == nil {
+		return logItem
+	}
+	// parts := strings.Split(line, " ")
+	// date, err := time.Parse(time.RFC3339, parts[0]+"T"+parts[1]+"Z")
+	// if err != nil {
+	// 	consoleLog().Error("Error parsing log line", err)
+	// }
+	return logItem
+}
+
+func strToLogLevel(level string) LogLevel {
+	switch level {
+	case "trace":
+		return LevelTrace
+	case "debug":
+		return LevelDebug
+	case "info":
+		return LevelInfo
+	case "warn":
+		return LevelWarn
+	case "error":
+		return LevelError
+	case "fatal":
+		return LevelFatal
+	default:
+		return LevelInfo
+	}
 }

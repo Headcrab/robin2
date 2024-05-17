@@ -61,6 +61,6 @@ tasks:
 
   undeploy:
     cmds:
-      - 'docker-compose -f ./deploy/docker-compose.prod.yml down'
-      - 'docker rmi robin-clickhouse'
-      - 'docker rmi {{.PROJECT_NAME_LOW}}:latest'
+      - 'docker compose -f ./deploy/docker-compose.dev.yml down'
+      - 'docker rmi {{.PROJECT_NAME_LOW}}-clickhouse'
+      - 'docker rmi {{.PROJECT_NAME_LOW}}-{{.PROJECT_NAME_LOW}}'

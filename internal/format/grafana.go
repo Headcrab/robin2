@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"robin2/internal/data"
 
-	// "robin2/internal/logger"
+	"robin2/internal/logger"
 	"time"
 )
 
@@ -77,4 +77,13 @@ func (r *ResponseFormatterGrafana) Process(val interface{}) []byte {
 		return b
 	}
 	return []byte("ResponseFormatterJSON not supported: " + fmt.Sprint(val))
+}
+
+func mustMarshalJSON(v interface{}) []byte {
+	data, err := json.MarshalIndent(v, "", " ")
+	if err != nil {
+		logger.Error(err.Error())
+		return []byte("#Error: " + err.Error())
+	}
+	return data
 }

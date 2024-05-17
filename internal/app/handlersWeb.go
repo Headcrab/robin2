@@ -156,15 +156,13 @@ func (a *App) handlePageLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if logData == nil {
-		logData, err = logger.GetLogHistory()
+		logs, err := logger.GetLogHistory()
 		if err != nil {
-			errorMsg := "#Error: " + err.Error()
-			_, err := w.Write([]byte(errorMsg))
-			if err != nil {
-				logger.Error(fmt.Sprintf("Error writing response: %v", err))
-			}
-			logger.Error(errorMsg)
+			fmt.Println("Ошибка при чтении ответа:", err)
 			return
+		}
+		for _, log := range logs {
+			logData = append(logData, fmt.Sprintf("%s %s %s", log.Date.Format("2006-01-02 15:04:05"), log.Level, log.Msg))
 		}
 	}
 	a.handlePageAny(page, getOnePage(page, "Лог", logData, pageNum, logPerPage))(w, r)

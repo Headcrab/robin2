@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
+	// "fmt"
 	robin "robin2/internal/app"
 )
 
 func main() {
-	fmt.Printf("Starting")
+	// fmt.Printf("Starting")
 	robin.NewApp().Run()
 }

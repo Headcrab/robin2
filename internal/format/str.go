@@ -8,104 +8,101 @@ import (
 	"time"
 )
 
+// Регистрируем ResponseFormatterString при инициализации пакета
 func init() {
 	Register("text", &ResponseFormatterString{})
 }
 
+// ResponseFormatterString структура с полем округления
 type ResponseFormatterString struct {
 	round float64
 }
 
+// Process обрабатывает входные данные и возвращает отформатированную строку в виде байтов
 func (r *ResponseFormatterString) Process(val interface{}) []byte {
-	ret := ""
+	var sb strings.Builder // Используем strings.Builder для эффективного построения строк
+
+	// Обработка различных типов данных
 	switch v := val.(type) {
 	case float32:
-		ret = Format(Round(v, r.round))
+		sb.WriteString(Format(Round(v, r.round)))
 
 	case map[string]float32:
 		for k1, v1 := range v {
-			ret += k1 + "\t" + Format(Round(v1, r.round)) + "\n"
+			sb.WriteString(fmt.Sprintf("%s\t%s\n", k1, Format(Round(v1, r.round))))
 		}
 
 	case map[string]map[time.Time]float32:
 		for k1, v1 := range v {
 			for k2, v2 := range v1 {
-				// ret += k1 + "\t" + k2.Format("2006-01-02 15:04:05") + "\t" + Format(Round(v2, r.round)) + "\n"
-				ret += fmt.Sprintf("%v\t%v\t%v\n", k1, k2.Format("2006-01-02 15:04:05"), Format(Round(v2, r.round)))
+				sb.WriteString(fmt.Sprintf("%s\t%s\t%s\n", k1, k2.Format("2006-01-02 15:04:05"), Format(Round(v2, r.round))))
 			}
 		}
 
 	case map[string]map[string]string:
 		for k1, v1 := range v {
 			for k2, v2 := range v1 {
-				ret += k1 + "\t" + k2 + "\t" + v2 + "\n"
+				sb.WriteString(fmt.Sprintf("%s\t%s\t%s\n", k1, k2, v2))
 			}
 		}
 
 	case [][]string:
-		ret = ""
 		for _, v1 := range v {
-			ret += strings.Join(v1, "\t") + "\n"
+			sb.WriteString(strings.Join(v1, "\t"))
+			sb.WriteString("\n")
 		}
 
 	case []map[string]string:
-		ret = ""
-		// sort by key
-		keys := make([]string, 0, len(v))
-
-		for k1 := range v[0] {
-			keys = append(keys, k1)
-		}
-		sort.Strings(keys)
-		ret += strings.Join(keys, "\t") + "\n"
-
-		for _, v1 := range v {
-			t := []string{}
-			for _, k1 := range keys {
-				t = append(t, v1[k1])
+		if len(v) > 0 {
+			// Сортируем ключи
+			keys := make([]string, 0, len(v[0]))
+			for k1 := range v[0] {
+				keys = append(keys, k1)
 			}
-			ret += strings.Join(t, "\t") + "\n"
+			sort.Strings(keys)
+			sb.WriteString(strings.Join(keys, "\t"))
+			sb.WriteString("\n")
+
+			for _, v1 := range v {
+				vals := make([]string, 0, len(keys))
+				for _, k1 := range keys {
+					vals = append(vals, v1[k1])
+				}
+				sb.WriteString(strings.Join(vals, "\t"))
+				sb.WriteString("\n")
+			}
 		}
-		// if len(v) == 1 {
-		// 	if len(v[0]) == 1 {
-		// 		for _, v1 := range v[0] {
-		// 			ret = v1
-		// 		}
-		// 	}
-		// }
+
 	case *data.Output:
-		// if len(v.Headers) == 1 && len(v.Rows) == 1 {
 		if len(v.Rows) == 1 {
 			return []byte(v.Rows[0][2])
 		}
-		s := ""
-		for _, v1 := range v.Headers {
-			s += v1 + "\t"
+		sb.WriteString(strings.Join(v.Headers, "\t"))
+		sb.WriteString("\n")
+		for _, row := range v.Rows {
+			sb.WriteString(strings.Join(row, "\t"))
+			sb.WriteString("\n")
 		}
-		s += "\n"
-		for _, v1 := range v.Rows {
-			s += strings.Join(v1, "\t") + "\n"
-		}
-		ret = s
 
 	case []string:
-		ret = strings.Join(v, "\n")
+		sb.WriteString(strings.Join(v, "\n"))
 
 	case *data.Tag:
-		ret = fmt.Sprintf("%v", Round(v.Value, r.round))
+		sb.WriteString(fmt.Sprintf("%v", Round(v.Value, r.round)))
 
 	case data.Tags:
-		ret = ""
-		for _, v1 := range v {
-			ret += fmt.Sprintf("%v\t%v\t%v\n", v1.Name, v1.Date.Format("2006-01-02 15:04:05"), Round(v1.Value, r.round))
+		for _, tag := range v {
+			sb.WriteString(fmt.Sprintf("%v\t%v\t%v\n", tag.Name, tag.Date.Format("2006-01-02 15:04:05"), Round(tag.Value, r.round)))
 		}
 
 	default:
-		ret = "ResponseFormatterString not supported:" + fmt.Sprint(val)
+		// Возвращаем сообщение о неподдерживаемом типе
+		sb.WriteString(fmt.Sprintf("ResponseFormatterString not supported: %v", val))
 	}
-	return []byte(fmt.Sprint(ret))
+	return []byte(sb.String())
 }
 
+// SetRound устанавливает значение округления и возвращает сам объект
 func (r *ResponseFormatterString) SetRound(r2 int) ResponseFormatter {
 	r.round = float64(r2)
 	return r
