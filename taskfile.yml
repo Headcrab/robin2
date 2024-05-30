@@ -42,7 +42,7 @@ tasks:
 
   docker:
     cmds:
-      - 'docker build --build-arg PROJECT_NAME={{.PROJECT_NAME}} --build-arg PROJECT_VERSION={{.NEW_VERSION}} --build-arg PORT={{.PORT}} -f deploy/robin/Dockerfile -t {{.PROJECT_NAME_LOW}} .'
+      - 'docker build --env-file .env --build-arg PROJECT_NAME={{.PROJECT_NAME}} --build-arg PROJECT_VERSION={{.NEW_VERSION}} --build-arg PORT={{.PORT}} -f deploy/robin/Dockerfile -t {{.PROJECT_NAME_LOW}} .'
       - 'docker build -f deploy/clickhouse/Dockerfile -t robin-clickhouse .'
 
   deploy:

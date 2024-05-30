@@ -50,6 +50,8 @@ services:
     # dns:
     #   - 8.8.8.8
     #   - 8.8.4.4
+    env_file:
+      - ../.env
     environment:
       - PROJECT_NAME=${PROJECT_NAME}
       - PROJECT_VERSION=${PROJECT_VERSION}
