@@ -34,7 +34,7 @@ services:
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: '1'
     volumes:
       - clickhouse:/var/lib/clickhouse
-      - ~/docker/copy_to_clickhouse:/var/lib/clickhouse/copyed
+      - D:/work/docker/copy_to_clickhouse:/var/lib/clickhouse/copyed
     ports:
       - 8123:8123
       - 9000:9000
@@ -69,8 +69,8 @@ services:
     container_name: robin
     restart: always
     volumes:
-      - ~/docker/configs/Robin:/Robin/config
-      - ~/docker/logs/Robin:/Robin/log
+      - D:/work/docker/configs/Robin:/Robin/config
+      - D:/work/docker/logs/Robin:/Robin/log
     ports:
       - 8008:8008
     extra_hosts:
