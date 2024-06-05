@@ -8,20 +8,32 @@ vars:
   PROJECT_NAME_LOW:
     sh: echo {{.PROJECT_NAME}} | tr A-Z a-z
 
+preconditions:
+  all:
+    cmds:
+      - which swag || { echo 'swag not found'; exit 1; }
+      - which golangci-lint || { echo 'golangci-lint not found'; exit 1; }
+      - which docker || { echo 'docker not found'; exit 1; }
+      - which upx || { echo 'upx not found'; exit 1; }
+
 tasks:
   swagger:
     cmds:
       - swag init -g internal/app/app.go --exclude vendor --exclude ./
 
   build:
-    deps: ['update_version', 'swagger'] 
+    deps: ['update_version', 'swagger']
     cmds:
+      - >
+        echo "Building project {{.PROJECT_NAME}} version {{.NEW_VERSION}}..."
       - |
         if [ "{{.GOOS}}" = "windows" ]; then
-          CGO_ENABLED=0 go build -ldflags "-s -w -X main.Name={{.PROJECT_NAME}} -X main.AppVersion={{.NEW_VERSION}}" -trimpath -o ./bin/{{.PROJECT_NAME}}.exe {{.PROJECT_PATH}}
+          CGO_ENABLED=0 go build -ldflags "-s -w -X main.Name={{.PROJECT_NAME}} -X main.AppVersion={{.NEW_VERSION}}" -trimpath -o ./bin/{{.PROJECT_NAME}}.exe {{.PROJECT_PATH}} || { echo 'Build failed'; exit 1; }
         else
-          CGO_ENABLED=0 go build -ldflags "-s -w -X main.Name={{.PROJECT_NAME}} -X main.AppVersion={{.NEW_VERSION}}" -trimpath -o ./bin/{{.PROJECT_NAME}} {{.PROJECT_PATH}}
+          CGO_ENABLED=0 go build -ldflags "-s -w -X main.Name={{.PROJECT_NAME}} -X main.AppVersion={{.NEW_VERSION}}" -trimpath -o ./bin/{{.PROJECT_NAME}} {{.PROJECT_PATH}} || { echo 'Build failed'; exit 1; }
         fi
+      - >
+        echo "Build completed successfully."
 
   update_version:
     cmds:
@@ -43,24 +55,28 @@ tasks:
   docker:
     cmds:
       - 'docker build --env-file .env --build-arg PROJECT_NAME={{.PROJECT_NAME}} --build-arg PROJECT_VERSION={{.NEW_VERSION}} --build-arg PORT={{.PORT}} -f deploy/robin/Dockerfile -t {{.PROJECT_NAME_LOW}} .'
-      - 'docker build -f deploy/clickhouse/Dockerfile -t robin-clickhouse .'
+      - 'docker build -f deploy/clickhouse/Dockerfile -t {{.PROJECT_NAME_LOW}}-clickhouse .'
 
   deploy:
-    # deps: ['undeploy']
     cmds:
-      - 'PROJECT_NAME={{.PROJECT_NAME}} PROJECT_VERSION={{.NEW_VERSION}} PORT={{.PORT}} docker compose -f ./deploy/docker-compose.dev.yml up -d'
+      - 'PROJECT_NAME={{.PROJECT_NAME}} PROJECT_VERSION={{.NEW_VERSION}} PORT={{.PORT}} docker-compose -f ./deploy/docker-compose.dev.yml up -d'
 
   deploy_prod:
     deps: ['undeploy', 'docker']
     cmds:
       - 'PROJECT_VERSION={{.NEW_VERSION}} docker-compose -f ./deploy/docker-compose.prod.yml up -d'
-      - 'xcopy x:\go\robin2\deploy\docker-compose.prod.yml x:\docker\containers'
-      - 'xcopy x:\go\robin2\deploy\ch_runner x:\docker\containers\ch_runner'
-      - 'docker save -o x:\docker\containers\{{.PROJECT_NAME_LOW}}.tar {{.PROJECT_NAME_LOW}}:latest'
-      - 'docker save -o x:\docker\containers\robin-clickhouse.tar robin-clickhouse'
+      - 'xcopy x:\\docker\\containers\\ {{.PROJECT_NAME_LOW}} x:\\docker\\containers'
+      - 'docker save -o x:\\docker\\containers\\{{.PROJECT_NAME_LOW}}.tar {{.PROJECT_NAME_LOW}}:latest'
+      - 'docker save -o x:\\docker\\containers\\robin-clickhouse.tar {{.PROJECT_NAME_LOW}}-clickhouse'
 
   undeploy:
     cmds:
-      - 'docker compose -f ./deploy/docker-compose.dev.yml down'
-      - 'docker rmi {{.PROJECT_NAME_LOW}}-clickhouse'
-      - 'docker rmi {{.PROJECT_NAME_LOW}}-{{.PROJECT_NAME_LOW}}'
+      - 'docker-compose -f ./deploy/docker-compose.dev.yml down'
+      - |
+        if docker images {{.PROJECT_NAME_LOW}}-clickhouse -q; then
+          docker rmi {{.PROJECT_NAME_LOW}}-clickhouse
+        fi
+      - |
+        if docker images {{.PROJECT_NAME_LOW}}-{{.PROJECT_NAME_LOW}} -q; then
+          docker rmi {{.PROJECT_NAME_LOW}}-{{.PROJECT_NAME_LOW}}
+        fi
