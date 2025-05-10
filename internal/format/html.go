@@ -16,6 +16,8 @@ type ResponseFormatterHTML struct {
 	round float64
 }
 
+func (r *ResponseFormatterHTML) GetType() string { return "html" }
+
 func (r *ResponseFormatterHTML) Process(val interface{}) []byte {
 	switch v := val.(type) {
 	case float32:

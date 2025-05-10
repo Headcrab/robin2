@@ -5,7 +5,13 @@ ENV TZ=Asia/Almaty
 # Установка cron и других необходимых пакетов
 RUN apt-get update 
 RUN apt-get install -y tzdata 
-RUN apt-get install -y cron 
+# Обновляем индексы пакетов и устанавливаем cron
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository universe && \
+    apt-get update && \
+    apt-get install -y cron
+# RUN apt-get install -y cron 
 RUN apt-get install -y mc 
 RUN apt-get install -y sshfs
 # Добавление скрипта

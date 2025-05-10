@@ -18,6 +18,8 @@ type ResponseFormatterString struct {
 	round float64
 }
 
+func (r *ResponseFormatterString) GetType() string { return "text" }
+
 // Process обрабатывает входные данные и возвращает отформатированную строку в виде байтов
 func (r *ResponseFormatterString) Process(val interface{}) []byte {
 	var sb strings.Builder // Используем strings.Builder для эффективного построения строк
@@ -75,7 +77,7 @@ func (r *ResponseFormatterString) Process(val interface{}) []byte {
 
 	case *data.Output:
 		if len(v.Rows) == 1 {
-			return []byte(v.Rows[0][2])
+			return []byte(v.Rows[0][0])
 		}
 		sb.WriteString(strings.Join(v.Headers, "\t"))
 		sb.WriteString("\n")

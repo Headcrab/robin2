@@ -22,6 +22,7 @@ import (
 	"robin2/internal/format"
 	"robin2/internal/logger"
 	"robin2/internal/middleware"
+	"robin2/internal/pool"
 	"robin2/internal/store"
 	"robin2/internal/utils"
 
@@ -42,6 +43,7 @@ type App struct {
 	store         store.Store
 	template      *template.Template
 	formatterPool *format.FormatterPool
+	httpPool      *pool.WorkerPool
 }
 
 type dbStatus struct {
@@ -65,6 +67,8 @@ func NewApp() *App {
 	// app.config = config.New()
 	app.config.Load(filepath.Join(app.workDir, "config", "Robin.json"))
 	app.formatterPool = format.NewFormatterPool(10)
+	// logger := log.New(os.Stdout, "WorkerPool: ", log.Ldate|log.Ltime|log.Lmicroseconds)
+	app.httpPool = pool.NewWorkerPool(1000, nil)
 	return &app
 }
 
@@ -89,7 +93,9 @@ func (a *App) Run() {
 		Handler: mux,
 	}
 
+	// queuedServer := queuedserver.NewQueuedServer(":"+strconv.Itoa(a.config.Port), mux, 1000, 100)
 	go func() {
+		// if err := queuedServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal(err.Error())
 		}
@@ -108,19 +114,23 @@ func (a *App) Run() {
 }
 
 func (a *App) initDatabase() error {
-	var err error
-	a.cache, err = cache.New(a.config)
+	// Инициализация кэша
+	cache, err := cache.New(a.config)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to initialize cache: %w", err)
 	}
-	a.store, err = store.New(a.config)
-	if err != nil {
-		return err
-	}
+	a.cache = cache
 
-	err = a.store.Connect("default", a.cache)
+	// Инициализация хранилища
+	store, err := store.New(a.config)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to initialize store: %w", err)
+	}
+	a.store = store
+
+	// Подключение к БД
+	if err := a.store.Connect("default", a.cache); err != nil {
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	return nil

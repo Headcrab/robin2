@@ -52,12 +52,12 @@ func init() {
 
 	logRotationSize, err = strconv.ParseInt(getEnv("LOG_ROTATION_SIZE", "100000"), 10, 64)
 	if err != nil {
-		slog.Error("Error parsing LOG_ROTATION_SIZE: %v", err)
+		slog.Error("Error parsing LOG_ROTATION_SIZE", "error", err.Error())
 	}
 
 	logRotationTime, err = time.ParseDuration(getEnv("LOG_ROTATION_TIME", "24h"))
 	if err != nil {
-		slog.Error("Error parsing LOG_ROTATION_TIME: %v", err)
+		slog.Error("Error parsing LOG_ROTATION_TIME", "error", err.Error())
 	}
 
 	logPath = getEnv("LOG_PATH", "./log/")
@@ -178,7 +178,7 @@ func checkFileClosed(f *os.File) bool {
 func isFileSizeExceeded(f *os.File) bool {
 	info, err := f.Stat()
 	if err != nil {
-		consoleLog().Error("Cannot get file info", err)
+		consoleLog().Error("Cannot get file info", "error", err.Error())
 		return false
 	}
 	return info.Size() > logRotationSize
@@ -187,7 +187,7 @@ func isFileSizeExceeded(f *os.File) bool {
 func isTimeExceeded(f *os.File) bool {
 	info, err := f.Stat()
 	if err != nil {
-		consoleLog().Error("Cannot get file info", err)
+		consoleLog().Error("Cannot get file info", "error", err.Error())
 		return false
 	}
 	modTime := info.ModTime()
@@ -198,13 +198,13 @@ func createNewLogFile() *os.File {
 	if !isPathExists(logPath) {
 		err := os.MkdirAll(logPath, os.ModePerm)
 		if err != nil {
-			consoleLog().Error("Failed to create log directory", err)
+			consoleLog().Error("Failed to create log directory", "error", err.Error())
 		}
 	}
 	logFileName := logPath + getLogFileName()
 	f, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		consoleLog().Error("Error opening log file", err)
+		consoleLog().Error("Error opening log file", "error", err.Error())
 	}
 	return f
 }

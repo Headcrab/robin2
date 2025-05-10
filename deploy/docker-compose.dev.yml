@@ -10,7 +10,7 @@ networks:
 services:
   redis:
     image: redis 
-    container_name: redis
+    container_name: redis-robin
     restart: always
     ports:
       - 6379:6379
@@ -26,7 +26,7 @@ services:
 
   clickhouse:
     build: clickhouse 
-    container_name: clickhouse
+    container_name: clickhouse-robin
     restart: always
     environment:
       CLICKHOUSE_USER: admin
@@ -38,6 +38,7 @@ services:
     ports:
       - 8123:8123
       - 9000:9000
+      - 8443:8443
     networks:
       - database
     healthcheck:
@@ -90,6 +91,4 @@ services:
 
 volumes:
   clickhouse:
-    external: true
   redis:
-    external: true

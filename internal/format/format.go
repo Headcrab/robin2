@@ -22,6 +22,9 @@ func Register(name string, format ResponseFormatter) {
 }
 
 func New(format string) (ResponseFormatter, error) {
+	if format == "" {
+		format = "text"
+	}
 	once.Do(func() {
 		registry = make(map[string]ResponseFormatter)
 	})
@@ -35,6 +38,7 @@ func New(format string) (ResponseFormatter, error) {
 type ResponseFormatter interface {
 	Process(val interface{}) []byte
 	SetRound(r int) ResponseFormatter
+	GetType() string
 }
 
 func Round(val float32, round float64) float64 {
@@ -58,6 +62,10 @@ func (r *ResponseFormatterRaw) SetRound(r2 int) ResponseFormatter {
 	return r
 }
 
+func (r *ResponseFormatterRaw) GetType() string {
+	return "raw"
+}
+
 type FormatterPool struct {
 	formatters chan ResponseFormatter
 }
@@ -69,13 +77,26 @@ func NewFormatterPool(size int) *FormatterPool {
 }
 
 func (p *FormatterPool) Get(format string) (ResponseFormatter, error) {
+	var formatter ResponseFormatter
+	var err error
+
 	select {
 	case f := <-p.formatters:
-		return f, nil
+		if f.GetType() == format {
+			return f, nil
+		}
+		// Если форматтер не того типа, который нам нужен,
+		// вернем его в пул и создадим новый
+		p.Put(f)
 	default:
-		fmtr, err := New(format)
-		return fmtr, err
 	}
+
+	formatter, err = New(format)
+	if err != nil {
+		return nil, err
+	}
+
+	return formatter, nil
 }
 
 func (p *FormatterPool) Put(f ResponseFormatter) {

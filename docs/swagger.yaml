@@ -20,7 +20,7 @@ paths:
     get:
       description: Возвращает логи приложения
       parameters:
-      - description: Формат вывода (str - по умолчанию, json, raw)
+      - description: Формат вывода (text - по умолчанию, json, raw)
         in: query
         name: format
         type: string
@@ -84,7 +84,7 @@ paths:
         in: query
         name: round
         type: string
-      - description: Формат вывода (str - по умолчанию, json, raw)
+      - description: Формат вывода (text - по умолчанию, json, raw)
         in: query
         name: format
         type: string
@@ -141,7 +141,7 @@ paths:
         in: query
         name: like
         type: string
-      - description: Формат вывода (str - по умолчанию, json, raw)
+      - description: Формат вывода (text - по умолчанию, json, raw)
         in: query
         name: format
         type: string
@@ -199,7 +199,7 @@ paths:
         name: tag
         required: true
         type: string
-      - description: Формат вывода (str - по умолчанию, json, raw)
+      - description: Формат вывода (text - по умолчанию, json, raw)
         in: query
         name: format
         type: string
@@ -301,7 +301,7 @@ paths:
         in: query
         name: db
         type: string
-      - description: Формат вывода (str - по умолчанию, json, raw)
+      - description: Формат вывода (text - по умолчанию, json, raw)
         in: query
         name: format
         type: string

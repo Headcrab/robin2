@@ -17,6 +17,8 @@ type ResponseFormatterGrafana struct {
 	round float64
 }
 
+func (r *ResponseFormatterGrafana) GetType() string { return "grafana" }
+
 func (r *ResponseFormatterGrafana) SetRound(r2 int) ResponseFormatter {
 	r.round = float64(r2)
 	return r

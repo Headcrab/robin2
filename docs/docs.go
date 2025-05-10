@@ -51,7 +51,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Формат вывода (str - по умолчанию, json, raw)",
+                        "description": "Формат вывода (text - по умолчанию, json, raw)",
                         "name": "format",
                         "in": "query"
                     }
@@ -148,7 +148,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Формат вывода (str - по умолчанию, json, raw)",
+                        "description": "Формат вывода (text - по умолчанию, json, raw)",
                         "name": "format",
                         "in": "query"
                     }
@@ -235,7 +235,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Формат вывода (str - по умолчанию, json, raw)",
+                        "description": "Формат вывода (text - по умолчанию, json, raw)",
                         "name": "format",
                         "in": "query"
                     }
@@ -323,7 +323,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Формат вывода (str - по умолчанию, json, raw)",
+                        "description": "Формат вывода (text - по умолчанию, json, raw)",
                         "name": "format",
                         "in": "query"
                     }
@@ -477,7 +477,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Формат вывода (str - по умолчанию, json, raw)",
+                        "description": "Формат вывода (text - по умолчанию, json, raw)",
                         "name": "format",
                         "in": "query"
                     },

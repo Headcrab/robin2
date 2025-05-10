@@ -57,15 +57,27 @@ func (s *Base) GenerateConnectionString(name string) string {
 // хост и порт из конфигурации. Затем она находит IP-адрес хоста и записывает
 // детали соединения вместе с полученными IP-адресами.
 func (s *Base) logConnection(_ string) {
-	dbType := s.config.CurrDB.Type
-	host := s.config.CurrDB.Host
-	port := s.config.CurrDB.Port
-	nips, _ := net.LookupIP(host)
+	dbConfig := s.config.CurrDB
+	ips := resolveIPs(dbConfig.Host)
+
+	logger.Info(fmt.Sprintf(
+		"connecting to %s database on %s:%s (%s)",
+		dbConfig.Type, dbConfig.Host, dbConfig.Port, strings.Join(ips, ", "),
+	))
+}
+
+func resolveIPs(host string) []string {
+	nips, err := net.LookupIP(host)
+	if err != nil {
+		logger.Error(fmt.Sprintf("error resolving IP for host %s: %v", host, err))
+		return nil
+	}
+
 	var ips []string
 	for _, ip := range nips {
 		ips = append(ips, ip.String())
 	}
-	logger.Info(fmt.Sprintf("connecting to %s database on %s:%s ( %s )", dbType, host, port, strings.Join(ips, ", ")))
+	return ips
 }
 
 // replaceTemplate заменяет все строки в query на соответствующие значения из repMap.
@@ -102,47 +114,72 @@ func (s *Base) GetStatus() (string, time.Duration, error) {
 // - *data.Tag: значение, связанное с определенным тегом и датой.
 // - error: любая ошибка, возникшая в процессе получения значения.
 func (s *Base) GetTagDate(tag string, date time.Time) (*data.Tag, error) {
-	if date.IsZero() {
-		return nil, errors.ErrInvalidDate
-	}
-	if s.db == nil {
-		return nil, errors.ErrDbConnectionFailed
+	if err := s.validateInput(date); err != nil {
+		return nil, err
 	}
 
-	currTag := data.Tag{
-		Name:  tag,
-		Date:  date,
-		Value: -1,
-	}
+	currTag := s.initializeTag(tag, date)
 
-	// day := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
-	// _, err := s.cache.Get(tag+"|"+day.Format("2006-01-02"), day)
-	// if err != nil {
-	// 	s.cacheDay(tag, day)
-	// }
-
-	if val, err := s.cache.Get(tag, date); err == nil {
+	if val, err := s.getFromCache(tag, date); err == nil {
 		currTag.Value = val
 		return &currTag, nil
 	}
 
-	query := s.config.CurrDB.Query["get_tag_date"]
-	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{date}": date.Format("2006-01-02 15:04:05")}, query)
-	res := data.Tag{}
-	err := s.db.QueryRow(query).Scan(&res.Name, &res.Date, &res.Value)
-	if err != nil {
+	if err := s.fetchFromDatabase(tag, date, &currTag); err != nil {
 		return nil, err
 	}
-	currTag.Value = res.Value
 
-	if s.cache != nil && res.Value != -1 {
-		err = s.cache.Set(res.Name, date, float32(res.Value))
-		if err != nil {
-			logger.Error(err.Error())
-		}
-	}
+	s.updateCache(currTag, date)
 
 	return &currTag, nil
+}
+
+func (s *Base) validateInput(date time.Time) error {
+	if date.IsZero() {
+		return errors.ErrInvalidDate
+	}
+	if s.db == nil {
+		return errors.ErrDbConnectionFailed
+	}
+	return nil
+}
+
+func (s *Base) initializeTag(tag string, date time.Time) data.Tag {
+	return data.Tag{
+		Name:  tag,
+		Date:  date,
+		Value: -1,
+	}
+}
+
+func (s *Base) getFromCache(tag string, date time.Time) (float32, error) {
+	if s.cache == nil {
+		return -1, errors.ErrCurrCacheNotAvailaible
+
+	}
+	return s.cache.Get(tag, date)
+}
+
+func (s *Base) fetchFromDatabase(tag string, date time.Time, currTag *data.Tag) error {
+	query := s.buildQuery(tag, date)
+	return s.db.QueryRow(query).Scan(&currTag.Name, &currTag.Date, &currTag.Value)
+}
+
+func (s *Base) buildQuery(tag string, date time.Time) string {
+	query := s.config.CurrDB.Query["get_tag_date"]
+	return s.replaceTemplate(map[string]string{
+		"{tag}":  tag,
+		"{date}": date.Format("2006-01-02 15:04:05"),
+	}, query)
+}
+
+func (s *Base) updateCache(tag data.Tag, date time.Time) {
+	if s.cache == nil || tag.Value == -1 {
+		return
+	}
+	if err := s.cache.Set(tag.Name, date, float32(tag.Value)); err != nil {
+		logger.Error(err.Error())
+	}
 }
 
 // func (s *Base) cacheDay(tag string, day time.Time) {
@@ -458,7 +495,7 @@ func (s *Base) GetTagFromToUncached(tag string, from time.Time, to time.Time) (d
 // - float32: Извлеченное значение.
 // - error: Ошибка, если извлечение не удалось.
 func (s *Base) GetTagFromToGroup(tag string, from time.Time, to time.Time, group string) (float32, error) {
-	logger.Debug(fmt.Sprintf("GetTagFromTo %s: %s - %s (%s)", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05"), group))
+	// logger.Debug(fmt.Sprintf("GetTagFromTo %s: %s - %s (%s)", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05"), group))
 
 	group = strings.ToLower(group)
 	var query string

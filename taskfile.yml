@@ -59,7 +59,7 @@ tasks:
 
   deploy:
     cmds:
-      - 'PROJECT_NAME={{.PROJECT_NAME}} PROJECT_VERSION={{.NEW_VERSION}} PORT={{.PORT}} docker-compose -f ./deploy/docker-compose.dev.yml up -d'
+      - 'PROJECT_NAME={{.PROJECT_NAME}} PROJECT_VERSION={{.NEW_VERSION}} PORT={{.PORT}} docker compose -f ./deploy/docker-compose.dev.yml up -d'
 
   deploy_prod:
     deps: ['undeploy', 'docker']
@@ -71,7 +71,7 @@ tasks:
 
   undeploy:
     cmds:
-      - 'docker-compose -f ./deploy/docker-compose.dev.yml down'
+      - 'docker compose -f ./deploy/docker-compose.dev.yml down'
       - |
         if docker images {{.PROJECT_NAME_LOW}}-clickhouse -q; then
           docker rmi {{.PROJECT_NAME_LOW}}-clickhouse

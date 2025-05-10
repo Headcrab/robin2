@@ -3,7 +3,9 @@ package format
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"robin2/internal/data"
+	"robin2/internal/utils"
 	"sort"
 	"time"
 )
@@ -17,6 +19,8 @@ func init() {
 type ResponseFormatterJSON struct {
 	round float64
 }
+
+func (r *ResponseFormatterJSON) GetType() string { return "json" }
 
 // Process обрабатывает входные данные и возвращает отформатированную строку JSON в виде байтов
 func (r *ResponseFormatterJSON) Process(val interface{}) []byte {
@@ -73,9 +77,9 @@ func (r *ResponseFormatterJSON) Process(val interface{}) []byte {
 		}
 
 	case *data.Output:
-		if len(v.Rows) == 1 {
-			return []byte(fmt.Sprintf(`"%s"`, v.Rows[0][2]))
-		}
+		// if len(v.Rows) == 1 {
+		// 	return []byte(fmt.Sprintf(`"%s"`, v.Rows[0][0]))
+		// }
 		headers := make([]string, len(v.Headers))
 		copy(headers, v.Headers)
 
@@ -100,10 +104,11 @@ func (r *ResponseFormatterJSON) Process(val interface{}) []byte {
 	case data.Tags:
 		tags := make([]map[string]interface{}, len(v))
 		for i, tag := range v {
+			v := Round(tag.Value, r.round)
 			tags[i] = map[string]interface{}{
 				"name":  tag.Name,
 				"date":  tag.Date.Format("2006-01-02 15:04:05"),
-				"value": Round(tag.Value, r.round),
+				"value": utils.ThenIf(math.IsNaN(v), 0, v),
 			}
 		}
 		result = tags

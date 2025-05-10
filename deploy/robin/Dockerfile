@@ -1,4 +1,4 @@
-FROM golang:1.22.3-alpine AS builder
+FROM golang:1.24.2-alpine AS builder
 
 ARG PROJECT_NAME
 ENV PROJECT_NAME=$PROJECT_NAME 

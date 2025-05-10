@@ -21,7 +21,7 @@ import (
 // @Produce json
 // @Success 200 {array} string
 // @Router /api/log/ [get]
-// @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
+// @Param format query string false "Формат вывода (text - по умолчанию, json, raw)"
 func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("rendered log page")
 
@@ -74,9 +74,10 @@ func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 // @Param group query string false "Функция группировки (avg, sum, count, min, max)"
 // @Param count query string false "Количество значений"
 // @Param round query string false "Округление, знаков после запятой (по умолчанию 2)"
-// @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
+// @Param format query string false "Формат вывода (text - по умолчанию, json, raw)"
 func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
-	writer := []byte("Error: unknown error")
+	var writer []byte
+
 	defer func() {
 		if _, err := w.Write(writer); err != nil {
 			logger.Error(fmt.Sprintf("Ошибка при записи ответа: %v", err))
@@ -96,40 +97,75 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 	count := query.Get("count")
 	format := query.Get("format")
 
-	round := utils.ThenIf(roundStr != "", func() int { r, _ := strconv.Atoi(roundStr); return r }(), a.config.Round)
-
-	if tag != "" && date != "" {
-		tags := strings.Split(tag, ",")
-		for i := range tags {
-			tags[i] = strings.TrimSpace(tags[i])
-		}
-		if len(tags) > 1 {
-			writer = a.getTagsOnDate(tags, date, format, round)
-			return
-		} else {
-			writer = a.getTagOnDate(tag, date, format, round)
-			return
-		}
+	//	round := utils.ThenIf(roundStr != "", a.getRound(roundStr), a.config.Round)
+	round := a.config.Round
+	if roundStr != "" {
+		round = a.getRound(roundStr)
 	}
 
-	if tag != "" && from != "" && to != "" {
-		if count != "" {
-			if group == "" {
-				writer = a.getTagByCount(tag, from, to, count, format, round)
-				return
-			} else {
-				writer = a.getTagFromToByCountWithGroup(tag, from, to, count, group, format, round)
-				return
-			}
-		}
+	type handlerFunc func() []byte
 
-		if group == "" {
-			writer = a.getTagFromTo(tag, from, to, format, round)
-			return
-		} else {
-			writer = a.getTagFromToWithGroup(tag, from, to, group, format, round)
-			return
-		}
+	handlers := map[string]handlerFunc{
+		"tag_date": func() []byte {
+			tags := strings.Split(tag, ",")
+			for i := range tags {
+				tags[i] = strings.TrimSpace(tags[i])
+			}
+			if len(tags) > 1 {
+				return a.httpPool.ProcessQueued(func() []byte {
+					return a.getTagsOnDate(tags, date, format, round)
+				})
+			}
+			return a.httpPool.ProcessQueued(func() []byte {
+				return a.getTagsOnDate(tags, date, format, round)
+			})
+			// return a.getTagOnDate(tag, date, format, round)
+		},
+		"tag_from_to_count_group": func() []byte {
+			return a.httpPool.ProcessQueued(func() []byte {
+				return a.getTagFromToByCountWithGroup(tag, from, to, count, group, format, round)
+			})
+		},
+		"tag_from_to_count": func() []byte {
+			return a.httpPool.ProcessQueued(func() []byte {
+				return a.getTagByCount(tag, from, to, count, format, round)
+			})
+		},
+		"tag_from_to_group": func() []byte {
+			return a.httpPool.ProcessQueued(func() []byte {
+				return a.getTagFromToWithGroup(tag, from, to, group, format, round)
+			})
+		},
+		"tag_from_to": func() []byte {
+			return a.httpPool.ProcessQueued(func() []byte {
+				return a.getTagFromTo(tag, from, to, format, round)
+			})
+		},
+	}
+
+	// Определение ключа для выбора соответствующего обработчика
+	var key string
+	switch {
+	case tag != "" && date != "":
+		key = "tag_date"
+	case tag != "" && from != "" && to != "" && count != "" && group != "":
+		key = "tag_from_to_count_group"
+	case tag != "" && from != "" && to != "" && count != "":
+		key = "tag_from_to_count"
+	case tag != "" && from != "" && to != "" && group != "":
+		key = "tag_from_to_group"
+	case tag != "" && from != "" && to != "":
+		key = "tag_from_to"
+	default:
+		writer = []byte("Error: unknown error")
+		return
+	}
+
+	// Вызов соответствующего обработчика
+	if handler, found := handlers[key]; found {
+		writer = handler()
+	} else {
+		writer = []byte("Error: unknown error")
 	}
 }
 
@@ -140,7 +176,7 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {array} string
 // @Router /get/tag/list/ [get]
 // @Param like query string false "Маска поиска"
-// @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
+// @Param format query string false "Формат вывода (text - по умолчанию, json, raw)"
 // handleAPIGetTagList обрабатывает HTTP-запрос на получение списка тегов.
 // Параметры запроса:
 //   - like: строка для фильтрации тегов
@@ -366,23 +402,23 @@ func (a *App) handleAPIServerStatus(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `{"dbserver": "%s", "dbversion": "%s", "dbuptime": "%s", "dbstatus": "%s", "appuptime": "%s", "dbtype": "%s"}`, dbs.Name, dbs.Version, dbs.Uptime, dbs.Status, appUptime, dbs.Type)
 }
 
-func (a *App) getTagOnDate(tag, date, fmt string, round int) []byte {
-	dateTime, err := utils.ExcelTimeToTime(date, a.config.DateFormats)
-	if err != nil {
-		return []byte("#Error: " + err.Error())
-	}
-	tagValue, err := a.store.GetTagDate(tag, dateTime)
-	if err != nil {
-		return []byte("#Error: " + err.Error())
-	}
+// func (a *App) getTagOnDate(tag, date, fmt string, round int) []byte {
+// 	dateTime, err := utils.ExcelTimeToTime(date, a.config.DateFormats)
+// 	if err != nil {
+// 		return []byte("#Error: " + err.Error())
+// 	}
+// 	tagValue, err := a.store.GetTagDate(tag, dateTime)
+// 	if err != nil {
+// 		return []byte("#Error: " + err.Error())
+// 	}
 
-	fmtr, err := format.New(fmt)
-	if err != nil {
-		return []byte("#Error: " + err.Error())
-	}
-	w := fmtr.SetRound(round).Process(tagValue)
-	return w
-}
+// 	fmtr, err := format.New(fmt)
+// 	if err != nil {
+// 		return []byte("#Error: " + err.Error())
+// 	}
+// 	w := fmtr.SetRound(round).Process(tagValue)
+// 	return w
+// }
 
 func (a *App) getTagsOnDate(tags []string, date, fmt string, round int) []byte {
 	dateTime, err := utils.ExcelTimeToTime(date, a.config.DateFormats)
@@ -528,12 +564,12 @@ func (a *App) getTagFromToWithGroup(tag, from, to, group string, fmt string, rou
 // @Success 200 {array} string
 // @Router /tag/decode/ [get]
 // @Param tag query string true "Наименование тега"
-// @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
+// @Param format query string false "Формат вывода (text - по умолчанию, json, raw)"
 func (a *App) handleTagDecode(w http.ResponseWriter, r *http.Request) {
 	tag := r.URL.Query().Get("tag")
 	formatStr := r.URL.Query().Get("format")
 
-	// устанавливаем заголовоки для ответа
+	// Устанавливаем заголовоки для ответа
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Content-Type", "application/json")
 
@@ -542,6 +578,7 @@ func (a *App) handleTagDecode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Разделяем теги и убираем пробелы
 	tags := strings.Split(tag, ",")
 	for i := range tags {
 		tags[i] = strings.TrimSpace(tags[i])
@@ -551,9 +588,8 @@ func (a *App) handleTagDecode(w http.ResponseWriter, r *http.Request) {
 	ret := make(map[string]map[string]string)
 
 	// Создаем экземпляр decode.Decoder и загружаем JSON данные
-	var dec decode.Decoder
-	err := dec.LoadJSONData(filepath.Join(a.workDir, "config"))
-	if err != nil {
+	dec := decode.Decoder{}
+	if err := dec.LoadJSONData(filepath.Join(a.workDir, "config")); err != nil {
 		http.Error(w, "#Error: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -575,11 +611,19 @@ func (a *App) handleTagDecode(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	s := fmtr.Process(ret)
+	response := fmtr.Process(ret)
 
-	// Устанавливаем заголовок Content-Type и пишем ответ
-	w.Header().Set("Content-Type", "application/json")
-	if _, err := w.Write([]byte(s)); err != nil {
+	// Пишем ответ
+	if _, err := w.Write([]byte(response)); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
+}
+
+func (a *App) getRound(roundStr string) int {
+	r, err := strconv.Atoi(roundStr)
+	if err != nil {
+		logger.Error(fmt.Sprintf("Ошибка при преобразовании округления: %v", err.Error()))
+		return a.config.Round
+	}
+	return r
 }

@@ -16,6 +16,8 @@ type ResponseFormatterXML struct {
 	round float64
 }
 
+func (к *ResponseFormatterXML) GetType() string { return "xml" }
+
 func (r *ResponseFormatterXML) SetRound(r2 int) ResponseFormatter {
 	r.round = float64(r2)
 	return r

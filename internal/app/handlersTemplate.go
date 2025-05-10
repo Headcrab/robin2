@@ -195,7 +195,7 @@ func (a *App) handleTemplateDelete(w http.ResponseWriter, r *http.Request) {
 // @Router /templ/exec [get]
 // @Param name query string true "Имя шаблона"
 // @Param db query string false "Имя базы данных"
-// @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
+// @Param format query string false "Формат вывода (text - по умолчанию, json, raw)"
 // @Param args query array false "Список аргументов"
 // @x-try-it-out-enabled false
 func (a *App) handleTemplateExec(w http.ResponseWriter, r *http.Request) {
