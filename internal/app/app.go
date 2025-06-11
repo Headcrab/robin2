@@ -242,6 +242,15 @@ func (a *App) getDbStatus() dbStatus {
 		Name:   dbName,
 		Type:   a.config.CurrDB.Type,
 	}
+
+	// проверяем что store инициализирован
+	if a.store == nil {
+		dbstatus.Status = "red"
+		dbstatus.Version = "unknown"
+		dbstatus.Uptime = 0
+		return dbstatus
+	}
+
 	var err error
 	dbstatus.Version, dbstatus.Uptime, err = a.store.GetStatus()
 	if err != nil {

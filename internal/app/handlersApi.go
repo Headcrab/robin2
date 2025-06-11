@@ -532,11 +532,23 @@ func (a *App) getTagFromToWithGroup(tag, from, to, group string, fmt string, rou
 		return []byte(err.Error())
 	}
 	tags := strings.Split(tag, ",")
-	for i := range tags {
-		tags[i] = strings.TrimSpace(tags[i])
+
+	// очищаем теги от пробелов и фильтруем пустые
+	validTags := make([]string, 0, len(tags))
+	for _, t := range tags {
+		trimmed := strings.TrimSpace(t)
+		if trimmed != "" {
+			validTags = append(validTags, trimmed)
+		}
 	}
+
+	// проверяем что есть валидные теги
+	if len(validTags) == 0 {
+		return []byte("#Error: no valid tags provided")
+	}
+
 	tdv := make(map[string]map[time.Time]float32)
-	for _, tag := range tags {
+	for _, tag := range validTags {
 		tdv[tag] = make(map[time.Time]float32)
 		tdv[tag][toT], err = a.store.GetTagFromToGroup(tag, fromT, toT, group)
 		if err != nil {
@@ -550,7 +562,7 @@ func (a *App) getTagFromToWithGroup(tag, from, to, group string, fmt string, rou
 		return []byte("#Error: " + err.Error())
 	}
 	if len(tdv) == 1 {
-		w = fmtr.SetRound(round).Process(tdv[tags[0]][toT])
+		w = fmtr.SetRound(round).Process(tdv[validTags[0]][toT])
 	} else {
 		w = fmtr.SetRound(round).Process(tdv)
 	}
