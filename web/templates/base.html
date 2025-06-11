@@ -9,19 +9,19 @@
   <title>Система получения данных АСУТП</title>
   
   <!-- preload critical resources -->
-  <link rel="preload" href="../css/tailwind.min.css" as="style" />
+  <link rel="preload" href="/css/tailwind.min.css" as="style" />
   
   <!-- favicon -->
-  <link rel="icon" type="image/x-icon" href="../images/favicon.ico" />
-  <link rel="icon" type="image/png" sizes="32x32" href="../images/icon.png" />
+  <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/icon.png" />
   
   <!-- stylesheets -->
-  <link rel="stylesheet" href="../css/tailwind.min.css" />
-  <link rel="stylesheet" href="../css/styles.css" />
-  <link rel="stylesheet" href="../css/dark-theme.css" />
+  <link rel="stylesheet" href="/css/tailwind.min.css" />
+  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="stylesheet" href="/css/dark-theme.css" />
   
   <!-- scripts -->
-  <script type="module" src="../scripts/script.js"></script>
+  <script type="module" src="/scripts/script.js"></script>
 </head>
 
 <body class="h-full bg-gray-50 antialiased">
@@ -45,6 +45,100 @@
 
     <!-- mobile menu overlay -->
     <div id="mobile-menu-overlay" class="fixed inset-0 z-40 hidden bg-black/50 lg:hidden" aria-hidden="true"></div>
+
+    <!-- mobile navigation (hidden by default, shown via JavaScript) -->
+    <nav 
+      id="mobile-nav" 
+      class="lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform -translate-x-full transition-transform duration-300 ease-in-out"
+      aria-label="Мобильная навигация"
+    >
+      <!-- mobile header -->
+      <div class="p-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <img src="/images/icon.png" alt="Robin Logo" class="h-8 w-8" />
+            <h1 class="text-lg font-semibold text-gray-900">Robin АСУТП</h1>
+          </div>
+          <button 
+            id="mobile-menu-close" 
+            class="p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+            aria-label="Закрыть меню"
+          >
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- mobile menu items -->
+      <div class="px-2 py-4 space-y-1">
+        <a 
+          href="#" 
+          onclick="loadPage('/'); closeMobileMenu();" 
+          class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
+        >
+          <img src="/images/Home_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+          <span data-i18n="nav.home">Главная</span>
+        </a>
+
+        <a 
+          href="#" 
+          onclick="loadPage('/data/'); closeMobileMenu();" 
+          class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
+        >
+          <img src="/images/Data Sheet_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+          <span data-i18n="nav.data">Данные</span>
+        </a>
+
+        <a 
+          href="#" 
+          onclick="loadPage('/tags/'); closeMobileMenu();" 
+          class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
+        >
+          <img src="/images/Report Card_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+          <span data-i18n="nav.tags">Теги</span>
+        </a>
+
+        <a 
+          href="#" 
+          onclick="loadPage('/logs/'); closeMobileMenu();" 
+          class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
+        >
+          <img src="/images/Choice_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+          <span data-i18n="nav.logs">Логи</span>
+        </a>
+
+        <a 
+          href="#" 
+          onclick="loadPage('/docs/'); closeMobileMenu();" 
+          class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
+        >
+                 <img src="/images/Knowledge_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+          <span data-i18n="nav.docs">Документация</span>
+        </a>
+
+        <a 
+          href="#" 
+          onclick="loadPage('/swagger/'); closeMobileMenu();" 
+          class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
+        >
+          <img src="/images/API_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+          <span data-i18n="nav.api">API</span>
+        </a>
+      </div>
+
+      <!-- mobile status section -->
+      <div class="absolute bottom-0 left-0 right-0 px-4 py-3 border-t border-gray-200 bg-white">
+        <div class="flex items-center justify-between">
+          <span class="text-sm text-gray-500" data-i18n="status.system_status">Статус системы</span>
+          <div class="flex items-center space-x-2">
+            <div id="mobile-dbstatus" class="h-2 w-2 rounded-full bg-gray-400"></div>
+            <span class="text-sm text-gray-600">Проверка...</span>
+          </div>
+        </div>
+      </div>
+    </nav>
 
     <!-- main content area -->
     <div class="flex-1 flex flex-col min-w-0">

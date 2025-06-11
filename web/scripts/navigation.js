@@ -25,6 +25,10 @@ function updateBreadcrumb(url) {
             titleKey = 'logs.title';
             breadcrumbKeys = ['nav.home'];
             break;
+        case '/docs/':
+            titleKey = 'docs.title';
+            breadcrumbKeys = ['nav.home'];
+            break;
         case '/swagger/':
             titleKey = 'api.title';
             breadcrumbKeys = ['nav.home'];

@@ -56,6 +56,7 @@ class I18nManager {
                     data: 'Данные', 
                     tags: 'Теги',
                     logs: 'Логи',
+                    docs: 'Документация',
                     api: 'API'
                 },
                 
@@ -131,6 +132,13 @@ class I18nManager {
                     clear_logs: 'Очистить логи'
                 },
                 
+                docs: {
+                    title: 'Документация',
+                    subtitle: 'Техническая документация и руководства проекта',
+                    available_docs: 'Доступные документы',
+                    back_to_list: 'Назад к списку'
+                },
+                
                 api: {
                     title: 'API документация'
                 },
@@ -160,6 +168,7 @@ class I18nManager {
                     data: 'Деректер',
                     tags: 'Тегтер',
                     logs: 'Логтер',
+                    docs: 'Құжаттама',
                     api: 'API'
                 },
                 
@@ -235,6 +244,13 @@ class I18nManager {
                     clear_logs: 'Логтарды тазарту'
                 },
                 
+                docs: {
+                    title: 'Құжаттама',
+                    subtitle: 'Техникалық құжаттама және жоба нұсқаулықтары',
+                    available_docs: 'Қолжетімді құжаттар',
+                    back_to_list: 'Тізімге қайту'
+                },
+                
                 api: {
                     title: 'API құжаттамасы'
                 },
@@ -264,6 +280,7 @@ class I18nManager {
                     data: 'Data',
                     tags: 'Tags',
                     logs: 'Logs',
+                    docs: 'Documentation',
                     api: 'API'
                 },
                 
@@ -337,6 +354,13 @@ class I18nManager {
                     refresh_logs: 'Refresh logs',
                     export_logs: 'Export logs',
                     clear_logs: 'Clear logs'
+                },
+                
+                docs: {
+                    title: 'Documentation',
+                    subtitle: 'Technical documentation and project guides',
+                    available_docs: 'Available Documents',
+                    back_to_list: 'Back to List'
                 },
                 
                 api: {

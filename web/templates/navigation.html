@@ -3,7 +3,7 @@
   <!-- logo/title area -->
   <div class="p-4 border-b border-gray-200">
     <div class="flex items-center space-x-3">
-      <img src="../images/icon.png" alt="Robin Logo" class="h-8 w-8" />
+      <img src="/images/icon.png" alt="Robin Logo" class="h-8 w-8" />
       <h1 class="text-lg font-semibold text-gray-900 truncate">Robin АСУТП</h1>
     </div>
   </div>
@@ -16,7 +16,7 @@
       class="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
       aria-label="Перейти на главную страницу"
     >
-      <img src="../images/Home_80px.png" alt="" class="h-5 w-5 mr-3 opacity-75 group-hover:opacity-100" />
+      <img src="/images/Home_80px.png" alt="" class="h-5 w-5 mr-3 opacity-75 group-hover:opacity-100" />
       <span data-i18n="nav.home">Главная</span>
     </a>
 
@@ -26,7 +26,7 @@
       class="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
       aria-label="Просмотр данных системы"
     >
-      <img src="../images/Data Sheet_80px.png" alt="" class="h-5 w-5 mr-3 opacity-75 group-hover:opacity-100" />
+      <img src="/images/Data Sheet_80px.png" alt="" class="h-5 w-5 mr-3 opacity-75 group-hover:opacity-100" />
       <span data-i18n="nav.data">Данные</span>
     </a>
 
@@ -36,7 +36,7 @@
       class="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
       aria-label="Управление тегами"
     >
-      <img src="../images/Report Card_80px.png" alt="" class="h-5 w-5 mr-3 opacity-75 group-hover:opacity-100" />
+      <img src="/images/Report Card_80px.png" alt="" class="h-5 w-5 mr-3 opacity-75 group-hover:opacity-100" />
       <span data-i18n="nav.tags">Теги</span>
     </a>
 
@@ -46,8 +46,18 @@
       class="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
       aria-label="Просмотр логов системы"
     >
-      <img src="../images/Choice_80px.png" alt="" class="h-5 w-5 mr-3 opacity-75 group-hover:opacity-100" />
+      <img src="/images/Choice_80px.png" alt="" class="h-5 w-5 mr-3 opacity-75 group-hover:opacity-100" />
       <span data-i18n="nav.logs">Логи</span>
+    </a>
+
+    <a 
+      href="#" 
+      onclick="loadPage('/docs/')" 
+      class="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
+      aria-label="Документация"
+    >
+             <img src="/images/Knowledge_80px.png" alt="" class="h-5 w-5 mr-3 opacity-75 group-hover:opacity-100" />
+      <span data-i18n="nav.docs">Документация</span>
     </a>
 
     <a 
@@ -56,7 +66,7 @@
       class="group flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
       aria-label="API документация"
     >
-      <img src="../images/API_80px.png" alt="" class="h-5 w-5 mr-3 opacity-75 group-hover:opacity-100" />
+      <img src="/images/API_80px.png" alt="" class="h-5 w-5 mr-3 opacity-75 group-hover:opacity-100" />
       <span data-i18n="nav.api">API</span>
     </a>
   </div>
@@ -83,7 +93,7 @@
   <div class="p-4 border-b border-gray-200">
     <div class="flex items-center justify-between">
       <div class="flex items-center space-x-3">
-        <img src="../images/icon.png" alt="Robin Logo" class="h-8 w-8" />
+        <img src="/images/icon.png" alt="Robin Logo" class="h-8 w-8" />
         <h1 class="text-lg font-semibold text-gray-900">Robin АСУТП</h1>
       </div>
       <button 
@@ -105,7 +115,7 @@
       onclick="loadPage('/'); closeMobileMenu();" 
       class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
     >
-      <img src="../images/Home_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+      <img src="/images/Home_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
       <span data-i18n="nav.home">Главная</span>
     </a>
 
@@ -114,7 +124,7 @@
       onclick="loadPage('/data/'); closeMobileMenu();" 
       class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
     >
-      <img src="../images/Data Sheet_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+      <img src="/images/Data Sheet_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
       <span data-i18n="nav.data">Данные</span>
     </a>
 
@@ -123,7 +133,7 @@
       onclick="loadPage('/tags/'); closeMobileMenu();" 
       class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
     >
-      <img src="../images/Report Card_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+      <img src="/images/Report Card_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
       <span data-i18n="nav.tags">Теги</span>
     </a>
 
@@ -132,8 +142,17 @@
       onclick="loadPage('/logs/'); closeMobileMenu();" 
       class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
     >
-      <img src="../images/Choice_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+      <img src="/images/Choice_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
       <span data-i18n="nav.logs">Логи</span>
+    </a>
+
+    <a 
+      href="#" 
+      onclick="loadPage('/docs/'); closeMobileMenu();" 
+      class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
+    >
+             <img src="/images/Knowledge_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+      <span data-i18n="nav.docs">Документация</span>
     </a>
 
     <a 
@@ -141,7 +160,7 @@
       onclick="loadPage('/swagger/'); closeMobileMenu();" 
       class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
     >
-      <img src="../images/API_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+      <img src="/images/API_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
       <span data-i18n="nav.api">API</span>
     </a>
   </div>

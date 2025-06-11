@@ -1,0 +1,56 @@
+<div class="max-w-4xl mx-auto">
+  <!-- page header -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+    <div class="px-6 py-4">
+      <h1 class="text-2xl font-bold text-gray-900 mb-2" data-i18n="docs.title">Документация</h1>
+      <p class="text-gray-600" data-i18n="docs.subtitle">Техническая документация и руководства проекта</p>
+    </div>
+  </div>
+
+  <!-- documents list -->
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-900" data-i18n="docs.available_docs">Доступные документы</h2>
+    </div>
+    
+    <div class="divide-y divide-gray-200">
+      {{range $index, $doc := .docs}}
+      <div class="px-6 py-4 hover:bg-gray-50 transition-colors duration-200">
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <h3 class="text-sm font-medium text-gray-900 mb-1">
+              <a href="/docs/view/?file={{$doc.Name}}" class="text-blue-600 hover:text-blue-800 hover:underline">
+                {{$doc.DisplayName}}
+              </a>
+            </h3>
+            <p class="text-sm text-gray-500">{{$doc.Description}}</p>
+          </div>
+          <div class="ml-4 flex items-center space-x-2">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              Markdown
+            </span>
+            <span class="text-xs text-gray-400">{{$doc.Size}}</span>
+          </div>
+        </div>
+      </div>
+      {{end}}
+    </div>
+  </div>
+
+  <!-- help section -->
+  <div class="mt-6 bg-blue-50 rounded-lg border border-blue-200 p-4">
+    <div class="flex">
+      <div class="flex-shrink-0">
+        <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <div class="ml-3">
+        <h3 class="text-sm font-medium text-blue-800">Информация</h3>
+        <div class="mt-2 text-sm text-blue-700">
+          <p>Документация автоматически обновляется при запуске приложения. Для просмотра документа нажмите на его название.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

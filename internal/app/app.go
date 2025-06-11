@@ -154,6 +154,8 @@ func (a *App) initHTTPHandlers() http.Handler {
 		"/logs/":          a.handlePageLog,
 		"/data/":          a.handlePageData,
 		"/tags/":          a.handlePageTags,
+		"/docs/":          a.handlePageDocs,
+		"/docs/view/":     a.handlePageDocView,
 		"/":               a.handlePageAny("home", map[string]interface{}{"descr": "Robin"}),
 		"/images/":        a.handleDirectory("images"),
 		"/scripts/":       a.handleDirectory("scripts"),

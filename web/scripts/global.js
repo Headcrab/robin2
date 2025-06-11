@@ -4,7 +4,8 @@ import {
     showErrorNotification, 
     showSuccessNotification, 
     setViewMode,
-    initializeThemeAndLanguage
+    initializeThemeAndLanguage,
+    closeMobileMenu
 } from './ui.js';
 import { 
     getTagOnDate,
@@ -41,6 +42,7 @@ window.loadSwagger = loadSwagger;
 window.showErrorNotification = showErrorNotification;
 window.showSuccessNotification = showSuccessNotification;
 window.setViewMode = setViewMode;
+window.closeMobileMenu = closeMobileMenu;
 window.copyToClipboard = copyToClipboard;
 window.searchTagData = searchTagData;
 window.clearSearchForm = clearSearchForm;

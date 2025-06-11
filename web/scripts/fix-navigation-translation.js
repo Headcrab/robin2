@@ -33,6 +33,7 @@ function checkNavigationTranslations() {
         { selector: '[data-i18n="nav.data"]', expected: ['Данные', 'Деректер', 'Data'] },
         { selector: '[data-i18n="nav.tags"]', expected: ['Теги', 'Тегтер', 'Tags'] },
         { selector: '[data-i18n="nav.logs"]', expected: ['Логи', 'Логтер', 'Logs'] },
+        { selector: '[data-i18n="nav.docs"]', expected: ['Документация', 'Құжаттама', 'Documentation'] },
         { selector: '[data-i18n="nav.api"]', expected: ['API', 'API', 'API'] }
     ];
     
