@@ -1,30 +1,82 @@
 <!doctype html>
-<html lang="ru">
+<html lang="ru" class="h-full">
 
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Система получения данных АСУТП - современный веб-интерфейс для мониторинга и управления данными" />
+  <meta name="theme-color" content="#10a37f" />
   <title>Система получения данных АСУТП</title>
-  <!-- <link rel="stylesheet" href="../css/bootstrap.min.css"> -->
-  <link rel="stylesheet" href="../css/styles.css">
-  <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.0.3/css/pico.conditional.min.css" /> -->
-  <script src="../scripts/bootstrap.bundle.min.js"></script>
-  <script src="../scripts/script.js"></script>
+  
+  <!-- preload critical resources -->
+  <link rel="preload" href="../css/tailwind.min.css" as="style" />
+  <link rel="preload" href="../scripts/script.js" as="script" />
+  
+  <!-- favicon -->
+  <link rel="icon" type="image/x-icon" href="../images/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../images/icon.png" />
+  
+  <!-- stylesheets -->
+  <link rel="stylesheet" href="../css/tailwind.min.css" />
+  <link rel="stylesheet" href="../css/styles.css" />
+  
+  <!-- scripts -->
+  <script src="../scripts/script.js" defer></script>
 </head>
 
-<div id="loader" class="loader" style="display: none;">
-  <div></div>
-</div>
+<body class="h-full bg-gray-50 antialiased">
+  <!-- loading indicator -->
+  <div id="loader" class="fixed inset-0 z-50 hidden items-center justify-center bg-white/80 backdrop-blur-sm">
+    <div class="flex flex-col items-center space-y-4">
+      <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      <p class="text-sm text-gray-600">Загрузка...</p>
+    </div>
+  </div>
 
-<div id="apiserver" style="display: none;">{{.app.apiserver}}</div>
+  <!-- api server config (hidden) -->
+  <div id="apiserver" class="sr-only">{{.app.apiserver}}</div>
 
-<body>
-  <!-- <section class="pico"> -->
-    {{ template "header.html" . }}
+  <!-- main layout -->
+  <div class="flex h-full">
+    <!-- sidebar navigation -->
+    <aside class="w-64 flex-shrink-0 bg-white border-r border-gray-200 lg:block hidden" id="sidebar">
+      {{ template "navigation.html" . }}
+    </aside>
 
-    {{ template "navigation.html" . }}
-    {{.content}}
-    {{ template "footer.html" . }}
-  <!-- </section> -->
+    <!-- mobile menu overlay -->
+    <div id="mobile-menu-overlay" class="fixed inset-0 z-40 hidden bg-black/50 lg:hidden" aria-hidden="true"></div>
+
+    <!-- main content area -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- header -->
+      <header class="bg-white border-b border-gray-200 px-4 py-4 sm:px-6">
+        {{ template "header.html" . }}
+      </header>
+
+      <!-- main content -->
+      <main class="flex-1 overflow-auto">
+        <div class="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
+          {{.content}}
+        </div>
+      </main>
+
+      <!-- footer -->
+      <footer class="bg-white border-t border-gray-200">
+        {{ template "footer.html" . }}
+      </footer>
+    </div>
+  </div>
+
+  <!-- mobile menu toggle button -->
+  <button 
+    id="mobile-menu-toggle"
+    class="fixed top-4 left-4 z-50 lg:hidden bg-white rounded-md p-2 shadow-lg border border-gray-200"
+    aria-label="Открыть меню"
+  >
+    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  </button>
 </body>
 
 </html>

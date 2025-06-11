@@ -1,35 +1,612 @@
 <!-- <div id="tags" style="display: none;">{{.tags}}</div> -->
 
-<div class="text-center">
-  <!-- <h4>Получить данные</h4> -->
-  <div style="display: flex; align-items: center;">
-    <input style="font-family: var(--standart); margin-left: 4px;" type="text" id="searchInput" placeholder="Тэг"
-      value="A20_WT_01">
-    <div> </div>
-    <input style="font-family: var(--standart); margin-left: 4px;" type="datetime-local" id="dateFrom" name="dateFrom"
-      value="2023-10-02T21:00:00" placeholder="Дата начала">
-    <div> </div>
-    <input style="font-family: var(--standart); margin-left: 4px;" type="datetime-local" id="dateTo" name="dateTo"
-      value="2023-10-02T21:05:00" placeholder="Дата окончания">
-    <div> </div>
-    <input style="font-family: var(--standart); width: 50px;  margin-left: 4px;" type="number" id="searchCount"
-      placeholder="Количество" value="300">
-    <div> </div>
-    <button style="font-family: var(--standart); width: 100px;" class="page-number flat-btn-medium" id="searchBtn"
-      onclick="getTagOnDate()">Поиск</button>
-    <div> </div>
+<!-- data search and display page -->
+<div class="space-y-6">
+  <!-- page header -->
+  <div class="border-b border-gray-200 pb-4">
+    <h2 class="text-2xl font-bold text-gray-900">Данные АСУТП</h2>
+    <p class="text-gray-600 mt-1">Поиск и анализ данных по тегам</p>
   </div>
-  <!-- <ul class="list-group"> -->
-  <br>
-  <table class="text-list-item">
-    {{range .data}}
-    {{formatDataString .}}
-    {{else}}
-    <tr class="text-list-item">
-      <td><b>Нет данных.</b></td>
-    </tr>
+
+  <!-- search form -->
+  <div class="bg-white rounded-lg shadow border p-6">
+    <h3 class="text-lg font-medium text-gray-900 mb-4">Параметры поиска</h3>
+    
+    <form class="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4" onsubmit="event.preventDefault(); getTagOnDate();">
+      <!-- tag input -->
+      <div>
+        <label for="searchInput" class="block text-sm font-medium text-gray-700 mb-1">Тег</label>
+        <input 
+          type="text" 
+          id="searchInput" 
+          class="form-input w-full" 
+          placeholder="Введите название тега"
+          value="A20_WT_01"
+          autocomplete="off"
+        />
+      </div>
+
+      <!-- date from -->
+      <div>
+        <label for="dateFrom" class="block text-sm font-medium text-gray-700 mb-1">Дата начала</label>
+        <input 
+          type="datetime-local" 
+          id="dateFrom" 
+          name="dateFrom"
+          class="form-input w-full"
+          value="2023-10-02T21:00:00"
+        />
+      </div>
+
+      <!-- date to -->
+      <div>
+        <label for="dateTo" class="block text-sm font-medium text-gray-700 mb-1">Дата окончания</label>
+        <input 
+          type="datetime-local" 
+          id="dateTo" 
+          name="dateTo"
+          class="form-input w-full"
+          value="2023-10-02T21:05:00"
+        />
+      </div>
+
+      <!-- count input -->
+      <div>
+        <label for="searchCount" class="block text-sm font-medium text-gray-700 mb-1">Количество записей</label>
+        <input 
+          type="number" 
+          id="searchCount"
+          class="form-input w-full"
+          placeholder="Макс. записей"
+          value="300"
+          min="1"
+          max="10000"
+        />
+      </div>
+
+      <!-- search button (full width on mobile) -->
+      <div class="sm:col-span-2 lg:col-span-4 flex justify-end space-x-3 pt-4">
+        <button 
+          type="button"
+          onclick="clearSearchForm()"
+          class="btn btn-outline"
+        >
+          Очистить
+        </button>
+        <button 
+          type="submit"
+          id="searchBtn"
+          class="btn btn-primary"
+        >
+          <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          Найти данные
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- results section -->
+  <div class="bg-white rounded-lg shadow border">
+    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+      <h3 class="text-lg font-medium text-gray-900">Результаты поиска</h3>
+      <div class="flex items-center space-x-3">
+        <!-- export button -->
+        <button 
+          onclick="exportData()"
+          class="btn btn-outline text-sm"
+          title="Экспорт данных"
+        >
+          <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Экспорт
+        </button>
+        
+        <!-- refresh button -->
+        <button 
+          onclick="getTagOnDate()"
+          class="btn btn-outline text-sm"
+          title="Обновить данные"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- data table -->
+    <div class="overflow-x-auto">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="col-time">Время</th>
+            <th class="col-tag">Тег</th>
+            <th class="col-value">Значение</th>
+            <th class="col-quality">Качество</th>
+            <th class="col-unit">Единица</th>
+            <th class="col-description">Описание</th>
+          </tr>
+        </thead>
+        <tbody id="data-results">
+          {{if .data}}
+            {{range .data}}
+              <tr class="data-row" data-raw="{{.}}" data-original="{{formatDataString .}}">
+                <td class="col-time">--</td>
+                <td class="col-tag">--</td>
+                <td class="col-value">--</td>
+                <td class="col-quality">
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    --
+                  </span>
+                </td>
+                <td class="col-unit">--</td>
+                <td class="col-description">--</td>
+              </tr>
+            {{else}}
+              <tr>
+                <td colspan="6" class="text-center py-8 text-gray-500">
+                  <div class="flex flex-col items-center space-y-3">
+                    <svg class="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <div>
+                      <p class="text-lg font-medium text-gray-900">Нет данных</p>
+                      <p class="text-gray-500">Попробуйте изменить параметры поиска</p>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            {{end}}
+          {{else}}
+            <tr>
+              <td colspan="6" class="text-center py-8 text-gray-500">
+                <div class="flex flex-col items-center space-y-3">
+                  <svg class="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <div>
+                    <p class="text-lg font-medium text-gray-900">Введите параметры поиска</p>
+                    <p class="text-gray-500">Заполните форму выше для поиска данных</p>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- pagination -->
+    {{if .page}}
+    <div class="px-6 py-4 border-t border-gray-200">
+      <div class="flex items-center justify-center">
+        {{.page}}
+      </div>
+    </div>
     {{end}}
-  </table>
-  <!-- </ul> -->
-  {{.page}}
+  </div>
 </div>
+
+<!-- enhanced JavaScript functions -->
+<script>
+function clearSearchForm() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('dateFrom').value = '';
+  document.getElementById('dateTo').value = '';
+  document.getElementById('searchCount').value = '300';
+}
+
+function exportData() {
+  // basic export functionality - can be enhanced
+  const table = document.querySelector('.data-table');
+  if (!table) return;
+  
+  const rows = table.querySelectorAll('tr');
+  let csv = '';
+  
+  rows.forEach(row => {
+    const cols = row.querySelectorAll('th, td');
+    const rowData = Array.from(cols).map(col => 
+      `"${col.textContent.trim().replace(/"/g, '""')}"`
+    ).join(',');
+    csv += rowData + '\n';
+  });
+  
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `data_export_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+  
+  showSuccessNotification('Данные экспортированы');
+}
+
+// format data table after page load
+function formatDataTable() {
+  console.log('formatDataTable called');
+  
+  const dataRows = document.querySelectorAll('.data-row');
+  console.log('Found data rows:', dataRows.length);
+  
+  if (dataRows.length === 0) {
+    // Try alternative selector - maybe the rows don't have data-row class
+    const tableRows = document.querySelectorAll('.data-table tbody tr');
+    console.log('Alternative: found table rows:', tableRows.length);
+    
+    tableRows.forEach((row, index) => {
+      console.log(`Row ${index}:`, row.innerHTML);
+      
+      // Try to extract data from the row's HTML content
+      const cells = row.querySelectorAll('td');
+      if (cells.length >= 6) {
+        // If we have 6 cells, it might be formatted data
+        console.log('Row has 6 cells, attempting to format...');
+        
+        const timeCell = cells[0];
+        const tagCell = cells[1];
+        const valueCell = cells[2];
+        const qualityCell = cells[3];
+        const unitCell = cells[4];
+        const descCell = cells[5];
+        
+        // Get current search tag
+        const currentTag = getCurrentTag();
+        
+        // Try to extract data from text content or from any data attributes
+        const rawText = row.textContent || row.innerText;
+        console.log('Raw text:', rawText);
+        
+                 // If all cells show "--", try to parse from data attribute or innerHTML
+         if (timeCell.textContent === '--') {
+           const dataRaw = row.getAttribute('data-raw') || row.dataset.raw;
+           const dataOriginal = row.getAttribute('data-original') || row.dataset.original;
+           console.log('Data raw attribute:', dataRaw);
+           console.log('Data original attribute:', dataOriginal);
+           
+           // Try to parse from original formatted HTML first
+           if (dataOriginal && dataOriginal !== '--' && dataOriginal.includes('.')) {
+             console.log('Trying to parse from original data...');
+             
+             // Extract from HTML - look for patterns like "10.02.2023 21:00:01 208.48"
+             const tempDiv = document.createElement('div');
+             tempDiv.innerHTML = dataOriginal;
+             const textContent = tempDiv.textContent || tempDiv.innerText;
+             console.log('Original text content:', textContent);
+             
+             const parsed = parseDataString(textContent);
+             if (parsed && parsed.value !== '—') {
+               timeCell.textContent = parsed.time;
+               tagCell.textContent = parsed.tag;
+               valueCell.textContent = parsed.value;
+               
+               const qualitySpan = qualityCell.querySelector('span') || qualityCell;
+               qualitySpan.textContent = parsed.quality;
+               qualitySpan.className = getQualityClass(parsed.quality);
+               
+               unitCell.textContent = parsed.unit || '—';
+               descCell.textContent = parsed.description || '—';
+               return;
+             }
+           }
+           
+           // Fallback to raw data
+           if (dataRaw) {
+             const parsed = parseDataString(dataRaw);
+             console.log('Parsed data:', parsed);
+             
+             if (parsed) {
+               timeCell.textContent = parsed.time;
+               tagCell.textContent = parsed.tag;
+               valueCell.textContent = parsed.value;
+               
+               // Format quality
+               const qualitySpan = qualityCell.querySelector('span') || qualityCell;
+               qualitySpan.textContent = parsed.quality;
+               qualitySpan.className = getQualityClass(parsed.quality);
+               
+               unitCell.textContent = parsed.unit || '—';
+               descCell.textContent = parsed.description || '—';
+             }
+           }
+         }
+      }
+    });
+    return;
+  }
+  
+  dataRows.forEach((row, index) => {
+    const rawData = row.getAttribute('data-raw');
+    console.log(`Row ${index} raw data:`, rawData);
+    
+    if (!rawData || rawData === '--') return;
+    
+    const parsed = parseDataString(rawData);
+    console.log(`Row ${index} parsed:`, parsed);
+    
+    if (parsed) {
+      const timeCell = row.querySelector('.col-time');
+      const tagCell = row.querySelector('.col-tag');
+      const valueCell = row.querySelector('.col-value');
+      const qualityCell = row.querySelector('.col-quality span');
+      const unitCell = row.querySelector('.col-unit');
+      const descCell = row.querySelector('.col-description');
+      
+      if (timeCell) timeCell.textContent = parsed.time;
+      if (tagCell) tagCell.textContent = parsed.tag;
+      if (valueCell) {
+        valueCell.textContent = parsed.value;
+        
+        // Add value styling
+        const numValue = parseFloat(parsed.value);
+        if (!isNaN(numValue)) {
+          valueCell.classList.remove('data-value-positive', 'data-value-negative', 'data-value-zero');
+          if (numValue > 0) {
+            valueCell.classList.add('data-value-positive');
+          } else if (numValue < 0) {
+            valueCell.classList.add('data-value-negative');
+          } else {
+            valueCell.classList.add('data-value-zero');
+          }
+        }
+      }
+      
+      if (qualityCell) {
+        qualityCell.textContent = parsed.quality;
+        qualityCell.className = getQualityClass(parsed.quality);
+      }
+      
+      if (unitCell) unitCell.textContent = parsed.unit || '—';
+      if (descCell) descCell.textContent = parsed.description || '—';
+    }
+  });
+}
+
+function parseDataString(rawData) {
+  try {
+    console.log('Parsing raw data:', rawData);
+    
+    // Clean the raw data
+    const cleaned = rawData.trim();
+    
+    // Strategy 1: Space-separated format "DD.MM.YYYY HH:MM:SS value"
+    const timeValueMatch = cleaned.match(/^(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2}:\d{2})\s+(.+)$/);
+    if (timeValueMatch) {
+      const [, timestamp, value] = timeValueMatch;
+      console.log('Matched time-value format:', { timestamp, value });
+      
+      return {
+        time: formatTimestamp(timestamp),
+        tag: getCurrentTag(),
+        value: formatValue(value),
+        quality: 'OK',
+        unit: getUnitForTag(getCurrentTag()),
+        description: getDescriptionForTag(getCurrentTag())
+      };
+    }
+    
+    // Strategy 2: Format "10.02.2023 21:00:01 208.48" (from your screenshot)
+    const parts = cleaned.split(/\s+/);
+    console.log('Split parts:', parts);
+    
+    if (parts.length >= 3) {
+      const date = parts[0];
+      const time = parts[1];
+      const value = parts[2];
+      
+      // Check if it looks like DD.MM.YYYY format
+      if (date.includes('.') && time.includes(':')) {
+        const timestamp = `${date} ${time}`;
+        console.log('Reconstructed timestamp:', timestamp);
+        
+        return {
+          time: formatTimestamp(timestamp),
+          tag: getCurrentTag(),
+          value: formatValue(value),
+          quality: 'OK',
+          unit: getUnitForTag(getCurrentTag()),
+          description: getDescriptionForTag(getCurrentTag())
+        };
+      }
+    }
+    
+    // Strategy 3: Just a numeric value
+    const numericValue = parseFloat(cleaned);
+    if (!isNaN(numericValue)) {
+      console.log('Parsed as numeric value:', numericValue);
+      
+      return {
+        time: formatTimestamp(new Date()),
+        tag: getCurrentTag(),
+        value: formatValue(numericValue),
+        quality: 'OK',
+        unit: getUnitForTag(getCurrentTag()),
+        description: getDescriptionForTag(getCurrentTag())
+      };
+    }
+    
+    // Strategy 4: Try to parse as JSON
+    const jsonData = JSON.parse(cleaned);
+    console.log('Parsed as JSON:', jsonData);
+    
+    return {
+      time: formatTimestamp(jsonData.timestamp || jsonData.time || new Date()),
+      tag: jsonData.tag || getCurrentTag(),
+      value: formatValue(jsonData.value),
+      quality: jsonData.quality || 'OK',
+      unit: jsonData.unit || getUnitForTag(getCurrentTag()),
+      description: jsonData.description || getDescriptionForTag(getCurrentTag())
+    };
+    
+  } catch (e) {
+    console.warn('Could not parse data:', rawData, 'Error:', e);
+    
+    // Return some data anyway
+    return {
+      time: '--:--:--',
+      tag: getCurrentTag(),
+      value: cleaned || '—',
+      quality: 'Unknown',
+      unit: '—',
+      description: '—'
+    };
+  }
+}
+
+function getUnitForTag(tag) {
+  // Common unit mappings based on tag patterns
+  const tagLower = tag.toLowerCase();
+  
+  if (tagLower.includes('temp') || tagLower.includes('_t_')) return '°C';
+  if (tagLower.includes('press') || tagLower.includes('_p_')) return 'bar';
+  if (tagLower.includes('flow') || tagLower.includes('_f_')) return 'm³/h';
+  if (tagLower.includes('level') || tagLower.includes('_l_')) return 'm';
+  if (tagLower.includes('volt') || tagLower.includes('_v_')) return 'V';
+  if (tagLower.includes('current') || tagLower.includes('_i_')) return 'A';
+  if (tagLower.includes('power') || tagLower.includes('_w_')) return 'W';
+  if (tagLower.includes('freq') || tagLower.includes('_f_')) return 'Hz';
+  if (tagLower.includes('speed') || tagLower.includes('rpm')) return 'об/мин';
+  
+  return '—';
+}
+
+function getDescriptionForTag(tag) {
+  // Generate description based on tag name
+  const parts = tag.split('_');
+  if (parts.length >= 3) {
+    const area = parts[0];
+    const type = parts[1];
+    const number = parts[2];
+    
+    const typeMap = {
+      'WT': 'Датчик температуры воды',
+      'PT': 'Датчик давления',
+      'FT': 'Датчик расхода',
+      'LT': 'Датчик уровня',
+      'TT': 'Датчик температуры',
+      'AI': 'Аналоговый вход',
+      'DI': 'Дискретный вход'
+    };
+    
+    const description = typeMap[type] || `Датчик ${type}`;
+    return `${description} №${number} (${area})`;
+  }
+  
+  return 'Технологический параметр';
+}
+
+function getCurrentTag() {
+  const tagInput = document.getElementById('searchInput');
+  return tagInput ? tagInput.value || 'Unknown' : 'Unknown';
+}
+
+function formatTimestamp(timestamp) {
+  if (!timestamp) return '--:--:--';
+  
+  try {
+    let date;
+    
+    // Handle DD.MM.YYYY HH:MM:SS format
+    if (typeof timestamp === 'string' && timestamp.includes('.')) {
+      const parts = timestamp.split(' ');
+      if (parts.length === 2) {
+        const [datePart, timePart] = parts;
+        const [day, month, year] = datePart.split('.');
+        const isoString = `${year}-${month}-${day}T${timePart}`;
+        date = new Date(isoString);
+      } else {
+        date = new Date(timestamp);
+      }
+    } else {
+      date = new Date(timestamp);
+    }
+    
+    if (isNaN(date.getTime())) {
+      return timestamp.toString();
+    }
+    
+    return date.toLocaleString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  } catch (e) {
+    return timestamp.toString().slice(0, 19);
+  }
+}
+
+function formatValue(value) {
+  if (value === null || value === undefined) return '—';
+  
+  const num = parseFloat(value);
+  if (isNaN(num)) return value.toString();
+  
+  // Format numbers with appropriate precision
+  if (num % 1 === 0) {
+    return num.toLocaleString('ru-RU');
+  } else {
+    return num.toLocaleString('ru-RU', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 4 
+    });
+  }
+}
+
+function getQualityClass(quality) {
+  const q = quality.toString().toLowerCase();
+  
+  if (q === 'good' || q === 'ok' || q === '1' || q === 'true') {
+    return 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800';
+  } else if (q === 'bad' || q === 'error' || q === '0' || q === 'false') {
+    return 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800';
+  } else if (q === 'uncertain' || q === 'warning') {
+    return 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800';
+  } else {
+    return 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800';
+  }
+}
+
+// auto-fill current time for date inputs
+document.addEventListener('DOMContentLoaded', function() {
+  const now = new Date();
+  const fiveMinutesAgo = new Date(now.getTime() - 5 * 60000);
+  
+  if (!document.getElementById('dateFrom').value) {
+    document.getElementById('dateFrom').value = fiveMinutesAgo.toISOString().slice(0, 16);
+  }
+  if (!document.getElementById('dateTo').value) {
+    document.getElementById('dateTo').value = now.toISOString().slice(0, 16);
+  }
+  
+  // Format the data table with delay to ensure DOM is ready
+  setTimeout(() => {
+    console.log('Attempting to format data table...');
+    formatDataTable();
+  }, 200);
+});
+
+// Also call formatDataTable when content is dynamically loaded
+function initializeDataPage() {
+  console.log('Initializing data page...');
+  setTimeout(() => {
+    formatDataTable();
+  }, 100);
+}
+
+// Call on window load as well
+window.addEventListener('load', function() {
+  setTimeout(() => {
+    console.log('Window loaded, formatting table...');
+    formatDataTable();
+  }, 300);
+});
+</script>

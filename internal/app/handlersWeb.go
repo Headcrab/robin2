@@ -53,50 +53,85 @@ func getOnePage(name string, descr string, data []string, pageNum, linesPerPage 
 
 // generatePageSwitcherHTML generates the HTML for the page switcher component.
 func generatePageSwitcherHTML(name string, pageNum, pagesTotal int) template.HTML {
-	// pageSwitcher := fmt.Sprintf("<span class='text-center list-group text-list-item'>Страница %d из %d <br>", pageNum, pagesTotal)
-	pageSwitcher := "<span class='text-center fixed-bottom2'>"
-	// show 10 pages only, current must be in list
 	if pagesTotal < 2 {
-		return template.HTML(pageSwitcher)
+		return template.HTML("")
 	}
 
+	pageSwitcher := "<div class='flex items-center justify-center gap-1'>"
+
+	// Previous button
+	if pageNum > 1 {
+		pageSwitcher += getFormattedPageNumber(name, pageNum-1, false, "‹")
+	}
+
+	// First page
 	pageSwitcher += getFormattedPageNumber(name, 1, pageNum == 1, "")
 
 	pageLimit := 11
 	if pagesTotal <= pageLimit {
+		// Show all pages if total is small
 		for i := 2; i < pagesTotal; i++ {
 			pageSwitcher += getFormattedPageNumber(name, i, pageNum == i, "")
 		}
 	} else {
-		if pageNum < pageLimit-1 {
-			for i := 2; i < pageLimit-1; i++ {
-				pageSwitcher += getFormattedPageNumber(name, i, pageNum == i, "")
+		// Show ellipsis and middle pages for large pagination
+		if pageNum <= 4 {
+			// Show pages 2-5 and ellipsis
+			for i := 2; i <= 5; i++ {
+				if i < pagesTotal {
+					pageSwitcher += getFormattedPageNumber(name, i, pageNum == i, "")
+				}
 			}
-			pageSwitcher += getFormattedPageNumber(name, pageNum+1, false, "»")
-		} else if pageNum > pagesTotal-pageLimit+3 {
-			pageSwitcher += getFormattedPageNumber(name, pageNum-1, false, "«")
-			for i := pagesTotal - pageLimit + 3; i < pagesTotal; i++ {
-				pageSwitcher += getFormattedPageNumber(name, i, pageNum == i, "")
+			if pagesTotal > 6 {
+				pageSwitcher += "<span class='page-ellipsis'>...</span>"
+			}
+		} else if pageNum >= pagesTotal-3 {
+			// Show ellipsis and last 4 pages
+			if pagesTotal > 6 {
+				pageSwitcher += "<span class='page-ellipsis'>...</span>"
+			}
+			for i := pagesTotal - 4; i < pagesTotal; i++ {
+				if i > 1 {
+					pageSwitcher += getFormattedPageNumber(name, i, pageNum == i, "")
+				}
 			}
 		} else {
-			pageSwitcher += getFormattedPageNumber(name, pageNum-1, false, "«")
-			for i := pageNum - (pageLimit-4)/2; i <= pageNum+(pageLimit-4)/2; i++ {
+			// Show ellipsis, middle pages, ellipsis
+			pageSwitcher += "<span class='page-ellipsis'>...</span>"
+			for i := pageNum - 1; i <= pageNum+1; i++ {
 				pageSwitcher += getFormattedPageNumber(name, i, pageNum == i, "")
 			}
-			pageSwitcher += getFormattedPageNumber(name, pageNum+1, false, "»")
+			pageSwitcher += "<span class='page-ellipsis'>...</span>"
 		}
 	}
 
-	pageSwitcher += getFormattedPageNumber(name, pagesTotal, pageNum == pagesTotal, "")
+	// Last page (if not already shown)
+	if pagesTotal > 1 {
+		pageSwitcher += getFormattedPageNumber(name, pagesTotal, pageNum == pagesTotal, "")
+	}
 
-	pageSwitcher += "</span><br>"
+	// Next button
+	if pageNum < pagesTotal {
+		pageSwitcher += getFormattedPageNumber(name, pageNum+1, false, "›")
+	}
+
+	pageSwitcher += "</div>"
 	return template.HTML(pageSwitcher)
 }
 
 func getFormattedPageNumber(name string, pageNum int, isCurr bool, pagerName string) string {
-	return fmt.Sprintf(`<button class='page-number %s' href='#' onclick='loadPage("/%s?page=%d")'>%s</button>`,
-		utils.ThenIf(isCurr, "page-number-current", ""), name, pageNum,
-		utils.ThenIf(pagerName == "", fmt.Sprintf("%d", pageNum), pagerName))
+	currentClass := ""
+	if isCurr {
+		currentClass = " page-number-current"
+	}
+
+	displayText := pagerName
+	if pagerName == "" {
+		displayText = fmt.Sprintf("%d", pageNum)
+	}
+
+	return fmt.Sprintf(`<button class='page-number%s' onclick='loadPage("/%s?page=%d")' type='button'>%s</button>`,
+		currentClass, name, pageNum, displayText)
 }
 
 // getDataSubset determines the subset of data to be displayed on the requested page.
@@ -145,8 +180,15 @@ func (a *App) handlePageLog(w http.ResponseWriter, r *http.Request) {
 	page := "logs"
 	logPerPage := 23
 	pageNumStr := r.URL.Query().Get("page")
+	refresh := r.URL.Query().Get("refresh")
+
 	if pageNumStr == "" {
 		pageNumStr = "1"
+		logData = nil
+	}
+
+	// если указан параметр refresh, очищаем кеш
+	if refresh == "1" {
 		logData = nil
 	}
 
@@ -161,6 +203,7 @@ func (a *App) handlePageLog(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Ошибка при чтении ответа:", err)
 			return
 		}
+		logData = []string{} // инициализируем пустой слайс
 		for _, log := range logs {
 			logData = append(logData, fmt.Sprintf("%s %s %s", log.Date.Format("2006-01-02 15:04:05"), log.Level, log.Msg))
 		}

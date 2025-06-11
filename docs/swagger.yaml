@@ -36,6 +36,39 @@ paths:
       summary: Получить лог
       tags:
       - System
+  /api/log/clear/:
+    delete:
+      description: Очищает файл логов приложения
+      produces:
+      - plain/text
+      responses:
+        "200":
+          description: Логи очищены
+          schema:
+            type: string
+        "500":
+          description: Ошибка при очистке логов
+          schema:
+            type: string
+      summary: Очистить лог
+      tags:
+      - System
+    post:
+      description: Очищает файл логов приложения
+      produces:
+      - plain/text
+      responses:
+        "200":
+          description: Логи очищены
+          schema:
+            type: string
+        "500":
+          description: Ошибка при очистке логов
+          schema:
+            type: string
+      summary: Очистить лог
+      tags:
+      - System
   /api/reload/:
     get:
       description: Презагружает конфигурационный файл приложения в случае изменения

@@ -1,12 +1,54 @@
-<div class="fixed-bottom">
-  <span class="status-text">{{.app.name}} v:{{.app.version}}</span>
-  <span id="appuptime">{{.app.uptime}}</span>
-  <span> (</span>
-  <span id="dbserver">{{.db.server}}</span>
-  <span> </span>
-  <span id="dbtype">{{.db.type}}</span>
-  <span> v:<span id="dbversion">{{.db.version}}</span></span>
-  <span class="status {{.db.status}}" id="dbstatus"></span>
-  <span id="dbuptime">{{.db.uptime}}</span>
-  <span>)</span>
+<div class="px-4 py-3 sm:px-6">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+    <!-- system information -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-6 space-y-1 sm:space-y-0 text-xs text-gray-500">
+      <div class="flex items-center space-x-2">
+        <span class="font-medium">БД:</span>
+        <span id="dbtype" class="text-gray-700">—</span>
+        <span id="dbversion" class="text-gray-600">—</span>
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <span class="font-medium">Сервер:</span>
+        <span id="dbserver" class="text-gray-700">—</span>
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <span class="font-medium">Статус БД:</span>
+        <div class="flex items-center space-x-1">
+          <div id="footer-dbstatus" class="h-2 w-2 rounded-full bg-gray-400"></div>
+          <span class="text-gray-600">Проверка...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- uptime information -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-xs text-gray-500">
+      <div class="flex items-center space-x-2">
+        <span class="font-medium">Время работы БД:</span>
+        <span id="dbuptime" class="text-gray-700 font-mono">—</span>
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <span class="font-medium">Время работы приложения:</span>
+        <span id="appuptime" class="text-gray-700 font-mono">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- copyright and additional info -->
+  <div class="mt-3 pt-3 border-t border-gray-200">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-1 sm:space-y-0 text-xs text-gray-400">
+      <div class="flex items-center space-x-4">
+        <span>© 2024 Robin АСУТП</span>
+        <span>•</span>
+        <span>Система получения данных</span>
+      </div>
+      
+      <div class="flex items-center space-x-2">
+        <span>Последнее обновление:</span>
+        <span id="last-update" class="font-mono">—</span>
+      </div>
+    </div>
+  </div>
 </div>

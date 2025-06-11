@@ -1,3 +1,84 @@
-<div class="fixed-top">
-  <h4 class="container text-center">{{.descr}}</h4>
+<div class="flex items-center justify-between">
+  <!-- page title and breadcrumb -->
+  <div class="flex items-center space-x-4">
+    <h1 class="text-xl font-semibold text-gray-900" id="page-title">Система получения данных АСУТП</h1>
+    <nav class="hidden sm:flex" aria-label="Хлебные крошки">
+      <ol class="flex items-center space-x-2 text-sm text-gray-500">
+        <li id="breadcrumb-container">
+          <!-- breadcrumbs will be populated by JavaScript -->
+        </li>
+      </ol>
+    </nav>
+  </div>
+
+  <!-- search and actions -->
+  <div class="flex items-center space-x-4">
+    <!-- search input -->
+    <div class="relative hidden md:block">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+      <input 
+        type="text" 
+        id="global-search" 
+        class="block w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary transition duration-150 ease-in-out" 
+        placeholder="Поиск по системе..." 
+        autocomplete="off"
+      />
+    </div>
+
+    <!-- quick actions -->
+    <div class="flex items-center space-x-2">
+      <!-- refresh button -->
+      <button 
+        id="refresh-btn"
+        class="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors duration-200"
+        aria-label="Обновить данные"
+        title="Обновить данные"
+      >
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+      </button>
+
+      <!-- notifications -->
+      <button 
+        id="notifications-btn"
+        class="relative p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors duration-200"
+        aria-label="Уведомления"
+        title="Уведомления"
+      >
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5-5-5 5h5zm0 0v1.5a1.5 1.5 0 01-3 0V17" />
+        </svg>
+        <span id="notification-badge" class="hidden absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+      </button>
+
+      <!-- system status indicator -->
+      <div class="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
+        <div id="header-status" class="h-2 w-2 rounded-full bg-gray-400"></div>
+        <span class="text-sm text-gray-600 hidden sm:inline">Система</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- mobile search bar (shown when needed) -->
+<div id="mobile-search" class="hidden md:hidden mt-4">
+  <div class="relative">
+    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+      <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+    </div>
+    <input 
+      type="text" 
+      id="mobile-global-search" 
+      class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary transition duration-150 ease-in-out" 
+      placeholder="Поиск по системе..." 
+      autocomplete="off"
+    />
+  </div>
 </div>

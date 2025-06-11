@@ -1,23 +1,327 @@
-<div class="text-center">
-    <!-- <h4>Список доступных тегов</h4> -->
-    <div style="display: flex; align-items: center;">
-        <input style="font-family: var(--standart); margin-left: 4px;" type="text" id="searchInput" placeholder="Маска тега"
-            value="{{.like}}">
-        <div> </div>
-        <button style="font-family: var(--standart); width: 100px;" class="page-number flat-btn-medium" id="searchBtn"
-            onclick="getTagList()">Поиск</button>
-        <div> </div>
-    </div>
-    <ul class="list-group">
-        {{range .tags}}
-        <li class="text-list-item">
-            <span class="level other">{{.}}</span>
-        </li>
-        {{else}}
-        <li class="text-list-item">
-            <b>Нет данных.</b>
-        </li>
+<!-- tags management page -->
+<div class="space-y-6">
+  <!-- page header -->
+  <div class="border-b border-gray-200 pb-4">
+    <h2 class="text-2xl font-bold text-gray-900">Управление тегами</h2>
+    <p class="text-gray-600 mt-1">Просмотр и поиск доступных тегов системы</p>
+  </div>
+
+  <!-- search section -->
+  <div class="bg-white rounded-lg shadow border p-6">
+    <h3 class="text-lg font-medium text-gray-900 mb-4">Поиск тегов</h3>
+    
+    <form class="flex flex-col sm:flex-row gap-4" onsubmit="event.preventDefault(); getTagList();">
+      <div class="flex-1">
+        <label for="searchInput" class="block text-sm font-medium text-gray-700 mb-1">Маска поиска</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a2 2 0 012-2z" />
+            </svg>
+          </div>
+          <input 
+            type="text" 
+            id="searchInput" 
+            class="form-input w-full pl-10" 
+            placeholder="Введите маску для поиска тегов (например: A20_*)"
+            value="{{.like}}"
+            autocomplete="off"
+          />
+        </div>
+        <p class="text-xs text-gray-500 mt-1">Используйте * для поиска по маске, например: "A20_*" или "*_WT_*"</p>
+      </div>
+      
+      <div class="flex items-center justify-end space-x-3 mt-4">
+        <button 
+          type="button"
+          onclick="clearTagSearch()"
+          class="btn btn-outline min-h-[2.5rem]"
+        >
+          Очистить
+        </button>
+        <button 
+          type="submit"
+          id="searchBtn"
+          class="btn btn-primary min-h-[2.5rem]"
+        >
+          <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          Найти теги
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- results section -->
+  <div class="bg-white rounded-lg shadow border">
+    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+      <h3 class="text-lg font-medium text-gray-900">
+        Найденные теги
+        {{if .tags}}
+          <span class="text-sm font-normal text-gray-500 ml-2">({{len .tags}} найдено)</span>
         {{end}}
-    </ul>
-    {{.page}}
+      </h3>
+      
+      <div class="flex items-center space-x-3">
+        <!-- export tags -->
+        <button 
+          onclick="exportTags()"
+          class="btn btn-outline text-sm"
+          title="Экспорт списка тегов"
+        >
+          <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Экспорт
+        </button>
+        
+        <!-- view options -->
+        <div class="flex bg-gray-100 rounded-lg p-1">
+          <button 
+            onclick="setViewMode('list')"
+            id="list-view-btn"
+            class="px-3 py-1 text-sm font-medium rounded-md transition-colors view-mode-btn active"
+            title="Список"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+            </svg>
+          </button>
+          <button 
+            onclick="setViewMode('grid')"
+            id="grid-view-btn"
+            class="px-3 py-1 text-sm font-medium rounded-md transition-colors view-mode-btn"
+            title="Сетка"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- tags content -->
+    <div class="p-6" id="tags-container">
+      {{if .tags}}
+        <!-- list view (default) -->
+        <div id="tags-list-view" class="space-y-2">
+          {{range .tags}}
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+            <div class="flex items-center space-x-3">
+              <div class="h-2 w-2 bg-primary rounded-full"></div>
+              <span class="font-mono text-sm text-gray-900 select-all">{{.}}</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button 
+                onclick="copyToClipboard('{{.}}')"
+                class="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                title="Копировать тег"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </button>
+              <button 
+                onclick="searchTagData('{{.}}')"
+                class="p-1 text-primary hover:text-primary-700 transition-colors"
+                title="Найти данные по тегу"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          {{end}}
+        </div>
+
+        <!-- grid view (hidden by default) -->
+        <div id="tags-grid-view" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {{range .tags}}
+          <div class="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors duration-200 group">
+            <div class="flex items-center justify-between">
+              <span class="font-mono text-sm text-gray-900 truncate select-all" title="{{.}}">{{.}}</span>
+              <div class="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                  onclick="copyToClipboard('{{.}}')"
+                  class="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Копировать"
+                >
+                  <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </button>
+                <button 
+                  onclick="searchTagData('{{.}}')"
+                  class="p-1 text-primary hover:text-primary-700 transition-colors"
+                  title="Данные"
+                >
+                  <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          {{end}}
+        </div>
+      {{else}}
+        <div class="text-center py-12 text-gray-500">
+          <div class="flex flex-col items-center space-y-3">
+            <svg class="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a2 2 0 012-2z" />
+            </svg>
+            <div>
+              <p class="text-lg font-medium text-gray-900">Теги не найдены</p>
+              <p class="text-gray-500">Попробуйте изменить параметры поиска</p>
+            </div>
+          </div>
+        </div>
+      {{end}}
+    </div>
+
+    <!-- pagination -->
+    {{if .page}}
+    <div class="px-6 py-4 border-t border-gray-200">
+      <div class="flex items-center justify-center">
+        {{.page}}
+      </div>
+    </div>
+    {{end}}
+  </div>
 </div>
+
+<!-- enhanced JavaScript functions -->
+<script>
+function clearTagSearch() {
+  document.getElementById('searchInput').value = '';
+}
+
+function getTagList() {
+  const searchInput = document.getElementById('searchInput');
+  const searchBtn = document.getElementById('searchBtn');
+  const mask = searchInput.value.trim();
+  
+  if (!mask) {
+    showErrorNotification('Введите маску для поиска');
+    return;
+  }
+  
+  // Show loading state
+  const originalText = searchBtn.innerHTML;
+  searchBtn.disabled = true;
+  searchBtn.innerHTML = `
+    <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    Поиск...
+  `;
+  
+  // Navigate to tags page with search mask
+  const url = `/tags?like=${encodeURIComponent(mask)}`;
+  
+  if (typeof loadPage === 'function') {
+    loadPage(url);
+  } else {
+    window.location.href = url;
+  }
+}
+
+function copyToClipboard(tag) {
+  navigator.clipboard.writeText(tag).then(() => {
+    showSuccessNotification(`Тег "${tag}" скопирован в буфер обмена`);
+  }).catch(() => {
+    showErrorNotification('Не удалось скопировать тег');
+  });
+}
+
+function searchTagData(tag) {
+  // redirect to data page with the tag pre-filled
+  console.log('Searching data for tag:', tag);
+  
+  // Set current date range (last 5 minutes)
+  const now = new Date();
+  const fiveMinutesAgo = new Date(now.getTime() - 5 * 60000);
+  
+  const fromDate = fiveMinutesAgo.toISOString().slice(0, 16);
+  const toDate = now.toISOString().slice(0, 16);
+  
+  // Navigate to data page with pre-filled parameters
+  const url = `/data?tag=${encodeURIComponent(tag)}&from=${encodeURIComponent(fromDate)}&to=${encodeURIComponent(toDate)}`;
+  
+  if (typeof loadPage === 'function') {
+    loadPage(url);
+  } else {
+    window.location.href = url;
+  }
+  
+  showSuccessNotification(`Поиск данных для тега "${tag}"`);
+}
+
+function exportTags() {
+  // collect tags from the page
+  const tagElements = document.querySelectorAll('.select-all');
+  const tags = Array.from(tagElements).map(el => el.textContent.trim());
+  
+  if (tags.length === 0) {
+    showErrorNotification('Нет тегов для экспорта');
+    return;
+  }
+  
+  const csv = 'Tag\n' + tags.map(tag => `"${tag}"`).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tags_export_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  window.URL.revokeObjectURL(url);
+  
+  showSuccessNotification('Список тегов экспортирован');
+}
+
+function setViewMode(mode) {
+  const listView = document.getElementById('tags-list-view');
+  const gridView = document.getElementById('tags-grid-view');
+  const listBtn = document.getElementById('list-view-btn');
+  const gridBtn = document.getElementById('grid-view-btn');
+  
+  if (mode === 'list') {
+    listView.classList.remove('hidden');
+    gridView.classList.add('hidden');
+    listBtn.classList.add('active', 'bg-white', 'text-primary');
+    gridBtn.classList.remove('active', 'bg-white', 'text-primary');
+  } else {
+    listView.classList.add('hidden');
+    gridView.classList.remove('hidden');
+    gridBtn.classList.add('active', 'bg-white', 'text-primary');
+    listBtn.classList.remove('active', 'bg-white', 'text-primary');
+  }
+  
+  // save preference
+  localStorage.setItem('tagsViewMode', mode);
+}
+
+// restore view mode preference
+document.addEventListener('DOMContentLoaded', function() {
+  const savedMode = localStorage.getItem('tagsViewMode') || 'list';
+  setViewMode(savedMode);
+});
+</script>
+
+<style>
+.view-mode-btn.active {
+  background-color: white;
+  color: #3b82f6;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.select-all {
+  user-select: all;
+}
+</style>

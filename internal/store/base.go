@@ -406,12 +406,39 @@ func (s *Base) GetTagFromTo(tag string, from time.Time, to time.Time) (data.Tags
 			}
 			defer rows.Close()
 
+			// Получаем информацию о колонках для определения их количества
+			columns, err := rows.Columns()
+			if err != nil {
+				errCh <- err
+				return
+			}
+
 			for rows.Next() {
 				currTag := &data.Tag{}
-				if err := rows.Scan(&currTag.Name, &currTag.Date, &currTag.Value); err != nil {
+
+				// Определяем количество колонок и сканируем соответственно
+				if len(columns) == 3 {
+					// ClickHouse: TagName, DateTime, Value
+					if err := rows.Scan(&currTag.Name, &currTag.Date, &currTag.Value); err != nil {
+						logger.Error(fmt.Sprintf("Error scanning 3 columns for tag %s: %v", t, err))
+						errCh <- err
+						return
+					}
+				} else if len(columns) == 2 {
+					// Другие БД: DateTime, Value (TagName берем из параметра)
+					if err := rows.Scan(&currTag.Date, &currTag.Value); err != nil {
+						logger.Error(fmt.Sprintf("Error scanning 2 columns for tag %s: %v", t, err))
+						errCh <- err
+						return
+					}
+					currTag.Name = t
+				} else {
+					err := fmt.Errorf("unexpected number of columns: %d, expected 2 or 3", len(columns))
+					logger.Error(err.Error())
 					errCh <- err
 					return
 				}
+
 				resCh <- currTag
 			}
 		}(t)
@@ -457,12 +484,32 @@ func (s *Base) GetTagFromToUncached(tag string, from time.Time, to time.Time) (d
 			return nil, err
 		}
 
+		// Получаем информацию о колонках для определения их количества
+		columns, err := rows.Columns()
+		if err != nil {
+			return nil, err
+		}
+
 		for rows.Next() {
-			var tag string
+			var tagName string
 			var date time.Time
 			var val float32
-			err = rows.Scan(&tag, &date, &val)
+
+			// Определяем количество колонок и сканируем соответственно
+			if len(columns) == 3 {
+				// ClickHouse: TagName, DateTime, Value
+				err = rows.Scan(&tagName, &date, &val)
+			} else if len(columns) == 2 {
+				// Другие БД: DateTime, Value (TagName берем из параметра)
+				err = rows.Scan(&date, &val)
+				tagName = t
+			} else {
+				logger.Error(fmt.Sprintf("unexpected number of columns: %d, expected 2 or 3", len(columns)))
+				continue
+			}
+
 			if err != nil {
+				logger.Error(fmt.Sprintf("Error scanning columns for tag %s: %v", t, err))
 				continue
 			}
 			// currTag := data.Tag{
@@ -470,7 +517,7 @@ func (s *Base) GetTagFromToUncached(tag string, from time.Time, to time.Time) (d
 			// 	Date:  date,
 			// 	Value: val,
 			// }
-			err = s.cache.Set(tag, date, val)
+			err = s.cache.Set(tagName, date, val)
 			if err != nil {
 				logger.Error(err.Error())
 			}

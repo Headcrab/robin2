@@ -69,6 +69,56 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/log/clear/": {
+            "post": {
+                "description": "Очищает файл логов приложения",
+                "produces": [
+                    "plain/text"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Очистить лог",
+                "responses": {
+                    "200": {
+                        "description": "Логи очищены",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка при очистке логов",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Очищает файл логов приложения",
+                "produces": [
+                    "plain/text"
+                ],
+                "tags": [
+                    "System"
+                ],
+                "summary": "Очистить лог",
+                "responses": {
+                    "200": {
+                        "description": "Логи очищены",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Ошибка при очистке логов",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/api/reload/": {
             "get": {
                 "description": "Презагружает конфигурационный файл приложения в случае изменения",

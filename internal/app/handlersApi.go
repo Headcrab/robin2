@@ -341,6 +341,48 @@ func (a *App) handleAPIGetTagUp(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// @Summary Очистить лог
+// @Description Очищает файл логов приложения
+// @Tags System
+// @Produce plain/text
+// @Success 200 {string} string "Логи очищены"
+// @Failure 500 {string} string "Ошибка при очистке логов"
+// @Router /api/log/clear/ [delete]
+// @Router /api/log/clear/ [post]
+func (a *App) handleAPIClearLog(w http.ResponseWriter, r *http.Request) {
+	logger.Info(fmt.Sprintf("API clear logs called, method: %s, remote: %s", r.Method, r.RemoteAddr))
+
+	// проверим метод запроса
+	if r.Method != http.MethodDelete && r.Method != http.MethodPost {
+		logger.Warn(fmt.Sprintf("Invalid method for clear logs: %s", r.Method))
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Установим заголовки для ответа
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	w.Header().Set("Content-Type", "text/plain")
+
+	logger.Info("Starting log clear operation")
+
+	// Очистим логи
+	err := logger.ClearLogs()
+	if err != nil {
+		logger.Error(fmt.Sprintf("Ошибка при очистке логов: %v", err))
+		http.Error(w, "Ошибка при очистке логов: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info("Log clear operation completed successfully")
+
+	// Запишем ответ
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write([]byte("Логи успешно очищены")); err != nil {
+		logger.Error(fmt.Sprintf("Ошибка при записи ответа: %v", err))
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
 // @Summary Полчить информацию
 // @Description Возвращает информацию о приложении
 // @Tags System

@@ -223,8 +223,13 @@ type LogHistory []LogItem
 
 func GetLogHistory() (LogHistory, error) {
 	checkFileLog()
-	defer file.Close()
-	f, err := os.ReadFile(file.Name())
+	if file == nil {
+		return LogHistory{}, nil
+	}
+
+	// читаем файл по имени, не закрывая дескриптор
+	logFileName := logPath + getLogFileName()
+	f, err := os.ReadFile(logFileName)
 	if err != nil {
 		return LogHistory{}, err
 	}
@@ -250,11 +255,38 @@ func parseLogLine(line string) LogItem {
 	if err == nil {
 		return logItem
 	}
-	// parts := strings.Split(line, " ")
-	// date, err := time.Parse(time.RFC3339, parts[0]+"T"+parts[1]+"Z")
-	// if err != nil {
-	// 	consoleLog().Error("Error parsing log line", err)
-	// }
+
+	// если JSON парсинг не удался, попробуем парсить строчный формат
+	// предполагаемый формат: time=2006-01-02T15:04:05.000+05:00 level=INFO msg="message"
+	parts := strings.Fields(line)
+	logItem = LogItem{
+		Date:  time.Now(), // используем текущее время как fallback
+		Level: "UNKNOWN",
+		Msg:   line, // весь текст строки как сообщение
+	}
+
+	// ищем msg= и парсим все что после него как сообщение
+	msgStartIndex := strings.Index(line, "msg=")
+	if msgStartIndex != -1 {
+		msgStr := line[msgStartIndex+4:] // +4 для "msg="
+		// убираем кавычки если есть
+		if len(msgStr) >= 2 && msgStr[0] == '"' && msgStr[len(msgStr)-1] == '"' {
+			msgStr = msgStr[1 : len(msgStr)-1]
+		}
+		logItem.Msg = msgStr
+	}
+
+	for _, part := range parts {
+		if strings.HasPrefix(part, "time=") {
+			timeStr := strings.TrimPrefix(part, "time=")
+			if parsedTime, err := time.Parse(time.RFC3339, timeStr); err == nil {
+				logItem.Date = parsedTime
+			}
+		} else if strings.HasPrefix(part, "level=") {
+			logItem.Level = strings.TrimPrefix(part, "level=")
+		}
+	}
+
 	return logItem
 }
 
@@ -275,4 +307,34 @@ func strToLogLevel(level string) LogLevel {
 	default:
 		return LevelInfo
 	}
+}
+
+// ClearLogs очищает файл логов
+func ClearLogs() error {
+	// получаем путь к файлу логов
+	logFileName := logPath + getLogFileName()
+
+	// закрываем текущий файл если он открыт
+	if file != nil {
+		file.Close()
+		file = nil
+	}
+
+	// сбрасываем логгер для переинициализации
+	fileLogPtr = nil
+	onceFile = sync.Once{}
+
+	// очищаем содержимое файла (truncate) вместо удаления
+	f, err := os.OpenFile(logFileName, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+	if err != nil {
+		consoleLog().Error("Failed to truncate log file", "error", err.Error())
+		return err
+	}
+	f.Close()
+
+	// инициализируем новый файл логов
+	checkFileLog()
+
+	Info("Логи очищены")
+	return nil
 }
