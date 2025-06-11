@@ -2,8 +2,8 @@
 <div class="text-center py-8 mb-8">
   <div class="max-w-3xl mx-auto">
     <img id="robinImage" class="h-32 w-32 mx-auto mb-6 rounded-lg shadow-lg" alt="Robin АСУТП">
-    <h1 class="text-3xl font-bold text-gray-900 mb-4">Система получения данных АСУТП</h1>
-    <p class="text-lg text-gray-600 mb-6">Современный интерфейс для мониторинга и управления промышленными данными</p>
+    <h1 class="text-3xl font-bold text-gray-900 mb-4" data-i18n="home.title">Система получения данных АСУТП</h1>
+    <p class="text-lg text-gray-600 mb-6" data-i18n="home.subtitle">Современный интерфейс для мониторинга и управления промышленными данными</p>
     
     <!-- quick stats -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
@@ -17,7 +17,7 @@
             </div>
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">Активных тегов</p>
+            <p class="text-sm font-medium text-gray-500" data-i18n="home.stats.active_tags">Активных тегов</p>
             <p class="text-2xl font-bold text-gray-900" id="active-tags-count">—</p>
           </div>
         </div>
@@ -33,7 +33,7 @@
             </div>
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">Записей данных</p>
+            <p class="text-sm font-medium text-gray-500" data-i18n="home.stats.data_records">Записей данных</p>
             <p class="text-2xl font-bold text-gray-900" id="data-records-count">—</p>
           </div>
         </div>
@@ -49,10 +49,10 @@
             </div>
           </div>
           <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">Статус системы</p>
+            <p class="text-sm font-medium text-gray-500" data-i18n="home.stats.system_status">Статус системы</p>
             <div class="flex items-center space-x-2">
               <div id="home-status" class="h-3 w-3 rounded-full bg-gray-400"></div>
-              <p class="text-sm font-medium text-gray-900" id="system-status-text">Проверка...</p>
+              <p class="text-sm font-medium text-gray-900" id="system-status-text" data-i18n="status.checking">Проверка...</p>
             </div>
           </div>
         </div>
@@ -63,7 +63,7 @@
 
 <!-- quick actions -->
 <div class="mb-8">
-  <h2 class="text-xl font-semibold text-gray-900 mb-4">Быстрые действия</h2>
+  <h2 class="text-xl font-semibold text-gray-900 mb-4" data-i18n="common.quick_actions">Быстрые действия</h2>
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
     <button 
       onclick="loadPage('/data/')" 
@@ -124,7 +124,7 @@
   <!-- recent activity -->
   <div class="bg-white rounded-lg shadow border">
     <div class="px-6 py-4 border-b border-gray-200">
-      <h3 class="text-lg font-medium text-gray-900">Последняя активность</h3>
+      <h3 class="text-lg font-medium text-gray-900" data-i18n="home.recent_activity">Последняя активность</h3>
     </div>
     <div class="p-6">
       <div id="recent-activity" class="space-y-3">
@@ -139,7 +139,7 @@
   <!-- system health -->
   <div class="bg-white rounded-lg shadow border">
     <div class="px-6 py-4 border-b border-gray-200">
-      <h3 class="text-lg font-medium text-gray-900">Состояние системы</h3>
+      <h3 class="text-lg font-medium text-gray-900" data-i18n="home.system_health">Состояние системы</h3>
     </div>
     <div class="p-6 space-y-4">
       <div class="flex items-center justify-between">

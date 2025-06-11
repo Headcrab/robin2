@@ -1,7 +1,7 @@
 <div class="flex items-center justify-between">
   <!-- page title and breadcrumb -->
   <div class="flex items-center space-x-4">
-    <h1 class="text-xl font-semibold text-gray-900" id="page-title">Система получения данных АСУТП</h1>
+    <h1 class="text-xl font-semibold text-gray-900" id="page-title" data-i18n="home.title">Система получения данных АСУТП</h1>
     <nav class="hidden sm:flex" aria-label="Хлебные крошки">
       <ol class="flex items-center space-x-2 text-sm text-gray-500">
         <li id="breadcrumb-container">
@@ -24,6 +24,7 @@
         type="text" 
         id="global-search" 
         class="block w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary transition duration-150 ease-in-out" 
+        data-i18n-placeholder="common.search"
         placeholder="Поиск по системе..." 
         autocomplete="off"
       />
@@ -35,6 +36,7 @@
       <button 
         id="refresh-btn"
         class="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors duration-200"
+        data-i18n-title="common.refresh"
         aria-label="Обновить данные"
         title="Обновить данные"
       >
@@ -59,8 +61,11 @@
       <!-- system status indicator -->
       <div class="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
         <div id="header-status" class="h-2 w-2 rounded-full bg-gray-400"></div>
-        <span class="text-sm text-gray-600 hidden sm:inline">Система</span>
+        <span class="text-sm text-gray-600 hidden sm:inline" data-i18n="common.system">Система</span>
       </div>
+
+      <!-- theme and language switchers will be added here by JavaScript -->
+      <div id="theme-language-switchers-placeholder"></div>
     </div>
   </div>
 </div>
@@ -77,6 +82,7 @@
       type="text" 
       id="mobile-global-search" 
       class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary transition duration-150 ease-in-out" 
+      data-i18n-placeholder="common.search"
       placeholder="Поиск по системе..." 
       autocomplete="off"
     />

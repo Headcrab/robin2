@@ -2,15 +2,15 @@
 <div class="space-y-6">
   <!-- page header -->
   <div class="border-b border-gray-200 pb-4">
-    <h2 class="text-2xl font-bold text-gray-900">Логи системы</h2>
-    <p class="text-gray-600 mt-1">Просмотр системных логов и событий</p>
+    <h2 class="text-2xl font-bold text-gray-900" data-i18n="logs.title">Логи системы</h2>
+    <p class="text-gray-600 mt-1" data-i18n="logs.subtitle">Просмотр системных логов и событий</p>
   </div>
 
   <!-- logs section -->
   <div class="bg-white rounded-lg shadow border">
     <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
       <div class="flex items-center space-x-2">
-        <h3 class="text-lg font-medium text-gray-900">Записи логов</h3>
+        <h3 class="text-lg font-medium text-gray-900" data-i18n="logs.log_entries">Записи логов</h3>
         {{if .logs}}
           <span class="text-sm font-normal text-gray-500">({{len .logs}} записей)</span>
         {{end}}
@@ -21,36 +21,39 @@
         <button 
           onclick="window.location.reload()"
           class="btn btn-outline text-sm"
+          data-i18n-title="logs.refresh_logs"
           title="Обновить логи"
         >
           <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          Обновить
+          <span data-i18n="common.refresh">Обновить</span>
         </button>
         
         <!-- export logs -->
         <button 
           onclick="exportLogs()"
           class="btn btn-outline text-sm"
+          data-i18n-title="logs.export_logs"
           title="Экспорт логов"
         >
           <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          Экспорт
+          <span data-i18n="common.export">Экспорт</span>
         </button>
         
         <!-- clear logs -->
         <button 
           onclick="clearLogs()"
           class="btn btn-outline text-sm text-red-600 hover:bg-red-50"
+          data-i18n-title="logs.clear_logs"
           title="Очистить логи"
         >
           <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
-          Очистить
+          <span data-i18n="common.clear">Очистить</span>
         </button>
       </div>
     </div>

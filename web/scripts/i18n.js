@@ -1,0 +1,537 @@
+// internationalization module
+
+class I18nManager {
+    constructor() {
+        this.currentLang = 'ru';
+        this.translations = {};
+        this.languages = {
+            ru: {
+                name: 'Русский',
+                nativeName: 'Русский',
+                flag: '🇷🇺'
+            },
+            kk: {
+                name: 'Қазақша',
+                nativeName: 'Қазақша', 
+                flag: '🇰🇿'
+            },
+            en: {
+                name: 'English',
+                nativeName: 'English',
+                flag: '🇺🇸'
+            }
+        };
+        this.init();
+    }
+
+    async init() {
+        console.log('инициализация i18nManager...');
+        
+        // load translations first
+        await this.loadTranslations();
+        console.log('переводы загружены');
+        
+        // load saved language from localStorage
+        const savedLang = localStorage.getItem('language') || this.detectBrowserLanguage();
+        console.log('установка языка:', savedLang);
+        
+        this.setLanguage(savedLang);
+        
+        console.log('i18nManager инициализирован');
+    }
+
+    detectBrowserLanguage() {
+        const browserLang = navigator.language || navigator.userLanguage;
+        if (browserLang.startsWith('kk')) return 'kk';
+        if (browserLang.startsWith('en')) return 'en';
+        return 'ru'; // default
+    }
+
+    async loadTranslations() {
+        // define translations inline for now - flat structure
+        this.translations = {
+            ru: {
+                nav: {
+                    home: 'Главная',
+                    data: 'Данные', 
+                    tags: 'Теги',
+                    logs: 'Логи',
+                    api: 'API'
+                },
+                
+                common: {
+                    loading: 'Загрузка...',
+                    error: 'Ошибка',
+                    success: 'Успешно',
+                    search: 'Поиск по системе...',
+                    export: 'Экспорт',
+                    clear: 'Очистить',
+                    refresh: 'Обновить данные',
+                    close: 'Закрыть',
+                    cancel: 'Отмена',
+                    save: 'Сохранить',
+                    delete: 'Удалить',
+                    edit: 'Редактировать',
+                    view: 'Просмотр',
+                    copy: 'Копировать',
+                    system: 'Система',
+                    quick_actions: 'Быстрые действия'
+                },
+                
+                home: {
+                    title: 'Система получения данных АСУТП',
+                    subtitle: 'Современный интерфейс для мониторинга и управления промышленными данными',
+                    recent_activity: 'Последняя активность',
+                    system_health: 'Состояние системы',
+                    stats: {
+                        active_tags: 'Активных тегов',
+                        data_records: 'Записей данных',
+                        system_status: 'Статус системы'
+                    }
+                },
+                
+                data: {
+                    title: 'Данные АСУТП',
+                    subtitle: 'Поиск и анализ данных по тегам',
+                    search_params: 'Параметры поиска',
+                    tag: 'Тег',
+                    tag_placeholder: 'Введите название тега',
+                    date_from: 'Дата начала',
+                    date_to: 'Дата окончания',
+                    record_count: 'Количество записей',
+                    find_data: 'Найти данные',
+                    search_results: 'Результаты поиска',
+                    export_data: 'Экспорт данных',
+                    table: {
+                        time: 'Время',
+                        tag: 'Тег',
+                        value: 'Значение',
+                        quality: 'Качество',
+                        unit: 'Единица',
+                        description: 'Описание'
+                    }
+                },
+                
+                tags: {
+                    title: 'Управление тегами',
+                    subtitle: 'Просмотр и поиск доступных тегов системы',
+                    search: 'Поиск тегов',
+                    search_mask: 'Маска поиска',
+                    search_placeholder: 'Введите маску для поиска тегов (например: A20_*)',
+                    find_tags: 'Найти теги',
+                    found_tags: 'Найденные теги'
+                },
+                
+                logs: {
+                    title: 'Логи системы',
+                    subtitle: 'Просмотр системных логов и событий',
+                    log_entries: 'Записи логов',
+                    refresh_logs: 'Обновить логи',
+                    export_logs: 'Экспорт логов',
+                    clear_logs: 'Очистить логи'
+                },
+                
+                api: {
+                    title: 'API документация'
+                },
+                
+                status: {
+                    working: 'Работает',
+                    error: 'Ошибка',
+                    checking: 'Проверка...',
+                    connection_error: 'Ошибка связи',
+                    system_status: 'Статус системы'
+                },
+                
+                theme: {
+                    light: 'Светлая',
+                    dark: 'Темная',
+                    toggle: 'Переключить тему'
+                },
+                
+                lang: {
+                    switch: 'Сменить язык'
+                }
+            },
+            
+            kk: {
+                nav: {
+                    home: 'Басты бет',
+                    data: 'Деректер',
+                    tags: 'Тегтер',
+                    logs: 'Логтер',
+                    api: 'API'
+                },
+                
+                common: {
+                    loading: 'Жүктелуде...',
+                    error: 'Қате',
+                    success: 'Сәтті',
+                    search: 'Іздеу...',
+                    export: 'Экспорт',
+                    clear: 'Тазарту',
+                    refresh: 'Деректерді жаңарту',
+                    close: 'Жабу',
+                    cancel: 'Болдырмау',
+                    save: 'Сақтау',
+                    delete: 'Жою',
+                    edit: 'Өңдеу',
+                    view: 'Қарау',
+                    copy: 'Көшіру',
+                    system: 'Жүйе',
+                    quick_actions: 'Жылдам әрекеттер'
+                },
+                
+                home: {
+                    title: 'АСУТП деректерін алу жүйесі',
+                    subtitle: 'Өндірістік деректерді бақылау және басқару үшін заманауи интерфейс',
+                    recent_activity: 'Соңғы әрекет',
+                    system_health: 'Жүйе денсаулығы',
+                    stats: {
+                        active_tags: 'Белсенді тегтер',
+                        data_records: 'Деректер жазбалары',
+                        system_status: 'Жүйе күйі'
+                    }
+                },
+                
+                data: {
+                    title: 'АСУТП деректері',
+                    subtitle: 'Тегтер бойынша деректерді іздеу және талдау',
+                    search_params: 'Іздеу параметрлері',
+                    tag: 'Тег',
+                    tag_placeholder: 'Тег атауын енгізіңіз',
+                    date_from: 'Басталу күні',
+                    date_to: 'Аяқталу күні',
+                    record_count: 'Жазбалар саны',
+                    find_data: 'Деректерді табу',
+                    search_results: 'Іздеу нәтижелері',
+                    export_data: 'Деректерді экспорттау',
+                    table: {
+                        time: 'Уақыт',
+                        tag: 'Тег',
+                        value: 'Мән',
+                        quality: 'Сапа',
+                        unit: 'Өлшем бірлігі',
+                        description: 'Сипаттама'
+                    }
+                },
+                
+                tags: {
+                    title: 'Тегтерді басқару',
+                    subtitle: 'Жүйенің қолжетімді тегтерін қарау және іздеу',
+                    search: 'Тегтерді іздеу',
+                    search_mask: 'Іздеу маскасы',
+                    search_placeholder: 'Тегтерді іздеу үшін маска енгізіңіз (мысалы: A20_*)',
+                    find_tags: 'Тегтерді табу',
+                    found_tags: 'Табылған тегтер'
+                },
+                
+                logs: {
+                    title: 'Жүйе логтары',
+                    subtitle: 'Жүйелік логтар мен оқиғаларды қарау',
+                    log_entries: 'Лог жазбалары',
+                    refresh_logs: 'Логтарды жаңарту',
+                    export_logs: 'Логтарды экспорттау',
+                    clear_logs: 'Логтарды тазарту'
+                },
+                
+                api: {
+                    title: 'API құжаттамасы'
+                },
+                
+                status: {
+                    working: 'Жұмыс істеп тұр',
+                    error: 'Қате',
+                    checking: 'Тексерілуде...',
+                    connection_error: 'Байланыс қатесі',
+                    system_status: 'Жүйе күйі'
+                },
+                
+                theme: {
+                    light: 'Ашық',
+                    dark: 'Қараңғы',
+                    toggle: 'Тақырыпты ауыстыру'
+                },
+                
+                lang: {
+                    switch: 'Тілді ауыстыру'
+                }
+            },
+            
+            en: {
+                nav: {
+                    home: 'Home',
+                    data: 'Data',
+                    tags: 'Tags',
+                    logs: 'Logs',
+                    api: 'API'
+                },
+                
+                common: {
+                    loading: 'Loading...',
+                    error: 'Error',
+                    success: 'Success',
+                    search: 'Search...',
+                    export: 'Export',
+                    clear: 'Clear',
+                    refresh: 'Refresh data',
+                    close: 'Close',
+                    cancel: 'Cancel',
+                    save: 'Save',
+                    delete: 'Delete',
+                    edit: 'Edit',
+                    view: 'View',
+                    copy: 'Copy',
+                    system: 'System',
+                    quick_actions: 'Quick actions'
+                },
+                
+                home: {
+                    title: 'SCADA Data Acquisition System',
+                    subtitle: 'Modern interface for monitoring and managing industrial data',
+                    recent_activity: 'Recent Activity',
+                    system_health: 'System Health',
+                    stats: {
+                        active_tags: 'Active Tags',
+                        data_records: 'Data Records',
+                        system_status: 'System Status'
+                    }
+                },
+                
+                data: {
+                    title: 'SCADA Data',
+                    subtitle: 'Search and analyze tag data',
+                    search_params: 'Search Parameters',
+                    tag: 'Tag',
+                    tag_placeholder: 'Enter tag name',
+                    date_from: 'Start Date',
+                    date_to: 'End Date',
+                    record_count: 'Record Count',
+                    find_data: 'Find Data',
+                    search_results: 'Search Results',
+                    export_data: 'Export data',
+                    table: {
+                        time: 'Time',
+                        tag: 'Tag',
+                        value: 'Value',
+                        quality: 'Quality',
+                        unit: 'Unit',
+                        description: 'Description'
+                    }
+                },
+                
+                tags: {
+                    title: 'Tag Management',
+                    subtitle: 'View and search available system tags',
+                    search: 'Tag Search',
+                    search_mask: 'Search Mask',
+                    search_placeholder: 'Enter mask to search tags (e.g.: A20_*)',
+                    find_tags: 'Find Tags',
+                    found_tags: 'Found Tags'
+                },
+                
+                logs: {
+                    title: 'System Logs',
+                    subtitle: 'View system logs and events',
+                    log_entries: 'Log Entries',
+                    refresh_logs: 'Refresh logs',
+                    export_logs: 'Export logs',
+                    clear_logs: 'Clear logs'
+                },
+                
+                api: {
+                    title: 'API Documentation'
+                },
+                
+                status: {
+                    working: 'Working',
+                    error: 'Error',
+                    checking: 'Checking...',
+                    connection_error: 'Connection Error',
+                    system_status: 'System Status'
+                },
+                
+                theme: {
+                    light: 'Light',
+                    dark: 'Dark',
+                    toggle: 'Toggle Theme'
+                },
+                
+                lang: {
+                    switch: 'Switch Language'
+                }
+            }
+        };
+    }
+
+    setLanguage(lang) {
+        if (!this.languages[lang]) {
+            console.warn(`Language ${lang} not found`);
+            return;
+        }
+
+        this.currentLang = lang;
+        
+        // save to localStorage
+        localStorage.setItem('language', lang);
+        
+        // update document lang attribute
+        document.documentElement.setAttribute('lang', lang);
+        
+        // update all translatable elements
+        this.updateTranslations();
+        
+        // update language selector
+        this.updateLanguageSelector();
+        
+        // dispatch event for other components
+        window.dispatchEvent(new CustomEvent('languageChanged', {
+            detail: { language: lang }
+        }));
+        
+        // update theme button title with new language
+        if (window.themeManager) {
+            window.themeManager.updateThemeButton();
+        }
+        
+        console.log(`Language changed to: ${lang}`);
+    }
+
+    updateTranslations() {
+        // find all elements with data-i18n attribute
+        const elements = document.querySelectorAll('[data-i18n]');
+        elements.forEach(element => {
+            const key = element.getAttribute('data-i18n');
+            const translation = this.t(key);
+            if (translation) {
+                element.textContent = translation;
+            }
+        });
+
+        // update placeholders
+        const placeholderElements = document.querySelectorAll('[data-i18n-placeholder]');
+        placeholderElements.forEach(element => {
+            const key = element.getAttribute('data-i18n-placeholder');
+            const translation = this.t(key);
+            if (translation) {
+                element.setAttribute('placeholder', translation);
+            }
+        });
+
+        // update titles  
+        const titleElements = document.querySelectorAll('[data-i18n-title]');
+        titleElements.forEach(element => {
+            const key = element.getAttribute('data-i18n-title');
+            const translation = this.t(key);
+            if (translation) {
+                element.setAttribute('title', translation);
+            }
+        });
+    }
+
+    updateLanguageSelector() {
+        const langBtn = document.getElementById('language-toggle');
+        if (langBtn) {
+            const currentLangData = this.languages[this.currentLang];
+            langBtn.innerHTML = `
+                <span class="mr-1">${currentLangData.flag}</span>
+                <span class="hidden sm:inline text-sm">${this.currentLang.toUpperCase()}</span>
+                <svg class="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            `;
+            langBtn.title = this.t('lang.switch');
+        }
+
+        // update dropdown if exists
+        const dropdown = document.getElementById('language-dropdown');
+        if (dropdown) {
+            Object.keys(this.languages).forEach(lang => {
+                const option = dropdown.querySelector(`[data-lang="${lang}"]`);
+                if (option) {
+                    option.classList.toggle('active', lang === this.currentLang);
+                    if (lang === this.currentLang) {
+                        option.style.backgroundColor = 'var(--accent-primary)';
+                        option.style.color = 'white';
+                    } else {
+                        option.style.backgroundColor = '';
+                        option.style.color = '';
+                    }
+                }
+            });
+        }
+    }
+
+    t(key, params = {}) {
+        if (!this.translations || !this.translations[this.currentLang]) {
+            console.warn(`Translations not loaded for language: ${this.currentLang}`);
+            return key;
+        }
+        
+        const keys = key.split('.');
+        let value = this.translations[this.currentLang];
+        
+        for (const k of keys) {
+            if (value && typeof value === 'object') {
+                value = value[k];
+            } else {
+                value = undefined;
+                break;
+            }
+        }
+        
+        if (typeof value !== 'string') {
+            console.warn(`Translation not found: ${key} for language: ${this.currentLang}`, this.translations[this.currentLang]);
+            return key; // fallback to key
+        }
+        
+        // simple parameter replacement
+        let result = value;
+        Object.keys(params).forEach(param => {
+            result = result.replace(new RegExp(`{${param}}`, 'g'), params[param]);
+        });
+        
+        return result;
+    }
+
+    getCurrentLanguage() {
+        return this.currentLang;
+    }
+
+    getLanguages() {
+        return this.languages;
+    }
+}
+
+// create global instance
+const i18nManager = new I18nManager();
+
+// export functions for global access
+function setLanguage(lang) {
+    i18nManager.setLanguage(lang);
+}
+
+function getCurrentLanguage() {
+    return i18nManager.getCurrentLanguage();
+}
+
+function getLanguages() {
+    return i18nManager.getLanguages();
+}
+
+function t(key, params = {}) {
+    return i18nManager.t(key, params);
+}
+
+function updateTranslations() {
+    i18nManager.updateTranslations();
+}
+
+export { 
+    setLanguage, 
+    getCurrentLanguage, 
+    getLanguages,
+    t,
+    updateTranslations,
+    i18nManager
+}; 

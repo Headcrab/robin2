@@ -52,6 +52,13 @@ function initialize() {
     // initialize mobile menu
     initializeMobileMenu();
     
+    // initialize theme and language switchers
+    if (typeof window.initializeThemeAndLanguage === 'function') {
+        window.initializeThemeAndLanguage();
+    }
+    
+    // переводы обновляются автоматически в initializeThemeAndLanguage()
+    
     // initialize refresh button
     if (typeof window.initializeRefreshButton === 'function') {
         window.initializeRefreshButton();

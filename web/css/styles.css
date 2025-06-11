@@ -1,5 +1,6 @@
 /* custom CSS variables for the design system */
 :root {
+  /* light theme variables */
   --primary: #10a37f;
   --primary-50: #ebfaeb;
   --primary-100: #d2f4d3;
@@ -59,14 +60,34 @@
   --gray-900: #202123;
   --pink-100: #dd5ce5;
   --medium-wash: #eff7f8;
+  
+  /* theme-aware variables - will be overridden by dark theme */
   --bg-color: #fff;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7f7f8;
+  --bg-tertiary: #ececf1;
+  --bg-card: #ffffff;
+  --bg-hover: #f7f7f8;
+  
   --text-primary: #202123;
   --text-default: #353740;
   --text-secondary: #6e6e80;
   --text-disabled: #acacbe;
   --text-error: #ef4146;
+  --text-muted: #8e8ea0;
+  --text-inverse: #ffffff;
+  
+  --border-primary: #d9d9e3;
+  --border-secondary: #c5c5d2;
+  --border-hover: #acacbe;
+  
+  --accent-primary: #10a37f;
+  --accent-secondary: #19c37d;
+  --accent-warning: #f4ac36;
+  --accent-danger: #ef4146;
+  
   --font-size-small: 16px;
-  --input-border: var(--gray-300);
+  --input-border: var(--border-primary);
   --input-border-focus: var(--primary-600);
   --input-focus-ring: 0px 0px 0px 1px #10a37f;
   --icon-warning-color: #f4ac36;
@@ -78,8 +99,30 @@
   --border-radius: 4px;
   /* --sans-serif: "ColfaxAI",helvetica,sans-serif; */
   --standart: "ColfaxAI",helvetica,sans-serif;
-  --monospace: "Roboto Mono",sfmono-regular,consolas,liberation mono,menlo,courier,monospace
+  --monospace: "Roboto Mono",sfmono-regular,consolas,liberation mono,menlo,courier,monospace;
   --standart_1: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* global theme styles */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* apply theme to common elements */
+aside, .sidebar {
+  background-color: var(--bg-secondary);
+  border-color: var(--border-primary);
+}
+
+header, .header {
+  background-color: var(--bg-card);
+  border-color: var(--border-primary);
+}
+
+main {
+  background-color: var(--bg-primary);
 }
 
 /* custom utility classes for primary color */
@@ -298,16 +341,17 @@ table.data-table thead th {
 .data-table th {
   padding: 1rem 0.75rem !important;
   text-align: left !important;
-  font-weight: 600 !important;
-  font-size: 0.875rem !important;
+  font-weight: 700 !important;
+  font-size: 0.8rem !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.05em !important;
+  letter-spacing: 0.08em !important;
   border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
   position: relative !important;
   white-space: nowrap !important;
   vertical-align: middle !important;
   color: white !important;
   background: transparent !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .data-table th:last-child {
@@ -503,12 +547,13 @@ table.data-table thead th {
   display: block;
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-primary);
   border-radius: 0.375rem;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   font-size: 0.875rem;
   line-height: 1.25rem;
-  background-color: white;
+  background-color: var(--bg-card);
+  color: var(--text-primary);
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
@@ -517,11 +562,12 @@ table.data-table thead th {
   outline-offset: 2px;
   border-color: var(--primary-600);
   box-shadow: 0 0 0 1px var(--primary-600);
+  background-color: var(--bg-card);
 }
 
 .form-input:disabled {
-  background-color: #f9fafb;
-  color: #6b7280;
+  background-color: var(--bg-tertiary);
+  color: var(--text-disabled);
   cursor: not-allowed;
 }
 
@@ -638,25 +684,31 @@ table.data-table thead th {
 
 /* Card enhancements */
 .card {
-  background-color: white;
+  background-color: var(--bg-card);
+  color: var(--text-primary);
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-primary);
 }
 
 .card-header {
   padding: 1.5rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-primary);
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 .card-body {
   padding: 1.5rem;
+  background-color: var(--bg-card);
+  color: var(--text-primary);
 }
 
 .card-footer {
   padding: 1.5rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
-  background-color: #f9fafb;
+  border-top: 1px solid var(--border-primary);
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 
 /* Badge styles */

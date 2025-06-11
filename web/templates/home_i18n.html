@@ -1,0 +1,127 @@
+<!-- пример использования интернационализации в HTML -->
+<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+  <!-- статистика активных тегов -->
+  <div class="bg-white overflow-hidden shadow rounded-lg">
+    <div class="p-5">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+          </svg>
+        </div>
+        <div class="ml-5 w-0 flex-1">
+          <dl>
+            <dt class="text-sm font-medium text-gray-500 truncate" data-i18n="home.stats.active_tags">
+              Активных тегов
+            </dt>
+            <dd class="text-lg font-medium text-gray-900" id="active-tags-count">
+              --
+            </dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- статистика записей данных -->
+  <div class="bg-white overflow-hidden shadow rounded-lg">
+    <div class="p-5">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        </div>
+        <div class="ml-5 w-0 flex-1">
+          <dl>
+            <dt class="text-sm font-medium text-gray-500 truncate" data-i18n="home.stats.data_records">
+              Записей данных
+            </dt>
+            <dd class="text-lg font-medium text-gray-900" id="data-records-count">
+              --
+            </dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- статус системы -->
+  <div class="bg-white overflow-hidden shadow rounded-lg">
+    <div class="p-5">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <svg class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
+        </div>
+        <div class="ml-5 w-0 flex-1">
+          <dl>
+            <dt class="text-sm font-medium text-gray-500 truncate" data-i18n="home.stats.system_status">
+              Статус системы
+            </dt>
+            <dd class="text-lg font-medium text-gray-900" id="system-status-text" data-i18n="status.checking">
+              Проверка...
+            </dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- секция последней активности -->
+<div class="bg-white shadow rounded-lg mt-6">
+  <div class="px-4 py-5 sm:p-6">
+    <h3 class="text-lg leading-6 font-medium text-gray-900" data-i18n="home.recent_activity">
+      Последняя активность
+    </h3>
+    <div class="mt-5">
+      <div id="recent-activity-list" class="space-y-3">
+        <!-- активность будет загружена через JavaScript -->
+        <div class="text-sm text-gray-500" data-i18n="common.loading">
+          Загрузка...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- кнопки действий -->
+<div class="flex flex-wrap gap-3 mt-6">
+  <button 
+    type="button" 
+    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+    onclick="exportData()"
+    data-i18n-title="common.export"
+  >
+    <svg class="-ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+    <span data-i18n="common.export">Экспорт</span>
+  </button>
+  
+  <button 
+    type="button" 
+    class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+    onclick="if(window.updateSystemStatus) window.updateSystemStatus()"
+    data-i18n-title="common.refresh"
+  >
+    <svg class="-ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+    </svg>
+    <span data-i18n="common.refresh">Обновить</span>
+  </button>
+</div>
+
+<!-- поле поиска с интернационализацией -->
+<div class="mt-6">
+  <label for="search-input" class="sr-only" data-i18n="common.search">Поиск</label>
+  <input 
+    type="text" 
+    id="search-input"
+    class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+    data-i18n-placeholder="common.search"
+    placeholder="Поиск"
+  />
+</div> 

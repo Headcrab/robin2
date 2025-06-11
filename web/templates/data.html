@@ -4,22 +4,23 @@
 <div class="space-y-6">
   <!-- page header -->
   <div class="border-b border-gray-200 pb-4">
-    <h2 class="text-2xl font-bold text-gray-900">Данные АСУТП</h2>
-    <p class="text-gray-600 mt-1">Поиск и анализ данных по тегам</p>
+    <h2 class="text-2xl font-bold text-gray-900" data-i18n="data.title">Данные АСУТП</h2>
+    <p class="text-gray-600 mt-1" data-i18n="data.subtitle">Поиск и анализ данных по тегам</p>
   </div>
 
   <!-- search form -->
   <div class="bg-white rounded-lg shadow border p-6">
-    <h3 class="text-lg font-medium text-gray-900 mb-4">Параметры поиска</h3>
+    <h3 class="text-lg font-medium text-gray-900 mb-4" data-i18n="data.search_params">Параметры поиска</h3>
     
     <form class="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4" onsubmit="event.preventDefault(); getTagOnDate();">
       <!-- tag input -->
       <div>
-        <label for="searchInput" class="block text-sm font-medium text-gray-700 mb-1">Тег</label>
+        <label for="searchInput" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="data.tag">Тег</label>
         <input 
           type="text" 
           id="searchInput" 
           class="form-input w-full" 
+          data-i18n-placeholder="data.tag_placeholder"
           placeholder="Введите название тега"
           value="A20_WT_01"
           autocomplete="off"
@@ -28,7 +29,7 @@
 
       <!-- date from -->
       <div>
-        <label for="dateFrom" class="block text-sm font-medium text-gray-700 mb-1">Дата начала</label>
+        <label for="dateFrom" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="data.date_from">Дата начала</label>
         <input 
           type="datetime-local" 
           id="dateFrom" 
@@ -40,7 +41,7 @@
 
       <!-- date to -->
       <div>
-        <label for="dateTo" class="block text-sm font-medium text-gray-700 mb-1">Дата окончания</label>
+        <label for="dateTo" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="data.date_to">Дата окончания</label>
         <input 
           type="datetime-local" 
           id="dateTo" 
@@ -52,7 +53,7 @@
 
       <!-- count input -->
       <div>
-        <label for="searchCount" class="block text-sm font-medium text-gray-700 mb-1">Количество записей</label>
+        <label for="searchCount" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="data.record_count">Количество записей</label>
         <input 
           type="number" 
           id="searchCount"
@@ -70,6 +71,7 @@
           type="button"
           onclick="clearSearchForm()"
           class="btn btn-outline"
+          data-i18n="common.clear"
         >
           Очистить
         </button>
@@ -77,6 +79,7 @@
           type="submit"
           id="searchBtn"
           class="btn btn-primary"
+          data-i18n="data.find_data"
         >
           <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -90,18 +93,19 @@
   <!-- results section -->
   <div class="bg-white rounded-lg shadow border">
     <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-      <h3 class="text-lg font-medium text-gray-900">Результаты поиска</h3>
+      <h3 class="text-lg font-medium text-gray-900" data-i18n="data.search_results">Результаты поиска</h3>
       <div class="flex items-center space-x-3">
         <!-- export button -->
         <button 
           onclick="exportData()"
           class="btn btn-outline text-sm"
+          data-i18n-title="data.export_data"
           title="Экспорт данных"
         >
           <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
-          Экспорт
+          <span data-i18n="common.export">Экспорт</span>
         </button>
         
         <!-- refresh button -->
@@ -122,12 +126,12 @@
       <table class="data-table">
         <thead>
           <tr>
-            <th class="col-time">Время</th>
-            <th class="col-tag">Тег</th>
-            <th class="col-value">Значение</th>
-            <th class="col-quality">Качество</th>
-            <th class="col-unit">Единица</th>
-            <th class="col-description">Описание</th>
+            <th class="col-time" data-i18n="data.table.time">Время</th>
+            <th class="col-tag" data-i18n="data.table.tag">Тег</th>
+            <th class="col-value" data-i18n="data.table.value">Значение</th>
+            <th class="col-quality" data-i18n="data.table.quality">Качество</th>
+            <th class="col-unit" data-i18n="data.table.unit">Единица</th>
+            <th class="col-description" data-i18n="data.table.description">Описание</th>
           </tr>
         </thead>
         <tbody id="data-results">

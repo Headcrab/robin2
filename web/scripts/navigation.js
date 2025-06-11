@@ -5,42 +5,55 @@ function updateBreadcrumb(url) {
     
     if (!breadcrumbContainer || !pageTitle) return;
     
-    let title = 'Система АСУТП';
-    let breadcrumbs = [];
+    let titleKey = 'home.title';
+    let breadcrumbKeys = [];
     
     switch(url) {
         case '/':
-            title = 'Главная';
-            breadcrumbs = ['Главная'];
+            titleKey = 'home.title';
+            breadcrumbKeys = []; // Главная страница - нет breadcrumb
             break;
         case '/data/':
-            title = 'Данные';
-            breadcrumbs = ['Главная', 'Данные'];
+            titleKey = 'data.title';
+            breadcrumbKeys = ['nav.home']; // Главная > текущая страница в заголовке
             break;
         case '/tags/':
-            title = 'Теги';
-            breadcrumbs = ['Главная', 'Теги'];
+            titleKey = 'tags.title';
+            breadcrumbKeys = ['nav.home'];
             break;
         case '/logs/':
-            title = 'Логи';
-            breadcrumbs = ['Главная', 'Логи'];
+            titleKey = 'logs.title';
+            breadcrumbKeys = ['nav.home'];
             break;
         case '/swagger/':
-            title = 'API';
-            breadcrumbs = ['Главная', 'API'];
+            titleKey = 'api.title';
+            breadcrumbKeys = ['nav.home'];
             break;
         default:
-            title = 'Система АСУТП';
-            breadcrumbs = ['Главная'];
+            titleKey = 'home.title';
+            breadcrumbKeys = [];
     }
     
-    pageTitle.textContent = title;
+    // set title using translation key
+    pageTitle.setAttribute('data-i18n', titleKey);
+    if (window.i18nManager) {
+        pageTitle.textContent = window.i18nManager.t(titleKey);
+    }
     
-    const breadcrumbHTML = breadcrumbs.map((crumb, index) => {
-        if (index === breadcrumbs.length - 1) {
-            return `<span class="text-gray-900 font-medium">${crumb}</span>`;
+    // update breadcrumbs - показываем только путь, без текущей страницы
+    if (breadcrumbKeys.length === 0) {
+        breadcrumbContainer.innerHTML = '';
+        return;
+    }
+    
+    const breadcrumbHTML = breadcrumbKeys.map((key, index) => {
+        const translated = window.i18nManager ? window.i18nManager.t(key) : key;
+        const isLast = index === breadcrumbKeys.length - 1;
+        
+        if (isLast) {
+            return `<span class="text-gray-500">${translated}</span>`;
         } else {
-            return `<span class="text-gray-500">${crumb}</span><span class="text-gray-300 mx-1">/</span>`;
+            return `<span class="text-gray-500">${translated}</span><span class="text-gray-300 mx-1">/</span>`;
         }
     }).join('');
     
