@@ -284,21 +284,30 @@
 }
 
 .data-table thead {
-  background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
-  color: white;
+  background: linear-gradient(135deg, #1f2937 0%, #374151 100%) !important;
+  color: white !important;
+}
+
+/* Убеждаемся что заголовки белые и перебиваем любые Tailwind стили */
+.data-table thead th,
+.data-table thead th *,
+table.data-table thead th {
+  color: white !important;
 }
 
 .data-table th {
-  padding: 1rem 0.75rem;
-  text-align: left;
-  font-weight: 600;
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  position: relative;
-  white-space: nowrap;
-  vertical-align: middle;
+  padding: 1rem 0.75rem !important;
+  text-align: left !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+  position: relative !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+  color: white !important;
+  background: transparent !important;
 }
 
 .data-table th:last-child {
@@ -470,6 +479,22 @@
   
   .col-unit {
     display: none;
+  }
+  
+  .col-time {
+    width: 30%;
+  }
+  
+  .col-tag {
+    width: 25%;
+  }
+  
+  .col-value {
+    width: 25%;
+  }
+  
+  .col-quality {
+    width: 20%;
   }
 }
 
@@ -827,66 +852,7 @@
   border-radius: 0.25rem;
 }
 
-/* Дополнительные исправления для заголовков таблицы */
-.data-table thead tr {
-  height: auto;
-  min-height: 50px;
-}
 
-.data-table th {
-  box-sizing: border-box;
-  border-collapse: separate;
-}
-
-/* Убираем любые конфликтующие стили */
-.data-table th,
-.data-table td {
-  border-collapse: separate !important;
-}
-
-/* Дополнительная фиксация для мобильных устройств */
-@media (max-width: 768px) {
-  .data-table th {
-    padding: 0.75rem 0.5rem;
-    font-size: 0.75rem;
-  }
-  
-  .col-description,
-  .col-unit {
-    display: none;
-  }
-  
-  .col-time {
-    width: 30%;
-  }
-  
-  .col-tag {
-    width: 25%;
-  }
-  
-  .col-value {
-    width: 25%;
-  }
-  
-  .col-quality {
-    width: 20%;
-  }
-}
-
-/* Фиксация порядка отображения колонок */
-.data-table th:nth-child(1) { order: 1; }
-.data-table th:nth-child(2) { order: 2; }
-.data-table th:nth-child(3) { order: 3; }
-.data-table th:nth-child(4) { order: 4; }
-.data-table th:nth-child(5) { order: 5; }
-.data-table th:nth-child(6) { order: 6; }
-
-.data-table td:nth-child(1) { order: 1; }
-.data-table td:nth-child(2) { order: 2; }
-.data-table td:nth-child(3) { order: 3; }
-.data-table td:nth-child(4) { order: 4; }
-.data-table td:nth-child(5) { order: 5; }
-.data-table td:nth-child(6) { order: 6; }
 
 /* Исправления для выравнивания кнопок */
 .btn {

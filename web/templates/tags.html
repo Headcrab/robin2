@@ -56,12 +56,12 @@
   <!-- results section -->
   <div class="bg-white rounded-lg shadow border">
     <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-      <h3 class="text-lg font-medium text-gray-900">
-        Найденные теги
+      <div class="flex items-center space-x-2">
+        <h3 class="text-lg font-medium text-gray-900">Найденные теги</h3>
         {{if .tags}}
-          <span class="text-sm font-normal text-gray-500 ml-2">({{len .tags}} найдено)</span>
+          <span class="text-sm font-normal text-gray-500">({{len .tags}} найдено)</span>
         {{end}}
-      </h3>
+      </div>
       
       <div class="flex items-center space-x-3">
         <!-- export tags -->
