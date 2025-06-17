@@ -3,6 +3,8 @@ package logger
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -52,12 +54,12 @@ func init() {
 
 	logRotationSize, err = strconv.ParseInt(getEnv("LOG_ROTATION_SIZE", "100000"), 10, 64)
 	if err != nil {
-		slog.Error("Error parsing LOG_ROTATION_SIZE: %v", err)
+		slog.Error("Error parsing LOG_ROTATION_SIZE", "error", err.Error())
 	}
 
 	logRotationTime, err = time.ParseDuration(getEnv("LOG_ROTATION_TIME", "24h"))
 	if err != nil {
-		slog.Error("Error parsing LOG_ROTATION_TIME: %v", err)
+		slog.Error("Error parsing LOG_ROTATION_TIME", "error", err.Error())
 	}
 
 	logPath = getEnv("LOG_PATH", "./log/")
@@ -106,10 +108,92 @@ func getLogLevel(level LogLevel) slog.Level {
 	}
 }
 
+// CustomHandler is a custom slog handler for pretty console output
+type CustomHandler struct {
+	writer io.Writer
+	level  slog.Level
+}
+
+// NewCustomHandler creates a new custom handler
+func NewCustomHandler(w io.Writer, level slog.Level) *CustomHandler {
+	return &CustomHandler{
+		writer: w,
+		level:  level,
+	}
+}
+
+// Enabled returns whether the handler is enabled for the given level
+func (h *CustomHandler) Enabled(ctx context.Context, level slog.Level) bool {
+	return level >= h.level
+}
+
+// Handle processes the log record
+func (h *CustomHandler) Handle(ctx context.Context, r slog.Record) error {
+	// ANSI color codes
+	const (
+		colorReset  = "\033[0m"
+		colorGray   = "\033[90m"
+		colorRed    = "\033[31m"
+		colorYellow = "\033[33m"
+		colorBlue   = "\033[34m"
+		colorGreen  = "\033[32m"
+	)
+
+	// format time in gray
+	timeStr := fmt.Sprintf("%s%s%s", colorGray, r.Time.Format("02.01.2006 15:04:05"), colorReset)
+
+	// format level with color
+	var levelStr string
+	switch r.Level {
+	case slog.LevelDebug:
+		levelStr = fmt.Sprintf("%sDEBUG%s", colorBlue, colorReset)
+	case slog.LevelInfo:
+		levelStr = fmt.Sprintf("%sINFO%s", colorGreen, colorReset)
+	case slog.LevelWarn:
+		levelStr = fmt.Sprintf("%sWARN%s", colorYellow, colorReset)
+	case slog.LevelError, slog.LevelError + 1: // LevelError+1 is our Fatal level
+		levelStr = fmt.Sprintf("%sERROR%s", colorRed, colorReset)
+	default:
+		if r.Level < slog.LevelDebug {
+			levelStr = fmt.Sprintf("%sTRACE%s", colorGray, colorReset)
+		} else {
+			levelStr = r.Level.String()
+		}
+	}
+
+	// build the log line
+	logLine := fmt.Sprintf("%s %s %s", timeStr, levelStr, r.Message)
+
+	// add any additional attributes
+	r.Attrs(func(a slog.Attr) bool {
+		if a.Key != "" {
+			logLine += fmt.Sprintf(" %s=%v", a.Key, a.Value)
+		}
+		return true
+	})
+
+	logLine += "\n"
+
+	_, err := h.writer.Write([]byte(logLine))
+	return err
+}
+
+// WithAttrs returns a new handler with additional attributes
+func (h *CustomHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	// для простоты возвращаем тот же handler
+	return h
+}
+
+// WithGroup returns a new handler with a group
+func (h *CustomHandler) WithGroup(name string) slog.Handler {
+	// для простоты возвращаем тот же handler
+	return h
+}
+
 func consoleLog() *slog.Logger {
 	once.Do(func() {
-		consoleLogPtr = slog.New(
-			slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: getLogLevel(strToLogLevel(logLevel))}))
+		handler := NewCustomHandler(os.Stderr, getLogLevel(strToLogLevel(logLevel)))
+		consoleLogPtr = slog.New(handler)
 		consoleLogPtr.Info("Initializing console logger")
 	})
 	return consoleLogPtr
@@ -178,7 +262,7 @@ func checkFileClosed(f *os.File) bool {
 func isFileSizeExceeded(f *os.File) bool {
 	info, err := f.Stat()
 	if err != nil {
-		consoleLog().Error("Cannot get file info", err)
+		consoleLog().Error("Cannot get file info", "error", err.Error())
 		return false
 	}
 	return info.Size() > logRotationSize
@@ -187,7 +271,7 @@ func isFileSizeExceeded(f *os.File) bool {
 func isTimeExceeded(f *os.File) bool {
 	info, err := f.Stat()
 	if err != nil {
-		consoleLog().Error("Cannot get file info", err)
+		consoleLog().Error("Cannot get file info", "error", err.Error())
 		return false
 	}
 	modTime := info.ModTime()
@@ -198,13 +282,13 @@ func createNewLogFile() *os.File {
 	if !isPathExists(logPath) {
 		err := os.MkdirAll(logPath, os.ModePerm)
 		if err != nil {
-			consoleLog().Error("Failed to create log directory", err)
+			consoleLog().Error("Failed to create log directory", "error", err.Error())
 		}
 	}
 	logFileName := logPath + getLogFileName()
 	f, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		consoleLog().Error("Error opening log file", err)
+		consoleLog().Error("Error opening log file", "error", err.Error())
 	}
 	return f
 }
@@ -223,8 +307,13 @@ type LogHistory []LogItem
 
 func GetLogHistory() (LogHistory, error) {
 	checkFileLog()
-	defer file.Close()
-	f, err := os.ReadFile(file.Name())
+	if file == nil {
+		return LogHistory{}, nil
+	}
+
+	// читаем файл по имени, не закрывая дескриптор
+	logFileName := logPath + getLogFileName()
+	f, err := os.ReadFile(logFileName)
 	if err != nil {
 		return LogHistory{}, err
 	}
@@ -250,11 +339,38 @@ func parseLogLine(line string) LogItem {
 	if err == nil {
 		return logItem
 	}
-	// parts := strings.Split(line, " ")
-	// date, err := time.Parse(time.RFC3339, parts[0]+"T"+parts[1]+"Z")
-	// if err != nil {
-	// 	consoleLog().Error("Error parsing log line", err)
-	// }
+
+	// если JSON парсинг не удался, попробуем парсить строчный формат
+	// предполагаемый формат: time=2006-01-02T15:04:05.000+05:00 level=INFO msg="message"
+	parts := strings.Fields(line)
+	logItem = LogItem{
+		Date:  time.Now(), // используем текущее время как fallback
+		Level: "UNKNOWN",
+		Msg:   line, // весь текст строки как сообщение
+	}
+
+	// ищем msg= и парсим все что после него как сообщение
+	msgStartIndex := strings.Index(line, "msg=")
+	if msgStartIndex != -1 {
+		msgStr := line[msgStartIndex+4:] // +4 для "msg="
+		// убираем кавычки если есть
+		if len(msgStr) >= 2 && msgStr[0] == '"' && msgStr[len(msgStr)-1] == '"' {
+			msgStr = msgStr[1 : len(msgStr)-1]
+		}
+		logItem.Msg = msgStr
+	}
+
+	for _, part := range parts {
+		if strings.HasPrefix(part, "time=") {
+			timeStr := strings.TrimPrefix(part, "time=")
+			if parsedTime, err := time.Parse(time.RFC3339, timeStr); err == nil {
+				logItem.Date = parsedTime
+			}
+		} else if strings.HasPrefix(part, "level=") {
+			logItem.Level = strings.TrimPrefix(part, "level=")
+		}
+	}
+
 	return logItem
 }
 
@@ -275,4 +391,34 @@ func strToLogLevel(level string) LogLevel {
 	default:
 		return LevelInfo
 	}
+}
+
+// ClearLogs очищает файл логов
+func ClearLogs() error {
+	// получаем путь к файлу логов
+	logFileName := logPath + getLogFileName()
+
+	// закрываем текущий файл если он открыт
+	if file != nil {
+		file.Close()
+		file = nil
+	}
+
+	// сбрасываем логгер для переинициализации
+	fileLogPtr = nil
+	onceFile = sync.Once{}
+
+	// очищаем содержимое файла (truncate) вместо удаления
+	f, err := os.OpenFile(logFileName, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+	if err != nil {
+		consoleLog().Error("Failed to truncate log file", "error", err.Error())
+		return err
+	}
+	f.Close()
+
+	// инициализируем новый файл логов
+	checkFileLog()
+
+	Info("Логи очищены")
+	return nil
 }

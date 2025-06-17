@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
 	"path/filepath"
 	"robin2/internal/data"
 	"robin2/internal/logger"
@@ -13,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/yuin/goldmark"
 	// swagger "github.com/swaggo/http-swagger/v2"
 )
 
@@ -263,4 +266,110 @@ func (a *App) handlePageSwagger(w http.ResponseWriter, r *http.Request) {
 
 	a.handlePageAny(page, data)(w, r)
 
+}
+
+// handlePageDocs handles /docs/ requests and displays list of markdown files
+func (a *App) handlePageDocs(w http.ResponseWriter, r *http.Request) {
+	page := "docs"
+
+	// Get list of markdown files from docs folder
+	docFiles, err := a.getMarkdownFiles()
+	if err != nil {
+		logger.Error("Error reading docs folder: " + err.Error())
+		http.Error(w, "Error reading documentation files", http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]interface{}{
+		"descr": "Документация",
+		"docs":  docFiles,
+	}
+
+	a.handlePageAny(page, data)(w, r)
+}
+
+// getMarkdownFiles returns list of markdown files from docs folder
+func (a *App) getMarkdownFiles() ([]map[string]interface{}, error) {
+	docsPath := filepath.Join(a.workDir, "docs")
+	files, err := os.ReadDir(docsPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var docFiles []map[string]interface{}
+
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(strings.ToLower(file.Name()), ".md") {
+			info, err := file.Info()
+			if err != nil {
+				continue
+			}
+
+			docFiles = append(docFiles, map[string]interface{}{
+				"name":     file.Name(),
+				"title":    strings.TrimSuffix(file.Name(), ".md"),
+				"size":     info.Size(),
+				"modified": info.ModTime(),
+			})
+		}
+	}
+
+	return docFiles, nil
+}
+
+// handleDocView handles /docs/view/ requests and displays specific markdown file
+func (a *App) handleDocView(w http.ResponseWriter, r *http.Request) {
+	page := "doc-view"
+	fileName := r.URL.Query().Get("file")
+
+	if fileName == "" {
+		http.Error(w, "File parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	// Security check - only allow .md files and prevent path traversal
+	if !strings.HasSuffix(strings.ToLower(fileName), ".md") {
+		http.Error(w, "Only markdown files are allowed", http.StatusBadRequest)
+		return
+	}
+
+	if strings.Contains(fileName, "..") || strings.Contains(fileName, "/") || strings.Contains(fileName, "\\") {
+		http.Error(w, "Invalid file name", http.StatusBadRequest)
+		return
+	}
+
+	// Read markdown file
+	filePath := filepath.Join(a.workDir, "docs", fileName)
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		logger.Error("Error reading doc file: " + err.Error())
+		http.Error(w, "Document not found", http.StatusNotFound)
+		return
+	}
+
+	// Render markdown to HTML
+	htmlContent, err := a.renderMarkdown(content)
+	if err != nil {
+		logger.Error("Error rendering markdown: " + err.Error())
+		http.Error(w, "Error processing document", http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]interface{}{
+		"descr":    "Документ: " + strings.TrimSuffix(fileName, ".md"),
+		"filename": fileName,
+		"title":    strings.TrimSuffix(fileName, ".md"),
+		"content":  htmlContent,
+	}
+
+	a.handlePageAny(page, data)(w, r)
+}
+
+// renderMarkdown converts markdown content to HTML using goldmark
+func (a *App) renderMarkdown(content []byte) (template.HTML, error) {
+	var buf bytes.Buffer
+	if err := goldmark.Convert(content, &buf); err != nil {
+		return "", err
+	}
+	return template.HTML(buf.String()), nil
 }

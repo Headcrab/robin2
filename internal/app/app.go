@@ -26,7 +26,6 @@ import (
 	"robin2/internal/utils"
 
 	"github.com/joho/godotenv"
-	swagger "github.com/swaggo/http-swagger/v2"
 
 	_ "robin2/docs"
 )
@@ -131,32 +130,36 @@ func (a *App) initHTTPHandlers() http.Handler {
 	mux := http.NewServeMux()
 	// Define HTTP request handlers
 	handlers := map[string]func(http.ResponseWriter, *http.Request){
-		"/get/tag/":      a.handleAPIGetTag,
-		"/get/tag/list/": a.handleAPIGetTagList,
-		"/get/tag/up/":   a.handleAPIGetTagUp,
-		"/get/tag/down/": a.handleAPIGetTagDown,
-		"/api/info/":     a.handleAPIInfo,
-		"/api/reload/":   a.handleAPIReloadConfig,
-		"/api/log/":      a.handleAPIGetLog,
-		"/api/status/":   a.handleAPIServerStatus,
-		"/favicon.ico":   a.handleFavicon,
-		"/logs/":         a.handlePageLog,
-		"/data/":         a.handlePageData,
-		"/tags/":         a.handlePageTags,
-		"/":              a.handlePageAny("home", map[string]interface{}{"descr": "Robin"}),
-		"/images/":       a.handleDirectory("images"),
-		"/scripts/":      a.handleDirectory("scripts"),
-		"/css/":          a.handleDirectory("css"),
-		"/api/swagger/":  swagger.Handler(swagger.URL("/api/swagger/doc.json")),
-		"/swagger/":      a.handlePageSwagger,
-		"/templ/list/":   a.handleTemplateList,
-		"/templ/add/":    a.handleTemplateAdd,
-		"/templ/get/":    a.handleTemplateGet,
-		"/templ/edit/":   a.handleTemplateEdit,
-		"/templ/delete/": a.handleTemplateDelete,
-		"/templ/exec/":   a.handleTemplateExec,
-		"/tag/decode/":   a.handleTagDecode,
-		"/api/v2/get/":   a.handleAPIV2GetTagOnDate,
+		"/get/tag/":             a.handleAPIGetTag,
+		"/get/tag/list/":        a.handleAPIGetTagList,
+		"/get/tag/up/":          a.handleAPIGetTagUp,
+		"/get/tag/down/":        a.handleAPIGetTagDown,
+		"/api/info/":            a.handleAPIInfo,
+		"/api/reload/":          a.handleAPIReloadConfig,
+		"/api/log/":             a.handleAPIGetLog,
+		"/api/log/clear/":       a.handleAPIClearLog,
+		"/api/status/":          a.handleAPIServerStatus,
+		"/favicon.ico":          a.handleFavicon,
+		"/logs/":                a.handlePageLog,
+		"/data/":                a.handlePageData,
+		"/tags/":                a.handlePageTags,
+		"/docs/":                a.handlePageDocs,
+		"/docs/view/":           a.handleDocView,
+		"/":                     a.handlePageAny("home", map[string]interface{}{"descr": "Robin"}),
+		"/images/":              a.handleDirectory("images"),
+		"/scripts/":             a.handleDirectory("scripts"),
+		"/css/":                 a.handleDirectory("css"),
+		"/api/swagger/":         a.handleSwaggerDark,
+		"/api/swagger/doc.json": a.handleSwaggerJSON,
+		"/swagger/":             a.handlePageSwagger,
+		"/templ/list/":          a.handleTemplateList,
+		"/templ/add/":           a.handleTemplateAdd,
+		"/templ/get/":           a.handleTemplateGet,
+		"/templ/edit/":          a.handleTemplateEdit,
+		"/templ/delete/":        a.handleTemplateDelete,
+		"/templ/exec/":          a.handleTemplateExec,
+		"/tag/decode/":          a.handleTagDecode,
+		"/api/v2/get/":          a.handleAPIV2GetTagOnDate,
 	}
 
 	// Register HTTP request handlers
@@ -164,11 +167,12 @@ func (a *App) initHTTPHandlers() http.Handler {
 		mux.HandleFunc(path, handler)
 	}
 
-	// timedMux := TimingMiddleware(mux)
 	// Define custom template function
 	funcMap := template.FuncMap{
 		"colorizeLogString": colorizeLogString,
 		"formatDataString":  formatDataString,
+		"div":               func(a, b float64) float64 { return a / b },
+		"formatFileSize":    func(size int64) string { return fmt.Sprintf("%.1f KB", float64(size)/1024.0) },
 	}
 
 	// Create template object and parse HTML templates
@@ -232,6 +236,15 @@ func (a *App) getDbStatus() dbStatus {
 		Name:   dbName,
 		Type:   a.config.CurrDB.Type,
 	}
+
+	// проверяем что store инициализирован
+	if a.store == nil {
+		dbstatus.Status = "red"
+		dbstatus.Version = "unknown"
+		dbstatus.Uptime = 0
+		return dbstatus
+	}
+
 	var err error
 	dbstatus.Version, dbstatus.Uptime, err = a.store.GetStatus()
 	if err != nil {
@@ -239,4 +252,145 @@ func (a *App) getDbStatus() dbStatus {
 	}
 
 	return dbstatus
+}
+
+// handleSwaggerDark serves Swagger UI with theme detection
+func (a *App) handleSwaggerDark(w http.ResponseWriter, r *http.Request) {
+	swaggerHTML := `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Documentation</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@3.52.5/swagger-ui.css" />
+    <style>
+        /* Hide top bar always */
+        .topbar {
+            display: none !important;
+        }
+        
+        /* Base light theme styles */
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Dark theme styles */
+        body.dark-theme {
+            background-color: #1a1a1a !important;
+            color: #e1e1e1 !important;
+        }
+        
+        body.dark-theme .swagger-ui {
+            filter: invert(1) hue-rotate(180deg);
+        }
+        
+        body.dark-theme .swagger-ui img,
+        body.dark-theme .swagger-ui .swagger-ui img {
+            filter: invert(1) hue-rotate(180deg);
+        }
+        
+        body.dark-theme .swagger-ui .scheme-container {
+            background: #2d2d2d !important;
+        }
+        
+        body.dark-theme .swagger-ui .info {
+            margin-bottom: 20px;
+        }
+        
+        /* Light theme styles */
+        body.light-theme {
+            background-color: #ffffff !important;
+            color: #333333 !important;
+        }
+        
+        body.light-theme .swagger-ui {
+            filter: none;
+        }
+        
+        body.light-theme .swagger-ui .scheme-container {
+            background: #fafafa !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@3.52.5/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@3.52.5/swagger-ui-standalone-preset.js"></script>
+    <script>
+        // Detect theme from parent window or localStorage
+        function detectTheme() {
+            try {
+                // Try to get theme from parent window (if in iframe)
+                if (window.parent && window.parent !== window) {
+                    const parentTheme = window.parent.document.documentElement.getAttribute('data-theme');
+                    if (parentTheme) {
+                        return parentTheme;
+                    }
+                }
+                
+                // Try localStorage
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme) {
+                    return savedTheme;
+                }
+                
+                // Check system preference
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    return 'dark';
+                }
+            } catch (e) {
+                console.log('Theme detection failed:', e);
+            }
+            
+            return 'light'; // default
+        }
+        
+        function applyTheme(theme) {
+            document.body.className = theme + '-theme';
+            console.log('Applied Swagger theme:', theme);
+        }
+        
+        // Apply initial theme
+        const currentTheme = detectTheme();
+        applyTheme(currentTheme);
+        
+        // Listen for theme changes from parent window
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'themeChanged') {
+                applyTheme(event.data.theme);
+            }
+        });
+        
+        // Initialize Swagger UI
+        window.onload = function() {
+            SwaggerUIBundle({
+                url: '/api/swagger/doc.json',
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout"
+            });
+        };
+    </script>
+</body>
+</html>
+`
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(swaggerHTML))
+}
+
+// handleSwaggerJSON serves swagger JSON spec
+func (a *App) handleSwaggerJSON(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	// Read swagger.json from docs folder
+	swaggerFile := filepath.Join(a.workDir, "docs", "swagger.json")
+	http.ServeFile(w, r, swaggerFile)
 }

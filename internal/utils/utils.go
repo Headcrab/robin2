@@ -12,6 +12,12 @@ import (
 )
 
 func GetWorkDir() string {
+	// check for test environment override
+	if testWorkDir := os.Getenv("TEST_WORK_DIR"); testWorkDir != "" {
+		logger.Trace("test working dir set to: " + testWorkDir)
+		return testWorkDir
+	}
+
 	executablePath, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		logger.Trace(err.Error())
