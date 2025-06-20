@@ -551,4 +551,51 @@
         --text-primary: #e2e4e9;
         --text-secondary: #b8bcc8;
     }
+}
+
+/* log styling for dark theme */
+[data-theme="dark"] .date {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+[data-theme="dark"] .level {
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.85em;
+}
+
+[data-theme="dark"] .level.INFO {
+    color: var(--status-info);
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+[data-theme="dark"] .level.DEBUG {
+    color: var(--text-secondary);
+    background-color: rgba(156, 163, 175, 0.1);
+}
+
+[data-theme="dark"] .level.WARN,
+[data-theme="dark"] .level.WARNING {
+    color: var(--status-warning);
+    background-color: rgba(245, 158, 11, 0.1);
+}
+
+[data-theme="dark"] .level.ERROR,
+[data-theme="dark"] .level.FATAL {
+    color: var(--status-error);
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+[data-theme="dark"] .level.other {
+    color: var(--text-primary);
+    background: none;
+    padding: 0;
+}
+
+/* log entry container */
+[data-theme="dark"] .log-entry {
+    color: var(--text-primary);
+    line-height: 1.5;
 } 

@@ -298,9 +298,9 @@ func getLogFileName() string {
 }
 
 type LogItem struct {
-	Date  time.Time
-	Msg   string
-	Level string
+	Date  time.Time `json:"time"`
+	Msg   string    `json:"msg"`
+	Level string    `json:"level"`
 }
 
 type LogHistory []LogItem
@@ -337,18 +337,39 @@ func parseLogLine(line string) LogItem {
 	var logItem LogItem
 	err := json.Unmarshal([]byte(line), &logItem)
 	if err == nil {
+		// JSON парсинг успешен
 		return logItem
 	}
 
+	// если JSON парсинг не удался, выводим отладочную информацию
+	fmt.Printf("JSON parsing failed for line: %s\nError: %v\n", line, err)
+
 	// если JSON парсинг не удался, попробуем парсить строчный формат
-	// предполагаемый формат: time=2006-01-02T15:04:05.000+05:00 level=INFO msg="message"
-	parts := strings.Fields(line)
+	// формат консольного логгера: DD.MM.YYYY HH:MM:SS LEVEL message
+	// формат key=value: time=2006-01-02T15:04:05.000+05:00 level=INFO msg="message"
+
 	logItem = LogItem{
-		Date:  time.Now(), // используем текущее время как fallback
+		Date:  time.Time{}, // zero time как индикатор что время не распарсено
 		Level: "UNKNOWN",
 		Msg:   line, // весь текст строки как сообщение
 	}
 
+	// попробуем парсить консольный формат: DD.MM.YYYY HH:MM:SS LEVEL message
+	parts := strings.Fields(line)
+	if len(parts) >= 3 {
+		// пытаемся парсить дату и время из первых двух частей
+		dateTimeStr := parts[0] + " " + parts[1]
+		if parsedTime, err := time.Parse("02.01.2006 15:04:05", dateTimeStr); err == nil {
+			logItem.Date = parsedTime
+			logItem.Level = parts[2]
+			if len(parts) > 3 {
+				logItem.Msg = strings.Join(parts[3:], " ")
+			}
+			return logItem
+		}
+	}
+
+	// если не получилось, пробуем key=value формат
 	// ищем msg= и парсим все что после него как сообщение
 	msgStartIndex := strings.Index(line, "msg=")
 	if msgStartIndex != -1 {
@@ -369,6 +390,11 @@ func parseLogLine(line string) LogItem {
 		} else if strings.HasPrefix(part, "level=") {
 			logItem.Level = strings.TrimPrefix(part, "level=")
 		}
+	}
+
+	// если время так и не распарсилось, используем текущее время
+	if logItem.Date.IsZero() {
+		logItem.Date = time.Now()
 	}
 
 	return logItem

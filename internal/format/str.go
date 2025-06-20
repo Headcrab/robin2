@@ -3,6 +3,7 @@ package format
 import (
 	"fmt"
 	"robin2/internal/data"
+	"robin2/internal/logger"
 	"sort"
 	"strings"
 	"time"
@@ -93,6 +94,16 @@ func (r *ResponseFormatterString) Process(val interface{}) []byte {
 	case data.Tags:
 		for _, tag := range v {
 			sb.WriteString(fmt.Sprintf("%v\t%v\t%v\n", tag.Name, tag.Date.Format("2006-01-02 15:04:05"), Round(tag.Value, r.round)))
+		}
+
+	case logger.LogHistory:
+		for _, logItem := range v {
+			sb.WriteString(fmt.Sprintf("%s %s %s\n", logItem.Date.Format("2006-01-02 15:04:05"), logItem.Level, logItem.Msg))
+		}
+
+	case []logger.LogItem:
+		for _, logItem := range v {
+			sb.WriteString(fmt.Sprintf("%s %s %s\n", logItem.Date.Format("2006-01-02 15:04:05"), logItem.Level, logItem.Msg))
 		}
 
 	default:
