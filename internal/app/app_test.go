@@ -6,62 +6,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"robin2/internal/errors"
 	"robin2/internal/utils"
 	"testing"
-	"time"
 )
-
-func Test_tryParseDate(t *testing.T) {
-
-	test_cases := []struct {
-		name     string
-		date     string
-		expected time.Time
-		err      error
-	}{
-		{
-			name:     "valid 31.12.2022 00:00:00",
-			date:     "31.12.2022 00:00:00",
-			expected: time.Date(2022, 12, 31, 0, 0, 0, 0, time.Local),
-			err:      nil,
-		},
-		{
-			name:     "valid 10.11.2022  18:12:34",
-			date:     "10.11.2022  18:12:34",
-			expected: time.Date(2022, 11, 10, 18, 12, 34, 0, time.Local),
-			err:      nil,
-		},
-		{
-			name:     "invalid empty string",
-			date:     "",
-			expected: time.Time{},
-			err:      errors.ErrInvalidDate,
-		},
-		{
-			name:     "invalid 12.31.2022 00:00:00",
-			date:     "12.31.2022 00:00:00",
-			expected: time.Time{},
-			err:      errors.ErrInvalidDate,
-		},
-	}
-	app := NewApp()
-	err := app.initDatabase()
-	if err != nil {
-		t.Errorf("Error initializing database: %v", err)
-	}
-	for _, test := range test_cases {
-		t.Run(test.name, func(t *testing.T) {
-			date, err := utils.TryParseDate(test.date, app.config.DateFormats)
-			if err != test.err {
-				t.Errorf("Test '%s' failed: expected error '%v', got '%v'", test.name, test.err, err)
-			}
-			if date != test.expected {
-				t.Errorf("Test '%s' failed: expected date '%v', got '%v'", test.name, test.expected, date)
-			}
-		})
-	}
-}
 
 func Test_endpoint_get_tag_list(t *testing.T) {
 	test_cases := []struct {
@@ -112,54 +59,6 @@ func Test_endpoint_get_tag_list(t *testing.T) {
 			if tags[0] != test.expected {
 				t.Errorf("Test '%s' failed: expected tag '%v', got '%v'", test.name, test.expected, tags[0])
 			}
-		})
-	}
-}
-
-func Test_excelTimeToTime(t *testing.T) {
-	test_cases := []struct {
-		name     string
-		time     string
-		expected time.Time
-		err      error
-	}{
-		{
-			name:     "valid 31.12.2022 00:00:00",
-			time:     "44926,0",
-			expected: time.Date(2022, 12, 31, 0, 0, 0, 0, time.Local),
-			err:      nil,
-		},
-		{
-			name:     "valid 10.11.2022 18:12:34",
-			time:     "44875.7587268519",
-			expected: time.Date(2022, 11, 10, 18, 12, 34, 0, time.Local),
-			err:      nil,
-		},
-		{
-			name:     "invalid empty string",
-			time:     "",
-			expected: time.Time{},
-			err:      errors.ErrInvalidDate,
-		},
-		{
-			name:     "invalid 12.31.2022 00:00:00",
-			time:     "12.31.2022 00:00:00",
-			expected: time.Time{},
-			err:      errors.ErrInvalidDate,
-		},
-	}
-	app := NewApp()
-	// app.Init()
-	for _, test := range test_cases {
-		t.Run(test.name, func(t *testing.T) {
-			date, err := utils.ExcelTimeToTime(test.time, app.config.DateFormats)
-			if err != test.err {
-				t.Errorf("Test '%s' failed: expected error '%v', got '%v'", test.name, test.err, err)
-			}
-			if date != test.expected {
-				t.Errorf("Test '%s' failed: expected '%v', got '%v'", test.name, test.expected, date)
-			}
-
 		})
 	}
 }

@@ -6,10 +6,10 @@ networks:
   database:
     driver: bridge
     name: database
-      
+
 services:
   redis:
-    image: redis 
+    image: redis
     container_name: redis
     restart: always
     ports:
@@ -25,13 +25,13 @@ services:
       retries: 5
 
   clickhouse:
-    build: clickhouse 
+    build: clickhouse
     container_name: clickhouse
     restart: always
     environment:
       CLICKHOUSE_USER: admin
       CLICKHOUSE_PASSWORD: password123
-      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: '1'
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
     volumes:
       - clickhouse:/var/lib/clickhouse
       - D:/work/docker/copy_to_clickhouse:/var/lib/clickhouse/copyed
@@ -90,6 +90,4 @@ services:
 
 volumes:
   clickhouse:
-    external: true
   redis:
-    external: true
