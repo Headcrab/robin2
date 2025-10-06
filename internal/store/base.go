@@ -31,6 +31,16 @@ type Base struct {
 	round         int
 }
 
+// getMaxConnLimit возвращает лимит максимальных соединений.
+// Если MaxConnLimit установлен в конфиге, используется он.
+// Иначе используется значение по умолчанию 100.
+func (s *Base) getMaxConnLimit() int {
+	if s.config.CurrDB.MaxConnLimit > 0 {
+		return s.config.CurrDB.MaxConnLimit
+	}
+	return 100
+}
+
 // GenerateConnectionString генерирует строку подключения на основе настроек конфигурации.
 //
 // Он извлекает строку подключения из конфигурации, используя имя базы данных, и заменяет все

@@ -110,6 +110,9 @@ func (r *ResponseFormatterString) Process(val interface{}) []byte {
 		// Возвращаем сообщение о неподдерживаемом типе
 		sb.WriteString(fmt.Sprintf("ResponseFormatterString not supported: %v", val))
 	}
+
+	sb = ReplacePointToComma(sb)
+
 	return []byte(sb.String())
 }
 
@@ -117,4 +120,12 @@ func (r *ResponseFormatterString) Process(val interface{}) []byte {
 func (r *ResponseFormatterString) SetRound(r2 int) ResponseFormatter {
 	r.round = float64(r2)
 	return r
+}
+
+func ReplacePointToComma(sb strings.Builder) strings.Builder {
+	str := sb.String()
+	str = strings.ReplaceAll(str, ".", ",")
+	sb.Reset()
+	sb.WriteString(str)
+	return sb
 }

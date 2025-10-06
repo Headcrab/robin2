@@ -16,7 +16,7 @@
         "2006-01-02T15:04:05.00-07:00",
         "2006-01-02T15:04:05.000-07:00"
     ],
-    "curr_db": "clickhouse.docker",
+    "curr_db": "hs0",
     "db": [
         {
             "name": "hs0",
@@ -27,6 +27,7 @@
             "password": "!QAZ1qaz12345",
             "database": "Runtime",
             "timeout": 30,
+            "max_conn_limit": 10,
             "connection_string": "server={host};port={port};user id={user};password={password};database={database};TrustServerCertificate=true;encrypt=disable;",
             "query": {
                 "get_tag_date": "select h.TagName, h.DateTime, h.Value from history h where (h.TagName) = '{tag}' and h.DateTime = '{date}'",
@@ -50,6 +51,7 @@
             "password": "navnav123",
             "database": "runtime",
             "timeout": 30,
+            "max_conn_limit": 100,
             "connection_string": "{user}:{password}@tcp({host}:{port})/{database}?charset=utf8&parseTime=True&loc=Local",
             "query": {
                 "get_tag_date": "select case when time_to_sec(timediff(tt.DataTime, ft.DataTime)) <> 0 then time_to_sec(timediff(timediff(tt.DataTime, ft.DataTime),timediff(tt.DataTime,'{date}')))/time_to_sec(timediff(tt.DataTime,ft.DataTime))*(tt.Value-ft.Value)+ft.Value else ft.Value end as t from (select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime <= '{date}' order by h.DataTime desc limit 1) ft join( select h.Value, h.TagName, h.DataTime from history h where (h.TagName) = '{tag}' and h.DataTime >= '{date}' order by h.DataTime asc limit 1) tt on ft.TagName = tt.TagName",
@@ -75,6 +77,7 @@
             "timeout": 30,
             "max_idle_conns": 1,
             "max_open_conns": 2,
+            "max_conn_limit": 100,
             "conn_max_idle_time": 10,
             "conn_max_lifetime": 10,
             "connection_string": "{user}:{password}@tcp({host}:{port})/{database}?charset=utf8&parseTime=True&loc=Local",
@@ -101,6 +104,7 @@
             "timeout": 30,
             "max_idle_conns": 1,
             "max_open_conns": 2,
+            "max_conn_limit": 100,
             "conn_max_idle_time": 10,
             "conn_max_lifetime": 10,
             "connection_string": "{user}:{password}@tcp({host}:{port})/{database}?charset=utf8&parseTime=True",
@@ -125,6 +129,7 @@
             "password": "password123",
             "database": "runtime",
             "timeout": 30,
+            "max_conn_limit": 100,
             "connection_string": "clickhouse://{host}:{port}/{database}?username={user}&password={password}",
             "query": {
                 "get_tag_date": "select h.TagName, h.DateTime, if(toDateTime('{date}','Asia/Almaty') > (select max(max) from runtime.max), -1, h.Value) as Value from history h where (h.TagName) = '{tag}' and h.DateTime <= toDateTime('{date}','Asia/Almaty') order by h.TagName, h.DateTime desc limit 1",

@@ -36,6 +36,7 @@ type Database struct {
 	Query            map[string]string `json:"query"`
 	MaxIdleConns     int               `json:"max_idle_conns,omitempty"`
 	MaxOpenConns     int               `json:"max_open_conns,omitempty"`
+	MaxConnLimit     int               `json:"max_conn_limit,omitempty"`
 	ConnMaxIdleTime  int               `json:"conn_max_idle_time,omitempty"`
 	ConnMaxLifetime  int               `json:"conn_max_lifetime,omitempty"`
 }

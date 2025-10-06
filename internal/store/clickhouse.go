@@ -6,6 +6,7 @@ import (
 	"robin2/internal/cache"
 	"robin2/internal/config"
 	"robin2/internal/logger"
+	"time"
 
 	_ "github.com/ClickHouse/clickhouse-go/v2"
 )
@@ -48,6 +49,21 @@ func (s *Clickhouse) Connect(name string, cache cache.Cache) error {
 	if err != nil {
 		logger.Error(err.Error())
 		return err
+	}
+
+	// Устанавливаем лимит соединений
+	maxConnLimit := s.getMaxConnLimit()
+	s.db.SetMaxOpenConns(maxConnLimit)
+
+	// Устанавливаем другие параметры если они заданы
+	if s.config.CurrDB.MaxIdleConns > 0 {
+		s.db.SetMaxIdleConns(s.config.CurrDB.MaxIdleConns)
+	}
+	if s.config.CurrDB.ConnMaxIdleTime > 0 {
+		s.db.SetConnMaxIdleTime(time.Duration(s.config.CurrDB.ConnMaxIdleTime) * time.Second)
+	}
+	if s.config.CurrDB.ConnMaxLifetime > 0 {
+		s.db.SetConnMaxLifetime(time.Duration(s.config.CurrDB.ConnMaxLifetime) * time.Second)
 	}
 
 	if err = s.db.Ping(); err != nil {
