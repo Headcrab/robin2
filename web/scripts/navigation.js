@@ -4,32 +4,45 @@ function updateBreadcrumb(url) {
     const pageTitle = document.getElementById('page-title');
     
     if (!breadcrumbContainer || !pageTitle) return;
+
+    const path = (url || window.location.pathname || '/').split('?')[0];
     
     let titleKey = 'home.title';
     let breadcrumbKeys = [];
     
-    switch(url) {
+    switch(path) {
         case '/':
+        case '':
             titleKey = 'home.title';
             breadcrumbKeys = []; // Главная страница - нет breadcrumb
             break;
         case '/data/':
+        case '/data':
             titleKey = 'data.title';
             breadcrumbKeys = ['nav.home']; // Главная > текущая страница в заголовке
             break;
         case '/tags/':
+        case '/tags':
             titleKey = 'tags.title';
             breadcrumbKeys = ['nav.home'];
             break;
         case '/logs/':
+        case '/logs':
             titleKey = 'logs.title';
             breadcrumbKeys = ['nav.home'];
             break;
         case '/docs/':
+        case '/docs':
             titleKey = 'docs.title';
             breadcrumbKeys = ['nav.home'];
             break;
+        case '/docs/view/':
+        case '/docs/view':
+            titleKey = 'docs.title';
+            breadcrumbKeys = ['nav.home', 'nav.docs'];
+            break;
         case '/swagger/':
+        case '/swagger':
             titleKey = 'api.title';
             breadcrumbKeys = ['nav.home'];
             break;

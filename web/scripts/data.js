@@ -1,9 +1,6 @@
 import { showErrorNotification, showSuccessNotification } from './ui.js';
 
 function getTagOnDate() {
-    console.log('getTagOnDate called');
-    
-    // Показываем индикатор загрузки
     const searchBtn = document.getElementById('searchBtn');
     const originalText = searchBtn ? searchBtn.innerHTML : '';
     if (searchBtn) {
@@ -17,13 +14,10 @@ function getTagOnDate() {
         `;
     }
     
-    // Получаем значения полей ввода
     const tag = document.getElementById("searchInput")?.value || '';
     const dateFrom = document.getElementById("dateFrom")?.value || '';
     const dateTo = document.getElementById("dateTo")?.value || '';
     const searchCount = document.getElementById("searchCount")?.value || '300';
-    
-    console.log('Search params:', { tag, dateFrom, dateTo, searchCount });
     
     if (!tag.trim()) {
         showErrorNotification('Введите название тега');
@@ -43,7 +37,6 @@ function getTagOnDate() {
         return;
     }
     
-    // Получаем API endpoint
     const apiElement = document.getElementById('apiserver');
     if (!apiElement) {
         showErrorNotification('API сервер недоступен');
@@ -56,46 +49,44 @@ function getTagOnDate() {
     
     const api = apiElement.textContent;
     
-    // Конвертируем даты в нужный формат
     const fromFormatted = convertDateTimeLocal(dateFrom);
     const toFormatted = convertDateTimeLocal(dateTo);
-    
-    console.log('Formatted dates:', { fromFormatted, toFormatted });
-    
-    // Формируем URL для API запроса
-    const url = `${api}/get/tag/?tag=${encodeURIComponent(tag)}&from=${encodeURIComponent(fromFormatted)}&to=${encodeURIComponent(toFormatted)}&format=json`;
-    
-    console.log('API URL:', url);
-    
-    // Делаем AJAX запрос
+
+    const params = new URLSearchParams({
+        tag,
+        from: fromFormatted,
+        to: toFormatted,
+        format: 'json'
+    });
+
+    const normalizedCount = parseInt(searchCount, 10);
+    if (!Number.isNaN(normalizedCount) && normalizedCount > 0) {
+        params.set('count', String(normalizedCount));
+    }
+
+    const url = `${api}/get/tag/?${params.toString()}`;
+
     fetch(url)
         .then(response => {
-            console.log('Response status:', response.status);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             return response.text();
         })
         .then(data => {
-            console.log('Raw response data:', data);
-            
-            // Пытаемся распарсить как JSON
             let parsedData;
             try {
                 parsedData = JSON.parse(data);
-                console.log('Parsed JSON data:', parsedData);
             } catch (e) {
-                console.log('Not JSON, treating as text data');
                 parsedData = data;
             }
-            
-            // Обновляем таблицу с полученными данными
+
             updateDataTable(parsedData, tag);
-            
-            showSuccessNotification(`Найдено записей: ${Array.isArray(parsedData) ? parsedData.length : 'неизвестно'}`);
+
+            const rowsCount = Array.isArray(parsedData) ? parsedData.length : String(data).split('\n').filter(Boolean).length;
+            showSuccessNotification(`Найдено записей: ${rowsCount}`);
         })
         .catch(error => {
-            console.error('Error fetching data:', error);
             showErrorNotification(`Ошибка загрузки данных: ${error.message}`);
             
             // Показываем пустую таблицу
@@ -119,7 +110,6 @@ function getTagOnDate() {
             }
         })
         .finally(() => {
-            // Восстанавливаем кнопку
             if (searchBtn) {
                 searchBtn.disabled = false;
                 searchBtn.innerHTML = originalText;
@@ -127,38 +117,29 @@ function getTagOnDate() {
         });
 }
 
-// Функция для конвертации datetime-local в формат API
 function convertDateTimeLocal(datetimeLocal) {
     if (!datetimeLocal) return '';
-    
-    try {
-        // datetime-local формат: 2023-10-02T21:00
-        // API ожидает: 02.10.2023 21:00:00
-        const date = new Date(datetimeLocal);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        
-        return `${day}.${month}.${year} ${hours}:${minutes}:00`;
-    } catch (e) {
-        console.error('Error converting date:', e);
+
+    const date = new Date(datetimeLocal);
+    if (Number.isNaN(date.getTime())) {
         return datetimeLocal;
     }
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    return `${day}.${month}.${year} ${hours}:${minutes}:00`;
 }
 
-// Функция для обновления таблицы данных
 function updateDataTable(data, currentTag) {
-    console.log('updateDataTable called with:', { data, currentTag });
-    
     const tbody = document.getElementById('data-results');
     if (!tbody) {
-        console.error('Table body not found');
         return;
     }
-    
-    // Очищаем таблицу
+
     tbody.innerHTML = '';
     
     if (!data || (Array.isArray(data) && data.length === 0)) {
@@ -180,11 +161,7 @@ function updateDataTable(data, currentTag) {
         return;
     }
     
-    // Если данные - строка, пытаемся её распарсить
     if (typeof data === 'string') {
-        console.log('Data is string, trying to parse...');
-        
-        // Если строка содержит ошибку
         if (data.startsWith('#Error:')) {
             tbody.innerHTML = `
                 <tr>
@@ -203,17 +180,14 @@ function updateDataTable(data, currentTag) {
             `;
             return;
         }
-        
-        // Пытаемся разбить строку на строки данных
+
         const lines = data.split('\n').filter(line => line.trim());
-        console.log('Split lines:', lines);
-        
+
         if (lines.length === 0) {
             updateDataTable([], currentTag);
             return;
         }
-        
-        // Конвертируем строки в объекты данных
+
         data = lines.map(line => {
             const parsed = parseDataString(line);
             return {
@@ -226,27 +200,22 @@ function updateDataTable(data, currentTag) {
             };
         });
     }
-    
-    // Если данные - массив объектов
+
     if (Array.isArray(data)) {
-        console.log('Processing array data:', data);
-        
-        data.forEach((item, index) => {
+        data.forEach((item) => {
             const row = document.createElement('tr');
             row.className = 'data-row';
             
             let timestamp, tag, value, quality, unit, description;
             
             if (typeof item === 'object' && item !== null) {
-                // Если элемент - объект
                 timestamp = formatTimestamp(item.timestamp || item.time || item.date);
-                tag = item.tag || currentTag;
+                tag = item.tag || item.name || currentTag;
                 value = formatValue(item.value);
                 quality = item.quality || 'OK';
                 unit = item.unit || getUnitForTag(tag);
                 description = item.description || getDescriptionForTag(tag);
             } else {
-                // Если элемент - строка
                 const parsed = parseDataString(String(item));
                 timestamp = parsed.time;
                 tag = parsed.tag || currentTag;
@@ -271,22 +240,19 @@ function updateDataTable(data, currentTag) {
             
             tbody.appendChild(row);
         });
-        
-        // Применяем стилизацию значений
+
         styleValueCells();
     }
-    
-    console.log('Table updated successfully');
 }
 
 function getTagList() {
-    var tag = document.getElementById("searchInput").value;
-
-    if (!document.getElementById('apiserver')) {
+    const tag = document.getElementById("searchInput")?.value?.trim() || '';
+    if (!tag) {
+        showErrorNotification('Введите маску для поиска');
         return;
     }
-    const api = document.getElementById('apiserver').textContent;
-    var url = api + "/tags/?like=" + tag;
+
+    const url = `/tags/?like=${encodeURIComponent(tag)}`;
 
     if (typeof window.loadPage === 'function') {
         window.loadPage(url);
@@ -314,10 +280,80 @@ function loadHomePageData() {
 
 function loadSwagger() {
     if (document.getElementById("content")!=null) {
-        document.getElementById("content").innerHTML = '<iframe src="/swagger" style = "text-center" width="800px" height="100%" frameborder="0"></iframe>';
+        document.getElementById("content").innerHTML = '<iframe src="/swagger/" style="text-center" width="800px" height="100%" frameborder="0"></iframe>';
     } else {
-        console.error('Element with ID "content" not found');
+        showErrorNotification('Контейнер Swagger не найден');
     }
+}
+
+function initializeDataPage() {
+    const now = new Date();
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60000);
+
+    const params = new URLSearchParams(window.location.search);
+
+    const searchInput = document.getElementById('searchInput');
+    const dateFrom = document.getElementById('dateFrom');
+    const dateTo = document.getElementById('dateTo');
+    const searchCount = document.getElementById('searchCount');
+
+    if (searchInput && params.get('tag')) {
+        searchInput.value = params.get('tag');
+    }
+    if (dateFrom && params.get('from')) {
+        dateFrom.value = params.get('from');
+    }
+    if (dateTo && params.get('to')) {
+        dateTo.value = params.get('to');
+    }
+    if (searchCount && params.get('count')) {
+        searchCount.value = params.get('count');
+    }
+
+    if (dateFrom && !dateFrom.value) {
+        dateFrom.value = fiveMinutesAgo.toISOString().slice(0, 16);
+    }
+    if (dateTo && !dateTo.value) {
+        dateTo.value = now.toISOString().slice(0, 16);
+    }
+
+    formatServerRenderedRows();
+}
+
+function formatServerRenderedRows() {
+    const rows = document.querySelectorAll('#data-results tr.data-row');
+    if (!rows.length) {
+        return;
+    }
+
+    rows.forEach((row) => {
+        const raw = row.getAttribute('data-raw');
+        if (!raw) return;
+        const parsed = parseDataString(raw);
+
+        const timeCell = row.querySelector('.col-time');
+        const tagCell = row.querySelector('.col-tag');
+        const valueCell = row.querySelector('.col-value');
+        const qualityCell = row.querySelector('.col-quality span');
+        const unitCell = row.querySelector('.col-unit');
+        const descriptionCell = row.querySelector('.col-description');
+
+        if (timeCell) timeCell.textContent = parsed.time;
+        if (tagCell) tagCell.textContent = parsed.tag;
+        if (valueCell) {
+            valueCell.textContent = parsed.value;
+            valueCell.setAttribute('data-value', parsed.value);
+            valueCell.classList.add('value-cell');
+        }
+        if (qualityCell) {
+            qualityCell.textContent = parsed.quality;
+            qualityCell.className = `inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getQualityClass(parsed.quality)}`;
+        }
+        if (unitCell) unitCell.textContent = parsed.unit || '—';
+        if (descriptionCell) descriptionCell.textContent = parsed.description || '—';
+    });
+
+    styleValueCells();
 }
 
 // Дополнительные функции для работы с данными
@@ -342,20 +378,20 @@ function styleValueCells() {
 }
 
 function getQualityClass(quality) {
-    const q = quality.toLowerCase();
+    const q = String(quality).toLowerCase();
     switch(q) {
         case 'ok':
         case 'good':
-            return 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium quality-ok';
+            return 'quality-ok';
         case 'bad':
         case 'error':
-            return 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium quality-bad';
+            return 'quality-bad';
         case 'uncertain':
         case 'warning':
-            return 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium quality-warning';
+            return 'quality-warning';
         case 'unknown':
         default:
-            return 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium quality-unknown';
+            return 'quality-unknown';
     }
 }
 
@@ -374,7 +410,11 @@ function formatTimestamp(timestamp) {
         if (timestamp instanceof Date) {
             date = timestamp;
         } else if (typeof timestamp === 'string') {
-            date = new Date(timestamp);
+            const normalized = timestamp.replace(/\s\+\d{4}\sUTC$/, 'Z').replace(' ', 'T');
+            date = new Date(normalized);
+            if (isNaN(date.getTime())) {
+                date = new Date(timestamp);
+            }
         } else {
             return String(timestamp);
         }
@@ -393,7 +433,6 @@ function formatTimestamp(timestamp) {
         
         return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
     } catch (e) {
-        console.warn('Error formatting timestamp:', timestamp, e);
         return String(timestamp);
     }
 }
@@ -414,113 +453,125 @@ function getCurrentTag() {
 }
 
 function parseDataString(rawData) {
+    const fallbackTag = getCurrentTag();
+    const cleaned = String(rawData || '').trim();
+
+    if (!cleaned) {
+        return {
+            time: formatTimestamp(new Date()),
+            tag: fallbackTag,
+            value: '—',
+            quality: 'Unknown',
+            unit: '—',
+            description: '—'
+        };
+    }
+
     try {
-        console.log('Parsing raw data:', rawData);
-        
-        // Clean the raw data
-        const cleaned = rawData.trim();
-        
+        // Strategy 0: server format "timestamp|value"
+        if (cleaned.includes('|')) {
+            const [rawTime, rawValue] = cleaned.split('|');
+            return {
+                time: formatTimestamp(rawTime.trim()),
+                tag: fallbackTag,
+                value: formatValue(rawValue),
+                quality: 'OK',
+                unit: getUnitForTag(fallbackTag),
+                description: getDescriptionForTag(fallbackTag)
+            };
+        }
+
         // Strategy 1: Space-separated format "DD.MM.YYYY HH:MM:SS value"
         const timeValueMatch = cleaned.match(/^(\d{2}\.\d{2}\.\d{4}\s+\d{2}:\d{2}:\d{2})\s+(.+)$/);
         if (timeValueMatch) {
             const [, timestamp, value] = timeValueMatch;
-            console.log('Matched time-value format:', { timestamp, value });
             
             return {
                 time: timestamp,
-                tag: getCurrentTag(),
+                tag: fallbackTag,
                 value: formatValue(value),
                 quality: 'OK',
-                unit: getUnitForTag(getCurrentTag()),
-                description: getDescriptionForTag(getCurrentTag())
+                unit: getUnitForTag(fallbackTag),
+                description: getDescriptionForTag(fallbackTag)
             };
         }
-        
+
         // Strategy 2: Формат времени ISO или UTC
         const isoTimeMatch = cleaned.match(/^(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:\s+[+]\d{4}\s+UTC)?)\s+(.+)$/);
         if (isoTimeMatch) {
             const [, timestamp, value] = isoTimeMatch;
-            console.log('Matched ISO time format:', { timestamp, value });
-            
-            // Конвертируем в нужный формат
+
             const date = new Date(timestamp.replace(/\s+[+]\d{4}\s+UTC/, ''));
             const formattedTime = formatTimestamp(date);
             
             return {
                 time: formattedTime,
-                tag: getCurrentTag(),
+                tag: fallbackTag,
                 value: formatValue(value),
                 quality: 'OK',
-                unit: getUnitForTag(getCurrentTag()),
-                description: getDescriptionForTag(getCurrentTag())
+                unit: getUnitForTag(fallbackTag),
+                description: getDescriptionForTag(fallbackTag)
             };
         }
-        
+
         // Strategy 3: Format "10.02.2023 21:00:01 208.48"
         const parts = cleaned.split(/\s+/);
-        console.log('Split parts:', parts);
-        
+
         if (parts.length >= 3) {
             const date = parts[0];
             const time = parts[1];
             const value = parts[2];
             
-            // Проверяем формат DD.MM.YYYY
             if (date.match(/^\d{2}\.\d{2}\.\d{4}$/) && time.match(/^\d{2}:\d{2}:\d{2}$/)) {
                 const timestamp = `${date} ${time}`;
-                console.log('Reconstructed timestamp:', timestamp);
                 
                 return {
                     time: timestamp,
-                    tag: getCurrentTag(),
+                    tag: fallbackTag,
                     value: formatValue(value),
                     quality: 'OK',
-                    unit: getUnitForTag(getCurrentTag()),
-                    description: getDescriptionForTag(getCurrentTag())
+                    unit: getUnitForTag(fallbackTag),
+                    description: getDescriptionForTag(fallbackTag)
                 };
             }
         }
-        
+
         // Strategy 4: Просто числовое значение
         const numericValue = parseFloat(cleaned);
         if (!isNaN(numericValue)) {
-            console.log('Parsed as numeric value:', numericValue);
-            
             return {
                 time: formatTimestamp(new Date()),
-                tag: getCurrentTag(),
+                tag: fallbackTag,
                 value: formatValue(numericValue),
                 quality: 'OK',
-                unit: getUnitForTag(getCurrentTag()),
-                description: getDescriptionForTag(getCurrentTag())
+                unit: getUnitForTag(fallbackTag),
+                description: getDescriptionForTag(fallbackTag)
             };
         }
-        
+
         // Strategy 5: Пытаемся парсить как JSON
         try {
             const jsonData = JSON.parse(cleaned);
-            console.log('Parsed as JSON:', jsonData);
             
             return {
                 time: formatTimestamp(jsonData.timestamp || jsonData.time || jsonData.date || new Date()),
-                tag: jsonData.tag || getCurrentTag(),
+                tag: jsonData.tag || fallbackTag,
                 value: formatValue(jsonData.value),
                 quality: jsonData.quality || 'OK',
-                unit: jsonData.unit || getUnitForTag(getCurrentTag()),
-                description: jsonData.description || getDescriptionForTag(getCurrentTag())
+                unit: jsonData.unit || getUnitForTag(fallbackTag),
+                description: jsonData.description || getDescriptionForTag(fallbackTag)
             };
         } catch (jsonError) {
-            // Не JSON, продолжаем
+            // Not JSON.
         }
         
     } catch (e) {
-        console.warn('Could not parse data:', rawData, 'Error:', e);
+        // Ignore and use fallback below.
     }
     
-    // Fallback - возвращаем что-то разумное
     return {
         time: formatTimestamp(new Date()),
-        tag: getCurrentTag(),
+        tag: fallbackTag,
         value: cleaned || '—',
         quality: 'Unknown',
         unit: '—',
@@ -764,10 +815,17 @@ function decodeTag(tagName) {
 }
 
 function searchTagData(tag) {
-    // navigate to data page with selected tag
+    const now = new Date();
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60000);
+    const from = fiveMinutesAgo.toISOString().slice(0, 16);
+    const to = now.toISOString().slice(0, 16);
+
     const encodedTag = encodeURIComponent(tag);
+    const encodedFrom = encodeURIComponent(from);
+    const encodedTo = encodeURIComponent(to);
+
     if (typeof window.loadPage === 'function') {
-        window.loadPage(`/data/?tag=${encodedTag}`);
+        window.loadPage(`/data/?tag=${encodedTag}&from=${encodedFrom}&to=${encodedTo}`);
     }
 }
 
@@ -776,6 +834,7 @@ export {
     getTagList, 
     loadHomePageData,
     loadSwagger,
+    initializeDataPage,
     updateDataTable,
     searchTagData,
     formatTimestamp,

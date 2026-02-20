@@ -75,7 +75,7 @@
       <div class="px-2 py-4 space-y-1">
         <a 
           href="#" 
-          onclick="loadPage('/'); closeMobileMenu();" 
+          onclick="loadPage('/'); closeMobileMenu(); return false;" 
           class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
         >
           <img src="/images/Home_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
@@ -84,7 +84,7 @@
 
         <a 
           href="#" 
-          onclick="loadPage('/data/'); closeMobileMenu();" 
+          onclick="loadPage('/data/'); closeMobileMenu(); return false;" 
           class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
         >
           <img src="/images/Data Sheet_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
@@ -93,7 +93,7 @@
 
         <a 
           href="#" 
-          onclick="loadPage('/tags/'); closeMobileMenu();" 
+          onclick="loadPage('/tags/'); closeMobileMenu(); return false;" 
           class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
         >
           <img src="/images/Report Card_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
@@ -102,7 +102,7 @@
 
         <a 
           href="#" 
-          onclick="loadPage('/logs/'); closeMobileMenu();" 
+          onclick="loadPage('/logs/'); closeMobileMenu(); return false;" 
           class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
         >
           <img src="/images/Choice_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
@@ -111,7 +111,7 @@
 
         <a 
           href="#" 
-          onclick="loadPage('/docs/'); closeMobileMenu();" 
+          onclick="loadPage('/docs/'); closeMobileMenu(); return false;" 
           class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
         >
                  <img src="/images/Knowledge_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
@@ -120,7 +120,7 @@
 
         <a 
           href="#" 
-          onclick="loadPage('/swagger/'); closeMobileMenu();" 
+          onclick="loadPage('/swagger/'); closeMobileMenu(); return false;" 
           class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
         >
           <img src="/images/API_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
@@ -131,14 +131,14 @@
       <!-- mobile status section -->
       <div class="absolute bottom-0 left-0 right-0 px-4 py-3 border-t border-gray-200 bg-white">
         <div class="flex items-center justify-between">
-          <span class="text-sm text-gray-500" data-i18n="status.system_status">Статус системы</span>
-          <div class="flex items-center space-x-2">
-            <div id="mobile-dbstatus" class="h-2 w-2 rounded-full bg-gray-400"></div>
-            <span class="text-sm text-gray-600">Проверка...</span>
-          </div>
-        </div>
+      <span class="text-sm text-gray-500" data-i18n="status.system_status">Статус системы</span>
+      <div class="flex items-center space-x-2">
+        <div id="mobile-dbstatus" class="h-2 w-2 rounded-full bg-gray-400"></div>
+        <span id="mobile-dbstatus-text" class="text-sm text-gray-600">Проверка...</span>
       </div>
-    </nav>
+    </div>
+  </div>
+</nav>
 
     <!-- main content area -->
     <div class="flex-1 flex flex-col min-w-0">

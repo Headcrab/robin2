@@ -113,35 +113,52 @@ function showNotification(notification) {
 }
 
 function setViewMode(mode) {
-    const listView = document.getElementById('list-view');
-    const gridView = document.getElementById('grid-view');
-    const listBtn = document.querySelector('[onclick="setViewMode(\'list\')"]');
-    const gridBtn = document.querySelector('[onclick="setViewMode(\'grid\')"]');
+    const listView = document.getElementById('tags-list-view') || document.getElementById('list-view');
+    const gridView = document.getElementById('tags-grid-view') || document.getElementById('grid-view');
+    const listBtn = document.getElementById('list-view-btn') || document.querySelector('[onclick="setViewMode(\'list\')"]');
+    const gridBtn = document.getElementById('grid-view-btn') || document.querySelector('[onclick="setViewMode(\'grid\')"]');
+
+    if (!listView || !gridView) {
+        return;
+    }
     
     if (mode === 'list') {
-        if (listView) listView.classList.remove('hidden');
-        if (gridView) gridView.classList.add('hidden');
-        if (listBtn) listBtn.classList.add('btn-primary');
-        if (listBtn) listBtn.classList.remove('btn-outline');
-        if (gridBtn) gridBtn.classList.remove('btn-primary');
-        if (gridBtn) gridBtn.classList.add('btn-outline');
+        listView.classList.remove('hidden');
+        gridView.classList.add('hidden');
+        if (listBtn) {
+            listBtn.classList.add('active', 'bg-white', 'text-primary');
+            listBtn.classList.remove('btn-primary');
+            listBtn.classList.remove('btn-outline');
+        }
+        if (gridBtn) {
+            gridBtn.classList.remove('active', 'bg-white', 'text-primary');
+            gridBtn.classList.remove('btn-primary');
+            gridBtn.classList.remove('btn-outline');
+        }
     } else if (mode === 'grid') {
-        if (gridView) gridView.classList.remove('hidden');
-        if (listView) listView.classList.add('hidden');
-        if (gridBtn) gridBtn.classList.add('btn-primary');
-        if (gridBtn) gridBtn.classList.remove('btn-outline');
-        if (listBtn) listBtn.classList.remove('btn-primary');
-        if (listBtn) listBtn.classList.add('btn-outline');
+        gridView.classList.remove('hidden');
+        listView.classList.add('hidden');
+        if (gridBtn) {
+            gridBtn.classList.add('active', 'bg-white', 'text-primary');
+            gridBtn.classList.remove('btn-primary');
+            gridBtn.classList.remove('btn-outline');
+        }
+        if (listBtn) {
+            listBtn.classList.remove('active', 'bg-white', 'text-primary');
+            listBtn.classList.remove('btn-primary');
+            listBtn.classList.remove('btn-outline');
+        }
     }
     
     // save preference to localStorage
-    localStorage.setItem('tagViewMode', mode);
+    localStorage.setItem('tagsViewMode', mode);
 }
 
 // restore view mode preference on page load
 document.addEventListener('DOMContentLoaded', function() {
-    const savedViewMode = localStorage.getItem('tagViewMode');
-    if (savedViewMode && (savedViewMode === 'list' || savedViewMode === 'grid')) {
+    const savedViewMode = localStorage.getItem('tagsViewMode') || localStorage.getItem('tagViewMode');
+    if ((savedViewMode === 'list' || savedViewMode === 'grid') &&
+        (document.getElementById('tags-list-view') || document.getElementById('list-view'))) {
         setViewMode(savedViewMode);
     }
 });
@@ -218,13 +235,6 @@ function createLanguageToggle() {
         dropdown.classList.toggle('hidden');
     };
     
-    // hide dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!languageContainer.contains(e.target)) {
-            dropdown.classList.add('hidden');
-        }
-    });
-    
     languageContainer.appendChild(languageToggle);
     languageContainer.appendChild(dropdown);
     
@@ -235,7 +245,6 @@ function addThemeAndLanguageSwitchers() {
     // check if switchers already exist
     const existingSwitchers = document.getElementById('theme-language-switchers');
     if (existingSwitchers) {
-        console.log('Theme and language switchers already exist, skipping creation');
         return;
     }
     
@@ -247,7 +256,6 @@ function addThemeAndLanguageSwitchers() {
     const targetContainer = placeholder || headerActions;
     
     if (!targetContainer) {
-        console.warn('Header container not found, cannot add theme/language switchers');
         return;
     }
     
@@ -273,7 +281,6 @@ function addThemeAndLanguageSwitchers() {
         targetContainer.appendChild(switchersContainer);
     }
     
-    console.log('Theme and language switchers added to header');
 }
 
 function initializeThemeAndLanguage() {
@@ -284,21 +291,27 @@ function initializeThemeAndLanguage() {
         
         // переводы обновляются автоматически при setLanguage()
         
-        // listen for theme changes to update UI
-        window.addEventListener('themeChanged', (event) => {
-            console.log('Theme changed:', event.detail.theme);
-            // additional UI updates if needed
-        });
-        
-        // listen for language changes to update UI
-        window.addEventListener('languageChanged', (event) => {
-            console.log('Language changed:', event.detail.language);
-            // update translations immediately
-            if (window.i18nManager) {
-                window.i18nManager.updateTranslations();
-                console.log('переводы обновлены при смене языка');
-            }
-        });
+        if (!window.themeLangListenersBound) {
+            window.addEventListener('languageChanged', () => {
+                if (window.i18nManager) {
+                    window.i18nManager.updateTranslations();
+                }
+            });
+            window.themeLangListenersBound = true;
+        }
+
+        if (!window.languageOutsideHandlerBound) {
+            document.addEventListener('click', (event) => {
+                const dropdown = document.getElementById('language-dropdown');
+                const toggle = document.getElementById('language-toggle');
+                if (!dropdown || !toggle) return;
+                const container = toggle.closest('.dropdown');
+                if (container && !container.contains(event.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+            window.languageOutsideHandlerBound = true;
+        }
     };
     
     if (document.readyState === 'loading') {

@@ -110,28 +110,3 @@
   </div>
 </div>
 
-<script>
-function exportLogs() {
-  // collect logs from the page
-  const logElements = document.querySelectorAll('.log-entry');
-  const logs = Array.from(logElements).map(el => el.textContent.trim());
-  
-  if (logs.length === 0) {
-    showErrorNotification('Нет логов для экспорта');
-    return;
-  }
-  
-  const content = logs.join('\n');
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `logs_export_${new Date().toISOString().slice(0, 10)}.txt`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  window.URL.revokeObjectURL(url);
-  
-  showSuccessNotification('Логи экспортированы');
-}
-</script>

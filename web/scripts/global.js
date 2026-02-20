@@ -12,7 +12,8 @@ import {
     getTagList,
     loadSwagger,
     searchTagData,
-    loadHomePageData
+    loadHomePageData,
+    initializeDataPage
 } from './data.js';
 import { initializeRefreshButton, copyToClipboard } from './utils.js';
 import { 
@@ -32,7 +33,6 @@ import {
 } from './export.js';
 import { toggleTheme, setTheme, getCurrentTheme, getThemes, themeManager } from './themes.js';
 import { setLanguage, getCurrentLanguage, getLanguages, t, updateTranslations, i18nManager } from './i18n.js';
-import { startDOMObserver, stopDOMObserver, restoreSwitchers } from './dom-observer.js';
 
 // экспорт функций в глобальную область для совместимости с HTML
 window.loadPage = loadPage;
@@ -45,6 +45,7 @@ window.setViewMode = setViewMode;
 window.closeMobileMenu = closeMobileMenu;
 window.copyToClipboard = copyToClipboard;
 window.searchTagData = searchTagData;
+window.initializeDataPage = initializeDataPage;
 window.clearSearchForm = clearSearchForm;
 window.exportData = exportData;
 window.clearTagSearch = clearTagSearch;
@@ -72,9 +73,6 @@ window.updateTranslations = updateTranslations;
 window.themeManager = themeManager;
 window.i18nManager = i18nManager;
 window.initializeThemeAndLanguage = initializeThemeAndLanguage;
-window.startDOMObserver = startDOMObserver;
-window.stopDOMObserver = stopDOMObserver;
-window.restoreSwitchers = restoreSwitchers;
 
 // глобальная инициализация
 window.addEventListener('DOMContentLoaded', async () => {
@@ -85,5 +83,4 @@ window.addEventListener('DOMContentLoaded', async () => {
     // инициализируем страницу
     initialize();
     initializeThemeAndLanguage();
-    startDOMObserver(); // start watching for DOM changes
 }); 

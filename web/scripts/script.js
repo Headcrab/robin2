@@ -11,12 +11,3 @@
 
 // подключаем главный модуль
 import './global.js';
-
-// подключаем отладку в режиме разработки (раскомментируйте для отладки)
-// import './debug.js';
-// import './theme-debug.js';
-import './fix-translation.js';
-import './debug-i18n.js';
-import './fix-navigation-translation.js';
-import './fix-table-theme.js';
-import './fix-breadcrumb.js'; 

@@ -3,7 +3,7 @@ import { updateBreadcrumb } from './navigation.js';
 
 // core page loading functionality
 function loadPage(url) {
-    const p = saveParams();
+    saveParams();
     showLoader();
     updateBreadcrumb(url);
     
@@ -27,7 +27,7 @@ function loadPage(url) {
             document.body.innerHTML = data;
             history.pushState(null, '', url);
             initialize();
-            restoreParams(p);
+            restoreParams();
             closeMobileMenu();
             return data;
         })
@@ -67,8 +67,11 @@ function initialize() {
     // fetch initial status
     if (typeof window.fetchStatus === 'function') {
         window.fetchStatus();
-        // setup status refresh interval
-        setInterval(window.fetchStatus, 60000);
+        // setup one status refresh interval for the current page
+        if (window.statusRefreshIntervalId) {
+            clearInterval(window.statusRefreshIntervalId);
+        }
+        window.statusRefreshIntervalId = setInterval(window.fetchStatus, 60000);
     }
     
     // load home page data if on home page
@@ -80,13 +83,15 @@ function initialize() {
     
     // initialize data page if we're on data page
     if (window.location.pathname.includes('/data/')) {
-        console.log('On data page, calling initializeDataPage');
-        if (typeof initializeDataPage === 'function') {
-            initializeDataPage();
-        } else {
-            setTimeout(() => {
-                console.log('Data page initialization completed');
-            }, 500);
+        if (typeof window.initializeDataPage === 'function') {
+            window.initializeDataPage();
+        }
+    }
+
+    if (window.location.pathname.includes('/tags/')) {
+        if (typeof window.setViewMode === 'function') {
+            const savedMode = localStorage.getItem('tagsViewMode') || 'list';
+            window.setViewMode(savedMode);
         }
     }
     
