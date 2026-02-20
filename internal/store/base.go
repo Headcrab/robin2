@@ -25,6 +25,8 @@ import (
 type Base struct {
 	// Store
 	db            *sql.DB
+	connDriver    string
+	connString    string
 	config        config.Config
 	cache         cache.Cache
 	roundConstant float64
@@ -39,6 +41,69 @@ func (s *Base) getMaxConnLimit() int {
 		return s.config.CurrDB.MaxConnLimit
 	}
 	return 100
+}
+
+func (s *Base) applyPoolSettings(db *sql.DB) {
+	maxConnLimit := s.getMaxConnLimit()
+	if s.config.CurrDB.MaxOpenConns > 0 && s.config.CurrDB.MaxOpenConns < maxConnLimit {
+		maxConnLimit = s.config.CurrDB.MaxOpenConns
+	}
+	db.SetMaxOpenConns(maxConnLimit)
+
+	if s.config.CurrDB.MaxIdleConns > 0 {
+		db.SetMaxIdleConns(s.config.CurrDB.MaxIdleConns)
+	}
+	if s.config.CurrDB.ConnMaxIdleTime > 0 {
+		db.SetConnMaxIdleTime(time.Duration(s.config.CurrDB.ConnMaxIdleTime) * time.Second)
+	}
+	if s.config.CurrDB.ConnMaxLifetime > 0 {
+		db.SetConnMaxLifetime(time.Duration(s.config.CurrDB.ConnMaxLifetime) * time.Second)
+	}
+}
+
+func (s *Base) connectWithReuse(name string, cache cache.Cache) error {
+	driver := s.config.CurrDB.Type
+	connStr := s.GenerateConnectionString(name)
+	s.cache = cache
+
+	if s.db != nil && s.connDriver == driver && s.connString == connStr {
+		s.applyPoolSettings(s.db)
+		if err := s.db.Ping(); err == nil {
+			s.logConnection(name)
+			return nil
+		}
+		if err := s.db.Close(); err != nil {
+			logger.Error(err.Error())
+		}
+		s.db = nil
+	}
+
+	if s.db != nil {
+		if err := s.db.Close(); err != nil {
+			logger.Error(err.Error())
+			return err
+		}
+		s.db = nil
+	}
+
+	db, err := sql.Open(driver, connStr)
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
+	s.applyPoolSettings(db)
+	if err = db.Ping(); err != nil {
+		db.Close()
+		logger.Error(err.Error())
+		return err
+	}
+
+	s.db = db
+	s.connDriver = driver
+	s.connString = connStr
+	s.logConnection(name)
+	return nil
 }
 
 // GenerateConnectionString генерирует строку подключения на основе настроек конфигурации.
