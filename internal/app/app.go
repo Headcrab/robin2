@@ -15,10 +15,12 @@ import (
 
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"robin2/internal/cache"
 	"robin2/internal/config"
+	"robin2/internal/data"
 	"robin2/internal/format"
 	"robin2/internal/logger"
 	"robin2/internal/middleware"
@@ -41,6 +43,7 @@ type App struct {
 	store         store.Store
 	template      *template.Template
 	formatterPool *format.FormatterPool
+	pageCache     pageCache
 }
 
 type dbStatus struct {
@@ -49,6 +52,13 @@ type dbStatus struct {
 	Type    string
 	Version string
 	Uptime  time.Duration
+}
+
+type pageCache struct {
+	mu         sync.Mutex
+	logData    []string
+	tagsValues data.Tags
+	tagsList   []string
 }
 
 func NewApp() *App {

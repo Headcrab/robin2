@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"robin2/internal/data"
 	"robin2/internal/logger"
 	"robin2/internal/utils"
 	"strconv"
@@ -141,16 +140,17 @@ func (a *App) handlePageAny(page string, data map[string]interface{}) func(w htt
 	}
 }
 
-var logData []string
-
 func (a *App) handlePageLog(w http.ResponseWriter, r *http.Request) {
+	a.pageCache.mu.Lock()
+	defer a.pageCache.mu.Unlock()
+
 	// procTimeBegin := time.Now()
 	page := "logs"
 	logPerPage := 23
 	pageNumStr := r.URL.Query().Get("page")
 	if pageNumStr == "" {
 		pageNumStr = "1"
-		logData = nil
+		a.pageCache.logData = nil
 	}
 
 	pageNum, err := strconv.Atoi(pageNumStr)
@@ -158,23 +158,24 @@ func (a *App) handlePageLog(w http.ResponseWriter, r *http.Request) {
 		pageNum = 1
 	}
 
-	if logData == nil {
+	if a.pageCache.logData == nil {
 		logs, err := logger.GetLogHistory()
 		if err != nil {
 			fmt.Println("Ошибка при чтении ответа:", err)
 			return
 		}
 		for _, log := range logs {
-			logData = append(logData, fmt.Sprintf("%s %s %s", log.Date.Format("2006-01-02 15:04:05"), log.Level, log.Msg))
+			a.pageCache.logData = append(a.pageCache.logData, fmt.Sprintf("%s %s %s", log.Date.Format("2006-01-02 15:04:05"), log.Level, log.Msg))
 		}
 	}
-	a.handlePageAny(page, getOnePage(page, "Лог", logData, pageNum, logPerPage))(w, r)
+	a.handlePageAny(page, getOnePage(page, "Лог", a.pageCache.logData, pageNum, logPerPage))(w, r)
 
 }
 
-var tagsValues data.Tags
-
 func (a *App) handlePageData(w http.ResponseWriter, r *http.Request) {
+	a.pageCache.mu.Lock()
+	defer a.pageCache.mu.Unlock()
+
 	// procTimeBegin := time.Now()
 	page := "data"
 
@@ -183,7 +184,7 @@ func (a *App) handlePageData(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	pageNumStr := q.Get("page")
 	if pageNumStr == "" {
-		tagsValues = nil
+		a.pageCache.tagsValues = nil
 		pageNumStr = "1"
 	}
 
@@ -192,14 +193,14 @@ func (a *App) handlePageData(w http.ResponseWriter, r *http.Request) {
 		pageNum = 1
 	}
 
-	if tagsValues == nil {
+	if a.pageCache.tagsValues == nil {
 		if q.Get("tag") != "" && q.Get("from") != "" && q.Get("to") != "" {
 			from, _ := time.Parse("2006-01-02T15:04", q.Get("from"))
 			to, _ := time.Parse("2006-01-02T15:04", q.Get("to"))
 			countStr, _ := strconv.Atoi(q.Get("count"))
 			count := int(countStr)
 			// tags, err = a.store.GetTagFromTo(q.Get("tag"), from, to)
-			tagsValues, err = a.store.GetTagCountGroup(q.Get("tag"), from, to, count, "avg")
+			a.pageCache.tagsValues, err = a.store.GetTagCountGroup(q.Get("tag"), from, to, count, "avg")
 			if err != nil {
 				fmt.Println("Ошибка при чтении ответа:", err)
 				return
@@ -208,23 +209,24 @@ func (a *App) handlePageData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := []string{}
-	for _, tag := range tagsValues {
+	for _, tag := range a.pageCache.tagsValues {
 		data = append(data, fmt.Sprintf("%s|%f", tag.Date, tag.Value))
 	}
 	a.handlePageAny(page, getOnePage(page, "Получение данных", data, pageNum, linesPerPage))(w, r)
 
 }
 
-var tagsList []string
-
 func (a *App) handlePageTags(w http.ResponseWriter, r *http.Request) {
+	a.pageCache.mu.Lock()
+	defer a.pageCache.mu.Unlock()
+
 	// procTimeBegin := time.Now()
 	page := "tags"
 	linesPerPage := 23
 
 	pageNumStr := r.URL.Query().Get("page")
 	if pageNumStr == "" {
-		tagsList = nil
+		a.pageCache.tagsList = nil
 		pageNumStr = "1"
 	}
 
@@ -235,7 +237,7 @@ func (a *App) handlePageTags(w http.ResponseWriter, r *http.Request) {
 
 	like := r.URL.Query().Get("like")
 	if like != "" {
-		if tagsList == nil {
+		if a.pageCache.tagsList == nil {
 			tags, err := a.store.GetTagList(like)
 			if err != nil {
 				_, err := w.Write([]byte("#Error: " + err.Error()))
@@ -245,12 +247,12 @@ func (a *App) handlePageTags(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			for _, tag := range tags.Rows {
-				tagsList = append(tagsList, tag[0])
+				a.pageCache.tagsList = append(a.pageCache.tagsList, tag[0])
 			}
 		}
 	}
 
-	data := getOnePage(page, "Тэги", tagsList, pageNum, linesPerPage)
+	data := getOnePage(page, "Тэги", a.pageCache.tagsList, pageNum, linesPerPage)
 	data["like"] = utils.ThenIf(like == "", "", like)
 	a.handlePageAny(page, data)(w, r)
 }
