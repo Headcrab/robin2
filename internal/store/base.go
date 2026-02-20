@@ -10,7 +10,6 @@ import (
 	"net"
 	"robin2/internal/errors"
 	"strings"
-	"sync"
 	"time"
 
 	"robin2/internal/cache"
@@ -151,6 +150,82 @@ func (s *Base) replaceTemplate(repMap map[string]string, query string) string {
 		query = strings.ReplaceAll(query, k, v)
 	}
 	return query
+}
+
+func escapeSQLString(val string) string {
+	return strings.ReplaceAll(val, "'", "''")
+}
+
+func normalizeTags(tag string) []string {
+	tags := strings.Split(tag, ",")
+	out := make([]string, 0, len(tags))
+	for _, t := range tags {
+		trimmed := strings.TrimSpace(t)
+		if trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
+}
+
+func (s *Base) buildBatchTagQuery(baseQuery string, tags []string) (string, bool) {
+	if len(tags) == 0 {
+		return "", false
+	}
+
+	if len(tags) == 1 {
+		return strings.Replace(baseQuery, "{tag}", escapeSQLString(tags[0]), 1), true
+	}
+
+	quoted := make([]string, len(tags))
+	for i, t := range tags {
+		quoted[i] = "'" + escapeSQLString(t) + "'"
+	}
+	inClause := "(" + strings.Join(quoted, ",") + ")"
+
+	replacements := []struct {
+		from string
+		to   string
+	}{
+		{"(h.TagName) = '{tag}'", "(h.TagName) IN " + inClause},
+		{"(h.TagName)='{tag}'", "(h.TagName) IN " + inClause},
+		{"h.TagName = '{tag}'", "h.TagName IN " + inClause},
+		{"h.TagName='{tag}'", "h.TagName IN " + inClause},
+		{"(TagName) = '{tag}'", "(TagName) IN " + inClause},
+		{"(TagName)='{tag}'", "(TagName) IN " + inClause},
+		{"TagName = '{tag}'", "TagName IN " + inClause},
+		{"TagName='{tag}'", "TagName IN " + inClause},
+	}
+
+	for _, replacement := range replacements {
+		if strings.Contains(baseQuery, replacement.from) {
+			return strings.Replace(baseQuery, replacement.from, replacement.to, 1), true
+		}
+	}
+
+	return "", false
+}
+
+func (s *Base) runTagQuery(query string) (data.Tags, error) {
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	res := data.Tags{}
+	for rows.Next() {
+		currTag := &data.Tag{}
+		if err := rows.Scan(&currTag.Name, &currTag.Date, &currTag.Value); err != nil {
+			return nil, err
+		}
+		res = append(res, currTag)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // GetStatus возвращает статус из BaseStoreImpl.
@@ -416,57 +491,28 @@ func (s *Base) GetTagCountGroup(tag string, from time.Time, to time.Time, count 
 func (s *Base) GetTagFromTo(tag string, from time.Time, to time.Time) (data.Tags, error) {
 	logger.Debug(fmt.Sprintf("GetTagFromTo %s : %s - %s", tag, from.Format("2006-01-02 15:04:05"), to.Format("2006-01-02 15:04:05")))
 
-	tags := strings.Split(tag, ",")
-	for i, t := range tags {
-		tags[i] = strings.TrimSpace(t)
+	tags := normalizeTags(tag)
+	if len(tags) == 0 {
+		return data.Tags{}, nil
 	}
 
-	var wg sync.WaitGroup
+	baseQuery := s.replaceTemplate(map[string]string{
+		"{from}": from.Format("2006-01-02 15:04:05"),
+		"{to}":   to.Format("2006-01-02 15:04:05"),
+	}, s.config.CurrDB.Query["get_tag_from_to"])
+
+	if query, ok := s.buildBatchTagQuery(baseQuery, tags); ok {
+		return s.runTagQuery(query)
+	}
+
 	res := data.Tags{}
-	resCh := make(chan *data.Tag, len(tags))
-	errCh := make(chan error, 1)
-
 	for _, t := range tags {
-		wg.Add(1)
-		go func(t string) {
-			defer wg.Done()
-
-			query := s.replaceTemplate(map[string]string{
-				"{tag}":  t,
-				"{from}": from.Format("2006-01-02 15:04:05"),
-				"{to}":   to.Format("2006-01-02 15:04:05"),
-			}, s.config.CurrDB.Query["get_tag_from_to"])
-
-			rows, err := s.db.Query(query)
-			if err != nil {
-				errCh <- err
-				return
-			}
-			defer rows.Close()
-
-			for rows.Next() {
-				currTag := &data.Tag{}
-				if err := rows.Scan(&currTag.Name, &currTag.Date, &currTag.Value); err != nil {
-					errCh <- err
-					return
-				}
-				resCh <- currTag
-			}
-		}(t)
-	}
-
-	go func() {
-		wg.Wait()
-		close(resCh)
-		close(errCh)
-	}()
-
-	for tag := range resCh {
-		res = append(res, tag)
-	}
-
-	if len(errCh) > 0 {
-		return nil, <-errCh
+		query := s.replaceTemplate(map[string]string{"{tag}": escapeSQLString(t)}, baseQuery)
+		tagValues, err := s.runTagQuery(query)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, tagValues...)
 	}
 
 	return res, nil
