@@ -44,6 +44,7 @@ type App struct {
 	template      *template.Template
 	formatterPool *format.FormatterPool
 	pageCache     pageCache
+	dbStatusCache dbStatusCache
 }
 
 type dbStatus struct {
@@ -61,6 +62,13 @@ type pageCache struct {
 	tagsList   []string
 }
 
+type dbStatusCache struct {
+	mu        sync.RWMutex
+	ttl       time.Duration
+	value     dbStatus
+	expiresAt time.Time
+}
+
 func NewApp() *App {
 	app := App{}
 	logger.Debug("initializing app")
@@ -74,6 +82,7 @@ func NewApp() *App {
 	// app.config = config.New()
 	app.config.Load(filepath.Join(app.workDir, "config", "Robin.json"))
 	app.formatterPool = format.NewFormatterPool(10)
+	app.dbStatusCache.ttl = 5 * time.Second
 	return &app
 }
 
@@ -117,6 +126,8 @@ func (a *App) Run() {
 }
 
 func (a *App) initDatabase() error {
+	a.invalidateDbStatusCache()
+
 	var err error
 	a.cache, err = cache.New(a.config)
 	if err != nil {
@@ -240,6 +251,10 @@ func formatDataString(input string) template.HTML {
 //
 // Возвращает структуру dbstatus, содержащую статус, имя, тип, версию и время работы базы данных.
 func (a *App) getDbStatus() dbStatus {
+	if cached, ok := a.readDBStatusCache(); ok {
+		return cached
+	}
+
 	dbName := a.config.CurrDB.Name
 	dbstatus := dbStatus{
 		Status: "green",
@@ -261,7 +276,32 @@ func (a *App) getDbStatus() dbStatus {
 		dbstatus.Status = "red"
 	}
 
+	a.writeDBStatusCache(dbstatus)
 	return dbstatus
+}
+
+func (a *App) readDBStatusCache() (dbStatus, bool) {
+	a.dbStatusCache.mu.RLock()
+	defer a.dbStatusCache.mu.RUnlock()
+
+	if a.dbStatusCache.expiresAt.IsZero() || time.Now().After(a.dbStatusCache.expiresAt) {
+		return dbStatus{}, false
+	}
+	return a.dbStatusCache.value, true
+}
+
+func (a *App) writeDBStatusCache(status dbStatus) {
+	a.dbStatusCache.mu.Lock()
+	a.dbStatusCache.value = status
+	a.dbStatusCache.expiresAt = time.Now().Add(a.dbStatusCache.ttl)
+	a.dbStatusCache.mu.Unlock()
+}
+
+func (a *App) invalidateDbStatusCache() {
+	a.dbStatusCache.mu.Lock()
+	a.dbStatusCache.value = dbStatus{}
+	a.dbStatusCache.expiresAt = time.Time{}
+	a.dbStatusCache.mu.Unlock()
 }
 
 // handleSwaggerDark serves Swagger UI with theme detection
