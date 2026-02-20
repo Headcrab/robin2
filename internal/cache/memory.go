@@ -12,19 +12,27 @@ func init() {
 	Register("memory", NewMemory)
 }
 
-var MemoryCacheLock = &sync.Mutex{}
+type memoryTimeKey struct {
+	tag  string
+	date int64
+}
 
-type Memcache map[string]map[time.Time]float32
+type memoryStrKey struct {
+	tag   string
+	field string
+}
 
 type Memory struct {
-	// Cache
-	cache  Memcache
+	mu     sync.RWMutex
+	cache  map[memoryTimeKey]float32
+	fields map[memoryStrKey]float32
 	config config.Config
 }
 
 func NewMemory(cfg config.Config) (Cache, error) {
-	t := Memory{
-		cache:  make(Memcache),
+	t := &Memory{
+		cache:  make(map[memoryTimeKey]float32),
+		fields: make(map[memoryStrKey]float32),
 		config: cfg,
 	}
 	err := t.Connect()
@@ -36,43 +44,50 @@ func NewMemory(cfg config.Config) (Cache, error) {
 	return t, nil
 }
 
-func (c Memory) Connect() error {
+func (c *Memory) Connect() error {
 	logger.Trace("cache connecting to memory")
 	return nil
 }
 
-func (c Memory) Disconnect() error {
+func (c *Memory) Disconnect() error {
 	logger.Trace("cache disconnecting to memory")
 	return nil
 }
 
-func (c Memory) Get(tag string, date time.Time) (float32, error) {
-	MemoryCacheLock.Lock()
-	defer MemoryCacheLock.Unlock()
-	t, ok := c.cache[tag][date]
+func (c *Memory) Get(tag string, date time.Time) (float32, error) {
+	key := memoryTimeKey{tag: tag, date: date.Unix()}
+	c.mu.RLock()
+	t, ok := c.cache[key]
+	c.mu.RUnlock()
 	if !ok {
 		return 0, errors.ErrKeyNotFound
 	}
 	return t, nil
 }
 
-func (c Memory) Set(tag string, date time.Time, value float32) error {
-	MemoryCacheLock.Lock()
-	defer MemoryCacheLock.Unlock()
-	if t, ok := c.cache[tag]; ok {
-		t[date] = value
-	} else {
-		c.cache[tag] = make(map[time.Time]float32)
-		c.cache[tag][date] = value
-	}
+func (c *Memory) Set(tag string, date time.Time, value float32) error {
+	key := memoryTimeKey{tag: tag, date: date.Unix()}
+	c.mu.Lock()
+	c.cache[key] = value
+	c.mu.Unlock()
 	return nil
 }
 
-func (c Memory) GetStr(tag string, field string) (float32, error) {
-	v, err := c.Get(tag, time.Now())
-	return v, err
+func (c *Memory) GetStr(tag string, field string) (float32, error) {
+	key := memoryStrKey{tag: tag, field: field}
+	c.mu.RLock()
+	v, ok := c.fields[key]
+	c.mu.RUnlock()
+	if !ok {
+		return 0, errors.ErrKeyNotFound
+	}
+	return v, nil
 }
 
-func (c Memory) SetStr(tag string, field string, value float32) error {
-	return c.Set(tag, time.Now(), value)
+func (c *Memory) SetStr(tag string, field string, value float32) error {
+	key := memoryStrKey{tag: tag, field: field}
+	c.mu.Lock()
+	c.fields[key] = value
+	c.mu.Unlock()
+	return nil
 }
