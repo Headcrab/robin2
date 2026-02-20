@@ -15,6 +15,34 @@ import (
 	"time"
 )
 
+func normalizeFormatName(formatStr string, fallback string) string {
+	formatStr = strings.ToLower(strings.TrimSpace(formatStr))
+	if formatStr == "" {
+		formatStr = fallback
+	}
+	switch formatStr {
+	case "str", "raw":
+		return "text"
+	default:
+		return formatStr
+	}
+}
+
+func setContentTypeByFormat(w http.ResponseWriter, formatStr string) {
+	switch formatStr {
+	case "json":
+		w.Header().Set("Content-Type", "application/json")
+	case "text":
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	case "xml":
+		w.Header().Set("Content-Type", "application/xml")
+	case "html":
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	default:
+		w.Header().Set("Content-Type", fmt.Sprintf("application/%s", formatStr))
+	}
+}
+
 // @Summary Получить лог
 // @Description Возвращает логи приложения
 // @Tags System
@@ -139,10 +167,7 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 	group := query.Get("group")
 	roundStr := query.Get("round")
 	count := query.Get("count")
-	format := query.Get("format")
-	if format == "" {
-		format = "text"
-	}
+	format := normalizeFormatName(query.Get("format"), "text")
 
 	round := utils.ThenIf(roundStr != "", func() int { r, _ := strconv.Atoi(roundStr); return r }(), a.config.Round)
 
@@ -197,11 +222,11 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleAPIGetTagList(w http.ResponseWriter, r *http.Request) {
 	// Извлечение параметров запроса
 	like := r.URL.Query().Get("like")
-	format := r.URL.Query().Get("format")
+	format := normalizeFormatName(r.URL.Query().Get("format"), "json")
 
 	// Установка заголовков для ответа
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", fmt.Sprintf("application/%s", format))
+	setContentTypeByFormat(w, format)
 
 	// Получение списка тегов из хранилища
 	tags, err := a.store.GetTagList(like)
@@ -621,11 +646,11 @@ func (a *App) getTagFromToWithGroup(tag, from, to, group string, fmt string, rou
 // @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
 func (a *App) handleTagDecode(w http.ResponseWriter, r *http.Request) {
 	tag := r.URL.Query().Get("tag")
-	formatStr := r.URL.Query().Get("format")
+	formatStr := normalizeFormatName(r.URL.Query().Get("format"), "json")
 
 	// устанавливаем заголовоки для ответа
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", "application/json")
+	setContentTypeByFormat(w, formatStr)
 
 	if tag == "" {
 		http.Error(w, "#Error: tag is empty", http.StatusBadRequest)
@@ -668,7 +693,7 @@ func (a *App) handleTagDecode(w http.ResponseWriter, r *http.Request) {
 	s := fmtr.Process(ret)
 
 	// Устанавливаем заголовок Content-Type и пишем ответ
-	w.Header().Set("Content-Type", "application/json")
+	setContentTypeByFormat(w, formatStr)
 	if _, err := w.Write([]byte(s)); err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}

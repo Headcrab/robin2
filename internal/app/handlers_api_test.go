@@ -512,3 +512,129 @@ func Test_handleAPIV2GetTagOnDate(t *testing.T) {
 		})
 	}
 }
+
+// ─── /api/swagger/* ──────────────────────────────────────────────────────────
+
+func Test_handleAPISwaggerEndpoints(t *testing.T) {
+	app := newTestApp(t)
+
+	t.Run("swagger ui html", func(t *testing.T) {
+		w := get(app.handleSwaggerDark, "/api/swagger/")
+		if w.Code != http.StatusOK {
+			t.Fatalf("ожидался 200, получен %d", w.Code)
+		}
+		ct := w.Header().Get("Content-Type")
+		if !strings.Contains(ct, "text/html") {
+			t.Fatalf("ожидался Content-Type text/html, получен %q", ct)
+		}
+		if !strings.Contains(w.Body.String(), "SwaggerUIBundle") {
+			t.Fatalf("ожидался Swagger UI в теле ответа")
+		}
+	})
+
+	t.Run("swagger json", func(t *testing.T) {
+		w := get(app.handleSwaggerJSON, "/api/swagger/doc.json")
+		if w.Code != http.StatusOK {
+			t.Fatalf("ожидался 200, получен %d; тело: %s", w.Code, w.Body.String())
+		}
+		ct := w.Header().Get("Content-Type")
+		if !strings.Contains(ct, "application/json") {
+			t.Fatalf("ожидался Content-Type application/json, получен %q", ct)
+		}
+		var payload map[string]interface{}
+		if err := json.Unmarshal(w.Body.Bytes(), &payload); err != nil {
+			t.Fatalf("невалидный JSON swagger: %v", err)
+		}
+		if _, ok := payload["paths"]; !ok {
+			t.Fatalf("в swagger.json отсутствует поле paths")
+		}
+	})
+}
+
+// ─── /templ/* ────────────────────────────────────────────────────────────────
+
+func Test_handleTemplateValidation(t *testing.T) {
+	app := newTestApp(t)
+
+	cases := []struct {
+		name        string
+		handler     http.HandlerFunc
+		query       string
+		wantContain string
+	}{
+		{
+			name:        "templ add: empty name/body",
+			handler:     app.handleTemplateAdd,
+			query:       "/templ/add/",
+			wantContain: "#Error: name is empty",
+		},
+		{
+			name:        "templ get: empty name",
+			handler:     app.handleTemplateGet,
+			query:       "/templ/get/",
+			wantContain: "#Error: name is empty",
+		},
+		{
+			name:        "templ edit: empty name",
+			handler:     app.handleTemplateEdit,
+			query:       "/templ/edit/",
+			wantContain: "#Error: name is empty",
+		},
+		{
+			name:        "templ delete: empty name",
+			handler:     app.handleTemplateDelete,
+			query:       "/templ/delete/",
+			wantContain: "#Error: name is empty",
+		},
+		{
+			name:        "templ exec: empty name",
+			handler:     app.handleTemplateExec,
+			query:       "/templ/exec/",
+			wantContain: "#Error: name is empty",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := get(tc.handler, tc.query)
+			if w.Code != http.StatusOK {
+				t.Fatalf("ожидался 200, получен %d; тело: %s", w.Code, w.Body.String())
+			}
+			if !strings.Contains(w.Body.String(), tc.wantContain) {
+				t.Fatalf("ожидалось %q в теле, тело: %s", tc.wantContain, w.Body.String())
+			}
+		})
+	}
+}
+
+func Test_initHTTPHandlers_APIRoutesRegistered(t *testing.T) {
+	app := newTestApp(t)
+	mux := app.initHTTPHandlers()
+
+	cases := []struct {
+		name      string
+		method    string
+		path      string
+		notStatus int
+	}{
+		{name: "templ list", method: http.MethodGet, path: "/templ/list/", notStatus: http.StatusNotFound},
+		{name: "templ add", method: http.MethodGet, path: "/templ/add/", notStatus: http.StatusNotFound},
+		{name: "templ get", method: http.MethodGet, path: "/templ/get/", notStatus: http.StatusNotFound},
+		{name: "templ edit", method: http.MethodGet, path: "/templ/edit/", notStatus: http.StatusNotFound},
+		{name: "templ delete", method: http.MethodGet, path: "/templ/delete/", notStatus: http.StatusNotFound},
+		{name: "templ exec", method: http.MethodGet, path: "/templ/exec/", notStatus: http.StatusNotFound},
+		{name: "swagger ui", method: http.MethodGet, path: "/api/swagger/", notStatus: http.StatusNotFound},
+		{name: "swagger json", method: http.MethodGet, path: "/api/swagger/doc.json", notStatus: http.StatusNotFound},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, tc.path, nil)
+			w := httptest.NewRecorder()
+			mux.ServeHTTP(w, req)
+			if w.Code == tc.notStatus {
+				t.Fatalf("маршрут %s не зарегистрирован: получен %d", tc.path, w.Code)
+			}
+		})
+	}
+}

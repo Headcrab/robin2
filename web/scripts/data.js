@@ -81,9 +81,10 @@ function getTagOnDate() {
                 parsedData = data;
             }
 
-            updateDataTable(parsedData, tag);
+            const normalizedData = normalizeApiData(parsedData, tag);
+            updateDataTable(normalizedData, tag);
 
-            const rowsCount = Array.isArray(parsedData) ? parsedData.length : String(data).split('\n').filter(Boolean).length;
+            const rowsCount = Array.isArray(normalizedData) ? normalizedData.length : String(data).split('\n').filter(Boolean).length;
             showSuccessNotification(`Найдено записей: ${rowsCount}`);
         })
         .catch(error => {
@@ -201,6 +202,8 @@ function updateDataTable(data, currentTag) {
         });
     }
 
+    data = normalizeApiData(data, currentTag);
+
     if (Array.isArray(data)) {
         data.forEach((item) => {
             const row = document.createElement('tr');
@@ -242,7 +245,101 @@ function updateDataTable(data, currentTag) {
         });
 
         styleValueCells();
+        return;
     }
+
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="6" class="text-center py-8 text-gray-500">
+                <div class="flex flex-col items-center space-y-3">
+                    <svg class="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <div>
+                        <p class="text-lg font-medium text-gray-900">Неподдерживаемый формат данных</p>
+                        <p class="text-gray-500">Проверьте параметры запроса или формат ответа API</p>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `;
+}
+
+function normalizeApiData(data, currentTag) {
+    if (!data || Array.isArray(data) || typeof data === 'string') {
+        return data;
+    }
+
+    if (typeof data !== 'object') {
+        return data;
+    }
+
+    if (Array.isArray(data.rows)) {
+        return data.rows.map((row) => ({
+            timestamp: row[1] || row[0] || '',
+            tag: row[0] || currentTag,
+            value: row[2] ?? row[1] ?? '',
+            quality: 'OK',
+            unit: getUnitForTag(row[0] || currentTag),
+            description: getDescriptionForTag(row[0] || currentTag)
+        }));
+    }
+
+    if (Object.prototype.hasOwnProperty.call(data, 'value')) {
+        return [{
+            timestamp: new Date().toISOString(),
+            tag: currentTag,
+            value: data.value,
+            quality: 'OK',
+            unit: getUnitForTag(currentTag),
+            description: getDescriptionForTag(currentTag)
+        }];
+    }
+
+    const normalizedRows = [];
+    let nestedSeriesDetected = false;
+
+    Object.entries(data).forEach(([tagName, payload]) => {
+        if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+            nestedSeriesDetected = true;
+            Object.entries(payload).forEach(([timestamp, value]) => {
+                normalizedRows.push({
+                    timestamp,
+                    tag: tagName || currentTag,
+                    value,
+                    quality: 'OK',
+                    unit: getUnitForTag(tagName || currentTag),
+                    description: getDescriptionForTag(tagName || currentTag)
+                });
+            });
+        }
+    });
+
+    if (nestedSeriesDetected) {
+        normalizedRows.sort((a, b) => {
+            const ta = Date.parse(String(a.timestamp).replace(' ', 'T'));
+            const tb = Date.parse(String(b.timestamp).replace(' ', 'T'));
+            if (Number.isNaN(ta) || Number.isNaN(tb)) {
+                return String(a.timestamp).localeCompare(String(b.timestamp));
+            }
+            return ta - tb;
+        });
+        return normalizedRows;
+    }
+
+    const simpleSeries = Object.entries(data);
+    if (simpleSeries.length > 0 && simpleSeries.every(([, value]) => typeof value === 'string' || typeof value === 'number')) {
+        return simpleSeries.map(([timestamp, value]) => ({
+            timestamp,
+            tag: currentTag,
+            value,
+            quality: 'OK',
+            unit: getUnitForTag(currentTag),
+            description: getDescriptionForTag(currentTag)
+        }));
+    }
+
+    return data;
 }
 
 function getTagList() {
@@ -439,8 +536,9 @@ function formatTimestamp(timestamp) {
 
 function formatValue(value) {
     if (value === null || value === undefined) return '—';
-    
-    const num = parseFloat(value);
+
+    const normalized = typeof value === 'string' ? value.replace(',', '.') : value;
+    const num = parseFloat(normalized);
     if (isNaN(num)) return String(value);
     
     // Округляем до 2 знаков после запятой

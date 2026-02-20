@@ -53,7 +53,8 @@ class I18nManager {
             ru: {
                 nav: {
                     home: 'Главная',
-                    data: 'Данные', 
+                    data: 'Данные',
+                    charts: 'Графики',
                     tags: 'Теги',
                     logs: 'Логи',
                     docs: 'Документация',
@@ -112,6 +113,43 @@ class I18nManager {
                         description: 'Описание'
                     }
                 },
+
+                charts: {
+                    title: 'Графики',
+                    subtitle: 'Расширенный анализ трендов: X/Y масштаб, панорамирование, сглаживание и управление диапазоном',
+                    search_params: 'Параметры графика',
+                    tag_input: 'Тег',
+                    tag_placeholder: 'Введите имя тега (например A20_WT_01)',
+                    add_tag: 'Добавить',
+                    search_mask: 'Маска поиска тегов',
+                    find_tags: 'Найти теги',
+                    date_from: 'Дата начала',
+                    date_to: 'Дата окончания',
+                    points_count: 'Количество точек',
+                    draw_chart: 'Построить график',
+                    selected_tags: 'Выбранные теги',
+                    clear_tags: 'Очистить теги',
+                    range_left: 'Сместить влево',
+                    range_right: 'Сместить вправо',
+                    range_expand: 'Расширить диапазон',
+                    range_shrink: 'Сузить диапазон',
+                    found_tags: 'Найденные теги',
+                    result_chart: 'График',
+                    zoom_x: 'Масштаб X',
+                    zoom_y: 'Масштаб Y',
+                    reset_view: 'Сбросить вид',
+                    scale_mode: 'Шкалы',
+                    scale_common: 'Общая шкала',
+                    scale_per_tag: 'Отдельная шкала на тег',
+                    curve_mode: 'Линии',
+                    curve_linear: 'Ломаная',
+                    curve_smooth: 'Сглаженная',
+                    smoothing: 'Сглаживание (окно)',
+                    show_points: 'Показывать точки',
+                    show_values: 'Показывать значения',
+                    scroll_hint: 'Панорамирование: перетаскивание мышью (Shift + drag для Y), скролл по X. Масштаб: Ctrl + колесо (X) и Alt + колесо (Y).',
+                    empty: 'Выберите теги и нажмите "Построить график"'
+                },
                 
                 tags: {
                     title: 'Управление тегами',
@@ -166,6 +204,7 @@ class I18nManager {
                 nav: {
                     home: 'Басты бет',
                     data: 'Деректер',
+                    charts: 'Графиктер',
                     tags: 'Тегтер',
                     logs: 'Логтер',
                     docs: 'Құжаттама',
@@ -224,6 +263,43 @@ class I18nManager {
                         description: 'Сипаттама'
                     }
                 },
+
+                charts: {
+                    title: 'Графиктер',
+                    subtitle: 'Трендтерді кеңейтілген талдау: X/Y масштабы, панорамалау, тегістеу және диапазонды басқару',
+                    search_params: 'График параметрлері',
+                    tag_input: 'Тег',
+                    tag_placeholder: 'Тег атауын енгізіңіз (мысалы A20_WT_01)',
+                    add_tag: 'Қосу',
+                    search_mask: 'Тег іздеу маскасы',
+                    find_tags: 'Тегтерді табу',
+                    date_from: 'Басталу күні',
+                    date_to: 'Аяқталу күні',
+                    points_count: 'Нүктелер саны',
+                    draw_chart: 'График салу',
+                    selected_tags: 'Таңдалған тегтер',
+                    clear_tags: 'Тегтерді тазарту',
+                    range_left: 'Солға жылжыту',
+                    range_right: 'Оңға жылжыту',
+                    range_expand: 'Диапазонды кеңейту',
+                    range_shrink: 'Диапазонды тарылту',
+                    found_tags: 'Табылған тегтер',
+                    result_chart: 'График',
+                    zoom_x: 'X масштабы',
+                    zoom_y: 'Y масштабы',
+                    reset_view: 'Көріністі қалпына келтіру',
+                    scale_mode: 'Шкалалар',
+                    scale_common: 'Ортақ шкала',
+                    scale_per_tag: 'Әр тегке бөлек шкала',
+                    curve_mode: 'Сызықтар',
+                    curve_linear: 'Сынық сызық',
+                    curve_smooth: 'Тегістелген',
+                    smoothing: 'Тегістеу (терезе)',
+                    show_points: 'Нүктелерді көрсету',
+                    show_values: 'Мәндерді көрсету',
+                    scroll_hint: 'Панорамалау: тінтуірмен сүйреу (Y үшін Shift + drag), X бойынша айналдыру. Масштаб: Ctrl + дөңгелек (X) және Alt + дөңгелек (Y).',
+                    empty: 'Тегтерді таңдап, "График салу" түймесін басыңыз'
+                },
                 
                 tags: {
                     title: 'Тегтерді басқару',
@@ -278,6 +354,7 @@ class I18nManager {
                 nav: {
                     home: 'Home',
                     data: 'Data',
+                    charts: 'Charts',
                     tags: 'Tags',
                     logs: 'Logs',
                     docs: 'Documentation',
@@ -335,6 +412,43 @@ class I18nManager {
                         unit: 'Unit',
                         description: 'Description'
                     }
+                },
+
+                charts: {
+                    title: 'Charts',
+                    subtitle: 'Advanced trend analysis: X/Y zoom, panning, smoothing, and fetch-range controls',
+                    search_params: 'Chart Parameters',
+                    tag_input: 'Tag',
+                    tag_placeholder: 'Enter tag name (e.g. A20_WT_01)',
+                    add_tag: 'Add',
+                    search_mask: 'Tag search mask',
+                    find_tags: 'Find tags',
+                    date_from: 'Start Date',
+                    date_to: 'End Date',
+                    points_count: 'Points Count',
+                    draw_chart: 'Draw Chart',
+                    selected_tags: 'Selected Tags',
+                    clear_tags: 'Clear tags',
+                    range_left: 'Shift left',
+                    range_right: 'Shift right',
+                    range_expand: 'Expand range',
+                    range_shrink: 'Shrink range',
+                    found_tags: 'Found Tags',
+                    result_chart: 'Chart',
+                    zoom_x: 'Zoom X',
+                    zoom_y: 'Zoom Y',
+                    reset_view: 'Reset View',
+                    scale_mode: 'Scales',
+                    scale_common: 'Common scale',
+                    scale_per_tag: 'Per-tag scale',
+                    curve_mode: 'Lines',
+                    curve_linear: 'Linear',
+                    curve_smooth: 'Smoothed',
+                    smoothing: 'Smoothing (window)',
+                    show_points: 'Show points',
+                    show_values: 'Show values',
+                    scroll_hint: 'Pan by dragging (Shift + drag for Y), scroll on X. Zoom with Ctrl + wheel (X) and Alt + wheel (Y).',
+                    empty: 'Select tags and click "Draw Chart"'
                 },
                 
                 tags: {

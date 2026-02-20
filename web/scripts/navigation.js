@@ -21,6 +21,11 @@ function updateBreadcrumb(url) {
             titleKey = 'data.title';
             breadcrumbKeys = ['nav.home']; // Главная > текущая страница в заголовке
             break;
+        case '/charts/':
+        case '/charts':
+            titleKey = 'charts.title';
+            breadcrumbKeys = ['nav.home'];
+            break;
         case '/tags/':
         case '/tags':
             titleKey = 'tags.title';

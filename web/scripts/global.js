@@ -15,6 +15,26 @@ import {
     loadHomePageData,
     initializeDataPage
 } from './data.js';
+import {
+    initializeChartsPage,
+    addChartTagsFromInput,
+    addSuggestedChartTag,
+    removeChartTag,
+    clearSelectedChartTags,
+    findChartTagsByMask,
+    drawChartData,
+    clearChartPage,
+    zoomInChartX,
+    zoomOutChartX,
+    zoomInChartY,
+    zoomOutChartY,
+    resetChartView,
+    shiftFetchRangeLeft,
+    shiftFetchRangeRight,
+    expandFetchRange,
+    shrinkFetchRange,
+    toggleSeriesVisibility
+} from './charts.js';
 import { initializeRefreshButton, copyToClipboard } from './utils.js';
 import { 
     fetchStatus, 
@@ -59,6 +79,24 @@ window.updateHomePageStats = updateHomePageStats;
 window.loadStatistics = loadStatistics;
 window.loadRecentActivity = loadRecentActivity;
 window.loadHomePageData = loadHomePageData;
+window.initializeChartsPage = initializeChartsPage;
+window.addChartTagsFromInput = addChartTagsFromInput;
+window.addSuggestedChartTag = addSuggestedChartTag;
+window.removeChartTag = removeChartTag;
+window.clearSelectedChartTags = clearSelectedChartTags;
+window.findChartTagsByMask = findChartTagsByMask;
+window.drawChartData = drawChartData;
+window.clearChartPage = clearChartPage;
+window.zoomInChartX = zoomInChartX;
+window.zoomOutChartX = zoomOutChartX;
+window.zoomInChartY = zoomInChartY;
+window.zoomOutChartY = zoomOutChartY;
+window.resetChartView = resetChartView;
+window.shiftFetchRangeLeft = shiftFetchRangeLeft;
+window.shiftFetchRangeRight = shiftFetchRangeRight;
+window.expandFetchRange = expandFetchRange;
+window.shrinkFetchRange = shrinkFetchRange;
+window.toggleSeriesVisibility = toggleSeriesVisibility;
 
 // theme and language functions
 window.toggleTheme = toggleTheme;

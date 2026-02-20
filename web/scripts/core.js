@@ -88,6 +88,13 @@ function initialize() {
         }
     }
 
+    // initialize charts page
+    if (window.location.pathname.includes('/charts/')) {
+        if (typeof window.initializeChartsPage === 'function') {
+            window.initializeChartsPage();
+        }
+    }
+
     if (window.location.pathname.includes('/tags/')) {
         if (typeof window.setViewMode === 'function') {
             const savedMode = localStorage.getItem('tagsViewMode') || 'list';
@@ -108,6 +115,16 @@ function saveParams() {
         sessionStorage.setItem("dateTo", document.getElementById("dateTo").value);
     if (document.getElementById("searchCount") != null)
         sessionStorage.setItem("searchCount", document.getElementById("searchCount").value);
+    if (document.getElementById("chartTagInput") != null)
+        sessionStorage.setItem("chartTagInput", document.getElementById("chartTagInput").value);
+    if (document.getElementById("chartLikeInput") != null)
+        sessionStorage.setItem("chartLikeInput", document.getElementById("chartLikeInput").value);
+    if (document.getElementById("chartDateFrom") != null)
+        sessionStorage.setItem("chartDateFrom", document.getElementById("chartDateFrom").value);
+    if (document.getElementById("chartDateTo") != null)
+        sessionStorage.setItem("chartDateTo", document.getElementById("chartDateTo").value);
+    if (document.getElementById("chartCount") != null)
+        sessionStorage.setItem("chartCount", document.getElementById("chartCount").value);
 }
 
 function restoreParams() {
@@ -121,6 +138,16 @@ function restoreParams() {
         if (document.getElementById("searchCount") != null)
             document.getElementById("searchCount").value = sessionStorage.getItem("searchCount");
     }
+    if (sessionStorage.getItem("chartTagInput") && document.getElementById("chartTagInput") != null)
+        document.getElementById("chartTagInput").value = sessionStorage.getItem("chartTagInput");
+    if (sessionStorage.getItem("chartLikeInput") && document.getElementById("chartLikeInput") != null)
+        document.getElementById("chartLikeInput").value = sessionStorage.getItem("chartLikeInput");
+    if (sessionStorage.getItem("chartDateFrom") && document.getElementById("chartDateFrom") != null)
+        document.getElementById("chartDateFrom").value = sessionStorage.getItem("chartDateFrom");
+    if (sessionStorage.getItem("chartDateTo") && document.getElementById("chartDateTo") != null)
+        document.getElementById("chartDateTo").value = sessionStorage.getItem("chartDateTo");
+    if (sessionStorage.getItem("chartCount") && document.getElementById("chartCount") != null)
+        document.getElementById("chartCount").value = sessionStorage.getItem("chartCount");
 }
 
 function getSeason() {

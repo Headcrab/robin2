@@ -163,6 +163,7 @@ func (a *App) initHTTPHandlers() http.Handler {
 		"/favicon.ico":          a.handleFavicon,
 		"/logs/":                a.handlePageLog,
 		"/data/":                a.handlePageData,
+		"/charts/":              a.handlePageAny("charts", map[string]interface{}{"descr": "Графики"}),
 		"/tags/":                a.handlePageTags,
 		"/docs/":                a.handlePageDocs,
 		"/docs/view/":           a.handleDocView,
