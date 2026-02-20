@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"robin2/internal/logger"
 	"sync"
+	"time"
 )
 
 type TagClassOnMatch struct {
@@ -30,6 +31,18 @@ type Decoder struct {
 	DecodedTagsChan chan map[string]string
 }
 
+type classifierCacheEntry struct {
+	modTime    time.Time
+	tagClasses map[string]TagClass
+}
+
+var classifierCache = struct {
+	mu    sync.RWMutex
+	items map[string]classifierCacheEntry
+}{
+	items: make(map[string]classifierCacheEntry),
+}
+
 // LoadJSONData загружает JSON-данные из файла и заполняет поле TagClasses декодера.
 //
 // Функция принимает путь в качестве параметра, который указывает каталог, в котором находится JSON-файл.
@@ -38,7 +51,19 @@ type Decoder struct {
 // а затем вызывает функцию prepareRegex для подготовки регулярных выражений, используемых декодером.
 // Возвращает nil в случае успешного выполнения операции.
 func (d *Decoder) LoadJSONData(path string) error {
-	file, err := os.ReadFile(filepath.Join(path, "tag_classifier.json"))
+	filePath := filepath.Join(path, "tag_classifier.json")
+	stat, err := os.Stat(filePath)
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
+	if tagClasses, ok := getCachedTagClasses(filePath, stat.ModTime()); ok {
+		d.TagClasses = tagClasses
+		return nil
+	}
+
+	file, err := os.ReadFile(filePath)
 	if err != nil {
 		logger.Error(err.Error())
 		return err
@@ -49,8 +74,15 @@ func (d *Decoder) LoadJSONData(path string) error {
 		logger.Error(err.Error())
 		return err
 	}
-	d.TagClasses = tagClasses
-	d.prepareRegex()
+
+	prepared, err := prepareRegex(tagClasses)
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
+	d.TagClasses = prepared
+	setCachedTagClasses(filePath, stat.ModTime(), prepared)
 	return nil
 }
 
@@ -131,14 +163,47 @@ func (d *Decoder) decodeMatch(group int, value TagClassOnMatch, match []string) 
 // выражением и возвращает скомпилированное регулярное выражение и ошибку,
 // если возникла. Она также устанавливает флаги компиляции для регулярного
 // выражения, чтобы обеспечить его правильное декодирование.
-func (d *Decoder) prepareRegex() {
-	var tagClasses map[string]TagClass = make(map[string]TagClass)
-	for n, tagClass := range d.TagClasses {
+func prepareRegex(input map[string]TagClass) (map[string]TagClass, error) {
+	tagClasses := make(map[string]TagClass, len(input))
+	for n, tagClass := range input {
+		regexComp, err := regexp.Compile(tagClass.Regex)
+		if err != nil {
+			return nil, err
+		}
 		tagClasses[n] = TagClass{
 			Regex:     tagClass.Regex,
 			OnMatch:   tagClass.OnMatch,
-			RegexComp: regexp.MustCompile(tagClass.Regex),
+			RegexComp: regexComp,
 		}
 	}
-	d.TagClasses = tagClasses
+	return tagClasses, nil
+}
+
+func getCachedTagClasses(filePath string, modTime time.Time) (map[string]TagClass, bool) {
+	classifierCache.mu.RLock()
+	defer classifierCache.mu.RUnlock()
+
+	entry, ok := classifierCache.items[filePath]
+	if !ok || !entry.modTime.Equal(modTime) {
+		return nil, false
+	}
+
+	return cloneTagClasses(entry.tagClasses), true
+}
+
+func setCachedTagClasses(filePath string, modTime time.Time, tagClasses map[string]TagClass) {
+	classifierCache.mu.Lock()
+	classifierCache.items[filePath] = classifierCacheEntry{
+		modTime:    modTime,
+		tagClasses: cloneTagClasses(tagClasses),
+	}
+	classifierCache.mu.Unlock()
+}
+
+func cloneTagClasses(input map[string]TagClass) map[string]TagClass {
+	out := make(map[string]TagClass, len(input))
+	for k, v := range input {
+		out[k] = v
+	}
+	return out
 }
