@@ -7,7 +7,6 @@ import (
 	"robin2/internal/config"
 	"robin2/internal/logger"
 	"strings"
-	"sync"
 	"time"
 
 	_ "github.com/go-redis/redis"
@@ -17,8 +16,6 @@ import (
 func init() {
 	Register("redis", NewRedis)
 }
-
-var RedisCacheLock = &sync.Mutex{}
 
 type Redis struct {
 	// Cache
@@ -67,34 +64,52 @@ func (c *Redis) Connect() error {
 	return nil
 }
 
-func (c Redis) Disconnect() error {
+func (c *Redis) Disconnect() error {
 	logger.Trace("RedisCacheImpl.Disconnect")
 	return c.rds.Close()
 }
 
-func (c Redis) Get(tag string, date time.Time) (float32, error) {
+func (c *Redis) Get(tag string, date time.Time) (float32, error) {
 	logger.Trace("RedisCacheImpl.Get")
-	c.rds.Expire(context.Background(), tag, c.ttl)
-	return c.rds.HGet(context.Background(), tag, date.Format("2006-01-02 15:04:05")).Float32()
+	ctx := context.Background()
+	pipe := c.rds.Pipeline()
+	getCmd := pipe.HGet(ctx, tag, date.Format("2006-01-02 15:04:05"))
+	pipe.Expire(ctx, tag, c.ttl)
+	if _, err := pipe.Exec(ctx); err != nil && err != redis.Nil {
+		return 0, err
+	}
+	return getCmd.Float32()
 }
 
-func (c Redis) Set(tag string, date time.Time, value float32) error {
+func (c *Redis) Set(tag string, date time.Time, value float32) error {
 	logger.Trace("RedisCacheImpl.Set")
-	c.rds.Expire(context.Background(), tag, c.ttl)
-	c.rds.HSet(context.Background(), tag, date.Format("2006-01-02 15:04:05"), value)
-	return nil
+	ctx := context.Background()
+	pipe := c.rds.Pipeline()
+	pipe.HSet(ctx, tag, date.Format("2006-01-02 15:04:05"), value)
+	pipe.Expire(ctx, tag, c.ttl)
+	_, err := pipe.Exec(ctx)
+	return err
 }
 
-func (c Redis) GetStr(tag string, field string) (float32, error) {
+func (c *Redis) GetStr(tag string, field string) (float32, error) {
 	logger.Trace("RedisCacheImpl.GetStr")
-	c.rds.Expire(context.Background(), tag, c.ttl)
-	return c.rds.HGet(context.Background(), tag, field).Float32()
+	ctx := context.Background()
+	pipe := c.rds.Pipeline()
+	getCmd := pipe.HGet(ctx, tag, field)
+	pipe.Expire(ctx, tag, c.ttl)
+	if _, err := pipe.Exec(ctx); err != nil && err != redis.Nil {
+		return 0, err
+	}
+	return getCmd.Float32()
 
 }
 
-func (c Redis) SetStr(tag string, field string, value float32) error {
+func (c *Redis) SetStr(tag string, field string, value float32) error {
 	logger.Trace("RedisCacheImpl.SetStr")
-	c.rds.Expire(context.Background(), tag, c.ttl)
-	c.rds.HSet(context.Background(), tag, field, value)
-	return nil
+	ctx := context.Background()
+	pipe := c.rds.Pipeline()
+	pipe.HSet(ctx, tag, field, value)
+	pipe.Expire(ctx, tag, c.ttl)
+	_, err := pipe.Exec(ctx)
+	return err
 }
