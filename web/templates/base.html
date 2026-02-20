@@ -4,173 +4,155 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Система получения данных АСУТП - современный веб-интерфейс для мониторинга и управления данными" />
-  <meta name="theme-color" content="#10a37f" />
-  <title>Система получения данных АСУТП</title>
-  
-  <!-- preload critical resources -->
-  <link rel="preload" href="/css/tailwind.min.css" as="style" />
-  
-  <!-- favicon -->
-  <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
+  <meta name="description"
+    content="Система получения данных АСУТП — современный веб-интерфейс для мониторинга и управления данными" />
+  <meta name="theme-color" content="#4f46e5" />
+  <title>Robin АСУТП</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- Favicon -->
   <link rel="icon" type="image/png" sizes="32x32" href="/images/icon.png" />
-  
-  <!-- stylesheets -->
+
+  <!-- Stylesheets -->
   <link rel="stylesheet" href="/css/tailwind.min.css" />
   <link rel="stylesheet" href="/css/styles.css" />
   <link rel="stylesheet" href="/css/dark-theme.css" />
-  
-  <!-- scripts -->
+
+  <!-- Scripts -->
   <script type="module" src="/scripts/script.js"></script>
 </head>
 
-<body class="h-full bg-gray-50 antialiased">
-  <!-- loading indicator -->
-  <div id="loader" class="fixed inset-0 z-50 hidden items-center justify-center bg-white/80 backdrop-blur-sm">
-    <div class="flex flex-col items-center space-y-4">
-      <div class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-      <p class="text-sm text-gray-600">Загрузка...</p>
+<body class="h-full" style="background-color: var(--bg-base);">
+
+  <!-- Loading indicator -->
+  <div id="loader"
+    style="display:none; position:fixed; inset:0; z-index:9999; align-items:center; justify-content:center; background:rgba(240,242,249,0.85); backdrop-filter:blur(4px);">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:16px;">
+      <div class="loader-spinner"></div>
+      <p style="font-size:13px; color:var(--text-secondary); font-family:var(--font-sans);">Загрузка...</p>
     </div>
   </div>
 
-  <!-- api server config (hidden) -->
+  <!-- API server config (hidden) -->
   <div id="apiserver" class="sr-only">{{.app.apiserver}}</div>
 
-  <!-- main layout -->
-  <div class="flex h-full">
-    <!-- sidebar navigation -->
-    <aside class="w-64 flex-shrink-0 bg-white border-r border-gray-200 lg:block hidden" id="sidebar">
+  <!-- App Shell -->
+  <div style="display:flex; height:100vh; overflow:hidden;">
+
+    <!-- ======================== DESKTOP SIDEBAR ======================== -->
+    <aside id="sidebar"
+      style="width:var(--sidebar-w); flex-shrink:0; background:var(--bg-sidebar); border-right:1px solid rgba(255,255,255,0.06); display:flex; flex-direction:column; overflow:hidden; position:relative; z-index:30;">
       {{ template "navigation.html" . }}
     </aside>
 
-    <!-- mobile menu overlay -->
-    <div id="mobile-menu-overlay" class="fixed inset-0 z-40 hidden bg-black/50 lg:hidden" aria-hidden="true"></div>
+    <!-- ======================== MOBILE OVERLAY ======================== -->
+    <div id="mobile-menu-overlay"
+      style="position:fixed; inset:0; z-index:40; background:rgba(15,23,42,0.55); backdrop-filter:blur(4px); display:none;"
+      aria-hidden="true"></div>
 
-    <!-- mobile navigation (hidden by default, shown via JavaScript) -->
-    <nav 
-      id="mobile-nav" 
-      class="lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform -translate-x-full transition-transform duration-300 ease-in-out"
-      aria-label="Мобильная навигация"
-    >
-      <!-- mobile header -->
-      <div class="p-4 border-b border-gray-200">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-3">
-            <img src="/images/icon.png" alt="Robin Logo" class="h-8 w-8" />
-            <h1 class="text-lg font-semibold text-gray-900">Robin АСУТП</h1>
+    <!-- ======================== MOBILE NAV ======================== -->
+    <nav id="mobile-nav"
+      style="position:fixed; inset-y:0; left:0; z-index:50; width:var(--sidebar-w); background:var(--bg-sidebar); transform:translateX(-100%); transition:transform 0.3s cubic-bezier(0.4,0,0.2,1); display:flex; flex-direction:column; overflow:hidden;"
+      aria-label="Мобильная навигация">
+
+      <!-- Mobile header -->
+      <div style="padding:16px; border-bottom:1px solid rgba(255,255,255,0.06); position:relative;">
+        <div
+          style="position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#06b6d4);">
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div
+              style="width:36px; height:36px; background:linear-gradient(135deg,#6366f1,#06b6d4); border-radius:10px; display:flex; align-items:center; justify-content:center;">
+              <img src="/images/icon.png" alt="" style="width:20px; height:20px; filter:brightness(0) invert(1);" />
+            </div>
+            <span style="font-size:15px; font-weight:700; color:#ffffff; letter-spacing:-0.3px;">Robin АСУТП</span>
           </div>
-          <button 
-            id="mobile-menu-close" 
-            class="p-2 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-            aria-label="Закрыть меню"
-          >
-            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <button id="mobile-menu-close"
+            style="width:32px; height:32px; border:none; border-radius:8px; background:rgba(255,255,255,0.07); color:rgba(255,255,255,0.6); cursor:pointer; display:flex; align-items:center; justify-content:center;"
+            aria-label="Закрыть меню">
+            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
       </div>
 
-      <!-- mobile menu items -->
-      <div class="px-2 py-4 space-y-1">
-        <a 
-          href="#" 
-          onclick="loadPage('/'); closeMobileMenu(); return false;" 
-          class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
-        >
-          <img src="/images/Home_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+      <!-- Mobile nav links -->
+      <div style="flex:1; padding:12px 8px; overflow-y:auto;">
+        <a href="#" onclick="loadPage('/'); closeMobileMenu(); return false;" class="nav-link-item">
+          <span class="nav-link-icon"><img src="/images/Home_80px.png" alt="" /></span>
           <span data-i18n="nav.home">Главная</span>
         </a>
-
-        <a 
-          href="#" 
-          onclick="loadPage('/data/'); closeMobileMenu(); return false;" 
-          class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
-        >
-          <img src="/images/Data Sheet_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+        <a href="#" onclick="loadPage('/data/'); closeMobileMenu(); return false;" class="nav-link-item">
+          <span class="nav-link-icon"><img src="/images/Data Sheet_80px.png" alt="" /></span>
           <span data-i18n="nav.data">Данные</span>
         </a>
-
-        <a 
-          href="#" 
-          onclick="loadPage('/tags/'); closeMobileMenu(); return false;" 
-          class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
-        >
-          <img src="/images/Report Card_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+        <a href="#" onclick="loadPage('/tags/'); closeMobileMenu(); return false;" class="nav-link-item">
+          <span class="nav-link-icon"><img src="/images/Report Card_80px.png" alt="" /></span>
           <span data-i18n="nav.tags">Теги</span>
         </a>
-
-        <a 
-          href="#" 
-          onclick="loadPage('/logs/'); closeMobileMenu(); return false;" 
-          class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
-        >
-          <img src="/images/Choice_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+        <a href="#" onclick="loadPage('/logs/'); closeMobileMenu(); return false;" class="nav-link-item">
+          <span class="nav-link-icon"><img src="/images/Choice_80px.png" alt="" /></span>
           <span data-i18n="nav.logs">Логи</span>
         </a>
-
-        <a 
-          href="#" 
-          onclick="loadPage('/docs/'); closeMobileMenu(); return false;" 
-          class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
-        >
-                 <img src="/images/Knowledge_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+        <a href="#" onclick="loadPage('/docs/'); closeMobileMenu(); return false;" class="nav-link-item">
+          <span class="nav-link-icon"><img src="/images/Knowledge_80px.png" alt="" /></span>
           <span data-i18n="nav.docs">Документация</span>
         </a>
-
-        <a 
-          href="#" 
-          onclick="loadPage('/swagger/'); closeMobileMenu(); return false;" 
-          class="group flex items-center px-3 py-2 text-base font-medium rounded-md text-gray-700 hover:text-primary hover:bg-primary/10 transition-colors duration-200"
-        >
-          <img src="/images/API_80px.png" alt="" class="h-6 w-6 mr-3 opacity-75 group-hover:opacity-100" />
+        <a href="#" onclick="loadPage('/swagger/'); closeMobileMenu(); return false;" class="nav-link-item">
+          <span class="nav-link-icon"><img src="/images/API_80px.png" alt="" /></span>
           <span data-i18n="nav.api">API</span>
         </a>
       </div>
 
-      <!-- mobile status section -->
-      <div class="absolute bottom-0 left-0 right-0 px-4 py-3 border-t border-gray-200 bg-white">
-        <div class="flex items-center justify-between">
-      <span class="text-sm text-gray-500" data-i18n="status.system_status">Статус системы</span>
-      <div class="flex items-center space-x-2">
-        <div id="mobile-dbstatus" class="h-2 w-2 rounded-full bg-gray-400"></div>
-        <span id="mobile-dbstatus-text" class="text-sm text-gray-600">Проверка...</span>
+      <!-- Mobile status -->
+      <div style="padding:14px 16px; border-top:1px solid rgba(255,255,255,0.06); background:rgba(0,0,0,0.15);">
+        <div
+          style="font-size:10px; text-transform:uppercase; letter-spacing:0.8px; color:rgba(148,163,184,0.5); font-weight:600; margin-bottom:6px;"
+          data-i18n="status.system_status">Статус системы</div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div id="mobile-dbstatus" class="status-dot unknown"></div>
+          <span id="mobile-dbstatus-text" style="font-size:12px; color:rgba(148,163,184,0.7);">Проверка...</span>
+        </div>
       </div>
-    </div>
-  </div>
-</nav>
+    </nav>
 
-    <!-- main content area -->
-    <div class="flex-1 flex flex-col min-w-0">
-      <!-- header -->
-      <header class="bg-white border-b border-gray-200 px-4 py-4 sm:px-6">
+    <!-- ======================== MAIN AREA ======================== -->
+    <div style="flex:1; display:flex; flex-direction:column; min-width:0; overflow:hidden;">
+
+      <!-- Header -->
+      <header
+        style="height:var(--header-h); background:var(--bg-header,#ffffff); border-bottom:1px solid var(--border,#e2e8f0); display:flex; align-items:center; padding:0 24px; gap:16px; flex-shrink:0; box-shadow:0 1px 3px rgba(0,0,0,0.06);">
         {{ template "header.html" . }}
       </header>
 
-      <!-- main content -->
-      <main class="flex-1 overflow-auto">
-        <div class="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
+      <!-- Main content -->
+      <main style="flex:1; overflow-y:auto; background:var(--bg-base,#f0f2f9);">
+        <div style="padding:28px; max-width:1400px; margin:0 auto;">
           {{.content}}
         </div>
       </main>
 
-      <!-- footer -->
-      <footer class="bg-white border-t border-gray-200">
+      <!-- Footer -->
+      <footer style="background:var(--bg-header,#ffffff); border-top:1px solid var(--border,#e2e8f0); flex-shrink:0;">
         {{ template "footer.html" . }}
       </footer>
     </div>
   </div>
 
-  <!-- mobile menu toggle button -->
-  <button 
-    id="mobile-menu-toggle"
-    class="fixed top-4 left-4 z-50 lg:hidden bg-white rounded-md p-2 shadow-lg border border-gray-200"
-    aria-label="Открыть меню"
-  >
-    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <!-- Mobile menu toggle (hamburger) -->
+  <button id="mobile-menu-toggle"
+    style="display:none; position:fixed; top:13px; left:16px; z-index:60; width:38px; height:38px; border-radius:8px; border:1px solid var(--border,#e2e8f0); background:var(--bg-surface,#ffffff); align-items:center; justify-content:center; cursor:pointer; color:var(--text-secondary,#475569); box-shadow:0 1px 3px rgba(0,0,0,0.08);"
+    aria-label="Открыть меню">
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
     </svg>
   </button>
+
 </body>
 
 </html>

@@ -1,128 +1,97 @@
-<!-- <div id="tags" style="display: none;">{{.tags}}</div> -->
+<!-- Data search page -->
+<div style="display:flex; flex-direction:column; gap:20px;">
 
-<!-- data search and display page -->
-<div class="space-y-6">
-  <!-- page header -->
-  <div class="border-b border-gray-200 pb-4">
-    <h2 class="text-2xl font-bold text-gray-900" data-i18n="data.title">Данные АСУТП</h2>
-    <p class="text-gray-600 mt-1" data-i18n="data.subtitle">Поиск и анализ данных по тегам</p>
+  <!-- Page header -->
+  <div style="border-bottom:1px solid var(--border); padding-bottom:16px;">
+    <h2 style="font-size:22px; font-weight:700; color:var(--text-primary); letter-spacing:-0.4px; margin:0;"
+      data-i18n="data.title">Данные АСУТП</h2>
+    <p style="font-size:13.5px; color:var(--text-secondary); margin:4px 0 0;" data-i18n="data.subtitle">Поиск и анализ
+      данных по тегам</p>
   </div>
 
-  <!-- search form -->
-  <div class="bg-white rounded-lg shadow border p-6">
-    <h3 class="text-lg font-medium text-gray-900 mb-4" data-i18n="data.search_params">Параметры поиска</h3>
-    
-    <form class="space-y-4 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4" onsubmit="event.preventDefault(); getTagOnDate();">
-      <!-- tag input -->
-      <div>
-        <label for="searchInput" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="data.tag">Тег</label>
-        <input 
-          type="text" 
-          id="searchInput" 
-          class="form-input w-full" 
-          data-i18n-placeholder="data.tag_placeholder"
-          placeholder="Введите название тега"
-          value=""
-          autocomplete="off"
-        />
-      </div>
+  <!-- Search form -->
+  <div class="card">
+    <div class="card-header">
+      <h3 data-i18n="data.search_params">Параметры поиска</h3>
+    </div>
+    <div class="card-body">
+      <form style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px;"
+        onsubmit="event.preventDefault(); getTagOnDate();">
 
-      <!-- date from -->
-      <div>
-        <label for="dateFrom" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="data.date_from">Дата начала</label>
-        <input 
-          type="datetime-local" 
-          id="dateFrom" 
-          name="dateFrom"
-          class="form-input w-full"
-          value=""
-        />
-      </div>
+        <!-- Tag input -->
+        <div class="form-group">
+          <label for="searchInput" class="form-label" data-i18n="data.tag">Тег</label>
+          <div class="form-input-icon-wrap">
+            <svg class="form-input-icon" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+              stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a2 2 0 012-2z" />
+            </svg>
+            <input type="text" id="searchInput" class="form-input" data-i18n-placeholder="data.tag_placeholder"
+              placeholder="Введите название тега" value="" autocomplete="off" />
+          </div>
+        </div>
 
-      <!-- date to -->
-      <div>
-        <label for="dateTo" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="data.date_to">Дата окончания</label>
-        <input 
-          type="datetime-local" 
-          id="dateTo" 
-          name="dateTo"
-          class="form-input w-full"
-          value=""
-        />
-      </div>
+        <!-- Date from -->
+        <div class="form-group">
+          <label for="dateFrom" class="form-label" data-i18n="data.date_from">Дата начала</label>
+          <input type="datetime-local" id="dateFrom" name="dateFrom" class="form-input" value="" />
+        </div>
 
-      <!-- count input -->
-      <div>
-        <label for="searchCount" class="block text-sm font-medium text-gray-700 mb-1" data-i18n="data.record_count">Количество записей</label>
-        <input 
-          type="number" 
-          id="searchCount"
-          class="form-input w-full"
-          placeholder="Макс. записей"
-          value="300"
-          min="1"
-          max="10000"
-        />
-      </div>
+        <!-- Date to -->
+        <div class="form-group">
+          <label for="dateTo" class="form-label" data-i18n="data.date_to">Дата окончания</label>
+          <input type="datetime-local" id="dateTo" name="dateTo" class="form-input" value="" />
+        </div>
 
-      <!-- search button (full width on mobile) -->
-      <div class="sm:col-span-2 lg:col-span-4 flex justify-end space-x-3 pt-4">
-        <button 
-          type="button"
-          onclick="clearSearchForm()"
-          class="btn btn-outline"
-          data-i18n="common.clear"
-        >
-          Очистить
-        </button>
-        <button 
-          type="submit"
-          id="searchBtn"
-          class="btn btn-primary"
-          data-i18n="data.find_data"
-        >
-          <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          Найти данные
-        </button>
-      </div>
-    </form>
+        <!-- Count -->
+        <div class="form-group">
+          <label for="searchCount" class="form-label" data-i18n="data.record_count">Количество записей</label>
+          <input type="number" id="searchCount" class="form-input" placeholder="Макс. записей" value="300" min="1"
+            max="10000" />
+        </div>
+
+        <!-- Buttons -->
+        <div style="grid-column:1/-1; display:flex; justify-content:flex-end; gap:10px; padding-top:4px;">
+          <button type="button" onclick="clearSearchForm()" class="btn btn-outline" data-i18n="common.clear">
+            Очистить
+          </button>
+          <button type="submit" id="searchBtn" class="btn btn-primary" data-i18n="data.find_data">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            Найти данные
+          </button>
+        </div>
+
+      </form>
+    </div>
   </div>
 
-  <!-- results section -->
-  <div class="bg-white rounded-lg shadow border">
-    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-      <h3 class="text-lg font-medium text-gray-900" data-i18n="data.search_results">Результаты поиска</h3>
-      <div class="flex items-center space-x-3">
-        <!-- export button -->
-        <button 
-          onclick="exportData()"
-          class="btn btn-outline text-sm"
-          data-i18n-title="data.export_data"
-          title="Экспорт данных"
-        >
-          <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  <!-- Results -->
+  <div class="card">
+    <div class="card-header">
+      <h3 data-i18n="data.search_results">Результаты поиска</h3>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button onclick="exportData()" class="btn btn-outline btn-sm" data-i18n-title="data.export_data"
+          title="Экспорт данных">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
           <span data-i18n="common.export">Экспорт</span>
         </button>
-        
-        <!-- refresh button -->
-        <button 
-          onclick="getTagOnDate()"
-          class="btn btn-outline text-sm"
-          title="Обновить данные"
-        >
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        <button onclick="getTagOnDate()" class="btn btn-outline btn-sm btn-icon" title="Обновить данные">
+          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
         </button>
       </div>
     </div>
 
-    <!-- data table -->
-    <div class="overflow-x-auto">
+    <!-- Table -->
+    <div style="overflow-x:auto;">
       <table class="data-table">
         <thead>
           <tr>
@@ -136,61 +105,65 @@
         </thead>
         <tbody id="data-results">
           {{if .data}}
-            {{range .data}}
-              <tr class="data-row" data-raw="{{.}}" data-original="{{formatDataString .}}">
-                <td class="col-time">--</td>
-                <td class="col-tag">--</td>
-                <td class="col-value">--</td>
-                <td class="col-quality">
-                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                    --
-                  </span>
-                </td>
-                <td class="col-unit">--</td>
-                <td class="col-description">--</td>
-              </tr>
-            {{else}}
-              <tr>
-                <td colspan="6" class="text-center py-8 text-gray-500">
-                  <div class="flex flex-col items-center space-y-3">
-                    <svg class="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <div>
-                      <p class="text-lg font-medium text-gray-900">Нет данных</p>
-                      <p class="text-gray-500">Попробуйте изменить параметры поиска</p>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            {{end}}
+          {{range .data}}
+          <tr class="data-row" data-raw="{{.}}" data-original="{{formatDataString .}}">
+            <td class="col-time">--</td>
+            <td class="col-tag">--</td>
+            <td class="col-value">--</td>
+            <td class="col-quality">
+              <span class="quality-unknown">--</span>
+            </td>
+            <td class="col-unit">--</td>
+            <td class="col-description">--</td>
+          </tr>
           {{else}}
-            <tr>
-              <td colspan="6" class="text-center py-8 text-gray-500">
-                <div class="flex flex-col items-center space-y-3">
-                  <svg class="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                  <div>
-                    <p class="text-lg font-medium text-gray-900">Введите параметры поиска</p>
-                    <p class="text-gray-500">Заполните форму выше для поиска данных</p>
-                  </div>
+          <tr>
+            <td colspan="6" style="text-align:center; padding:48px 20px; color:var(--text-muted);">
+              <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+                <svg width="44" height="44" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
+                  style="color:var(--border);">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9 17v-2m3 2v-4m3 4v-6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <div>
+                  <p style="font-size:14px; font-weight:600; color:var(--text-secondary); margin:0 0 4px;">Нет данных
+                  </p>
+                  <p style="font-size:12.5px; margin:0;">Попробуйте изменить параметры поиска</p>
                 </div>
-              </td>
-            </tr>
+              </div>
+            </td>
+          </tr>
+          {{end}}
+          {{else}}
+          <tr>
+            <td colspan="6" style="text-align:center; padding:48px 20px; color:var(--text-muted);">
+              <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
+                <svg width="44" height="44" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
+                  style="color:var(--border);">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <div>
+                  <p style="font-size:14px; font-weight:600; color:var(--text-secondary); margin:0 0 4px;">Введите
+                    параметры поиска</p>
+                  <p style="font-size:12.5px; margin:0;">Заполните форму выше для поиска данных</p>
+                </div>
+              </div>
+            </td>
+          </tr>
           {{end}}
         </tbody>
       </table>
     </div>
 
-    <!-- pagination -->
+    <!-- Pagination -->
     {{if .page}}
-    <div class="px-6 py-4 border-t border-gray-200">
-      <div class="flex items-center justify-center">
+    <div style="padding:16px 20px; border-top:1px solid var(--border);">
+      <div style="display:flex; justify-content:center;">
         {{.page}}
       </div>
     </div>
     {{end}}
+
   </div>
 </div>
-

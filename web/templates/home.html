@@ -1,170 +1,179 @@
-<!-- hero section -->
-<div class="text-center py-8 mb-8">
-  <div class="max-w-3xl mx-auto">
-    <img id="robinImage" class="h-32 w-32 mx-auto mb-6 rounded-lg shadow-lg" alt="Robin АСУТП">
-    <h1 class="text-3xl font-bold text-gray-900 mb-4" data-i18n="home.title">Система получения данных АСУТП</h1>
-    <p class="text-lg text-gray-600 mb-6" data-i18n="home.subtitle">Современный интерфейс для мониторинга и управления промышленными данными</p>
-    
-    <!-- quick stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-      <div class="bg-white rounded-lg shadow p-6 border">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <div class="h-8 w-8 bg-primary/10 rounded-lg flex items-center justify-center">
-              <svg class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500" data-i18n="home.stats.active_tags">Активных тегов</p>
-            <p class="text-2xl font-bold text-gray-900" id="active-tags-count">—</p>
-          </div>
-        </div>
-      </div>
+<!-- Hero section -->
+<div style="text-align:center; padding:32px 16px 28px; position:relative; margin-bottom:8px;">
+  <!-- Background glow -->
+  <div
+    style="position:absolute; top:-20px; left:50%; transform:translateX(-50%); width:500px; height:250px; background:radial-gradient(ellipse at center,rgba(99,102,241,0.07) 0%,transparent 70%); pointer-events:none;">
+  </div>
 
-      <div class="bg-white rounded-lg shadow p-6 border">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <div class="h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <svg class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-            </div>
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500" data-i18n="home.stats.data_records">Записей данных</p>
-            <p class="text-2xl font-bold text-gray-900" id="data-records-count">—</p>
-          </div>
-        </div>
-      </div>
+  <!-- Logo -->
+  <div
+    style="width:88px; height:88px; margin:0 auto 20px; background:linear-gradient(135deg,#6366f1,#06b6d4); border-radius:22px; display:flex; align-items:center; justify-content:center; box-shadow:0 12px 40px rgba(99,102,241,0.35);">
+    <img id="robinImage" alt="Robin АСУТП" style="width:52px; height:52px; filter:brightness(0) invert(1);" />
+  </div>
 
-      <div class="bg-white rounded-lg shadow p-6 border">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <div class="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center">
-              <svg class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500" data-i18n="home.stats.system_status">Статус системы</p>
-            <div class="flex items-center space-x-2">
-              <div id="home-status" class="h-3 w-3 rounded-full bg-gray-400"></div>
-              <p class="text-sm font-medium text-gray-900" id="system-status-text" data-i18n="status.checking">Проверка...</p>
-            </div>
-          </div>
+  <h1 style="font-size:28px; font-weight:800; color:var(--text-primary); letter-spacing:-0.6px; margin:0 0 10px;"
+    data-i18n="home.title">
+    Система получения данных АСУТП
+  </h1>
+  <p style="font-size:14.5px; color:var(--text-secondary); margin:0 auto; max-width:480px; line-height:1.6;"
+    data-i18n="home.subtitle">
+    Современный интерфейс для мониторинга и управления промышленными данными
+  </p>
+
+  <!-- Stat cards -->
+  <div
+    style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; margin-top:28px; text-align:left;">
+
+    <div class="stat-card animate-fadeIn">
+      <div class="stat-icon stat-icon-brand">
+        <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      </div>
+      <div>
+        <div class="stat-label" data-i18n="home.stats.active_tags">Активных тегов</div>
+        <div class="stat-value" id="active-tags-count">—</div>
+      </div>
+    </div>
+
+    <div class="stat-card animate-fadeIn" style="animation-delay:0.1s;">
+      <div class="stat-icon stat-icon-accent">
+        <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      </div>
+      <div>
+        <div class="stat-label" data-i18n="home.stats.data_records">Записей данных</div>
+        <div class="stat-value" id="data-records-count">—</div>
+      </div>
+    </div>
+
+    <div class="stat-card animate-fadeIn" style="animation-delay:0.2s;">
+      <div class="stat-icon stat-icon-success">
+        <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <div>
+        <div class="stat-label" data-i18n="home.stats.system_status">Статус системы</div>
+        <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+          <div id="home-status" class="status-dot unknown"></div>
+          <span style="font-size:14px; font-weight:600; color:var(--text-primary);" id="system-status-text"
+            data-i18n="status.checking">Проверка...</span>
         </div>
       </div>
     </div>
+
   </div>
 </div>
 
-<!-- quick actions -->
-<div class="mb-8">
-  <h2 class="text-xl font-semibold text-gray-900 mb-4" data-i18n="common.quick_actions">Быстрые действия</h2>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-    <button 
-      onclick="loadPage('/data/')" 
-      class="group relative bg-white p-6 rounded-lg shadow border hover:shadow-lg transition-all duration-200 hover:border-primary/30"
-    >
-      <div class="flex items-center space-x-3">
-        <img src="../images/Data Sheet_80px.png" alt="" class="h-8 w-8 opacity-75 group-hover:opacity-100" />
-        <div class="text-left">
-          <p class="text-sm font-medium text-gray-900">Просмотр данных</p>
-          <p class="text-xs text-gray-500">Анализ и мониторинг</p>
-        </div>
+<!-- Quick actions -->
+<div style="margin-bottom:28px;">
+  <h2 style="font-size:16px; font-weight:700; color:var(--text-primary); margin:0 0 14px; letter-spacing:-0.2px;"
+    data-i18n="common.quick_actions">
+    Быстрые действия
+  </h2>
+  <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px;">
+
+    <button onclick="loadPage('/data/')" class="action-card">
+      <div class="action-card-icon">
+        <img src="../images/Data Sheet_80px.png" alt="" />
+      </div>
+      <div>
+        <div class="action-card-title">Просмотр данных</div>
+        <div class="action-card-desc">Анализ и мониторинг</div>
       </div>
     </button>
 
-    <button 
-      onclick="loadPage('/tags/')" 
-      class="group relative bg-white p-6 rounded-lg shadow border hover:shadow-lg transition-all duration-200 hover:border-primary/30"
-    >
-      <div class="flex items-center space-x-3">
-        <img src="../images/Report Card_80px.png" alt="" class="h-8 w-8 opacity-75 group-hover:opacity-100" />
-        <div class="text-left">
-          <p class="text-sm font-medium text-gray-900">Управление тегами</p>
-          <p class="text-xs text-gray-500">Конфигурация и настройка</p>
-        </div>
+    <button onclick="loadPage('/tags/')" class="action-card">
+      <div class="action-card-icon">
+        <img src="../images/Report Card_80px.png" alt="" />
+      </div>
+      <div>
+        <div class="action-card-title">Управление тегами</div>
+        <div class="action-card-desc">Конфигурация и настройка</div>
       </div>
     </button>
 
-    <button 
-      onclick="loadPage('/logs/')" 
-      class="group relative bg-white p-6 rounded-lg shadow border hover:shadow-lg transition-all duration-200 hover:border-primary/30"
-    >
-      <div class="flex items-center space-x-3">
-        <img src="../images/Choice_80px.png" alt="" class="h-8 w-8 opacity-75 group-hover:opacity-100" />
-        <div class="text-left">
-          <p class="text-sm font-medium text-gray-900">Системные логи</p>
-          <p class="text-xs text-gray-500">Диагностика и отладка</p>
-        </div>
+    <button onclick="loadPage('/logs/')" class="action-card">
+      <div class="action-card-icon">
+        <img src="../images/Choice_80px.png" alt="" />
+      </div>
+      <div>
+        <div class="action-card-title">Системные логи</div>
+        <div class="action-card-desc">Диагностика и отладка</div>
       </div>
     </button>
 
-    <button 
-      onclick="loadPage('/swagger/')" 
-      class="group relative bg-white p-6 rounded-lg shadow border hover:shadow-lg transition-all duration-200 hover:border-primary/30"
-    >
-      <div class="flex items-center space-x-3">
-        <img src="../images/API_80px.png" alt="" class="h-8 w-8 opacity-75 group-hover:opacity-100" />
-        <div class="text-left">
-          <p class="text-sm font-medium text-gray-900">API документация</p>
-          <p class="text-xs text-gray-500">Интеграция и разработка</p>
-        </div>
+    <button onclick="loadPage('/swagger/')" class="action-card">
+      <div class="action-card-icon">
+        <img src="../images/API_80px.png" alt="" />
+      </div>
+      <div>
+        <div class="action-card-title">API документация</div>
+        <div class="action-card-desc">Интеграция и разработка</div>
       </div>
     </button>
+
   </div>
 </div>
 
-<!-- system overview -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-  <!-- recent activity -->
-  <div class="bg-white rounded-lg shadow border">
-    <div class="px-6 py-4 border-b border-gray-200">
-      <h3 class="text-lg font-medium text-gray-900" data-i18n="home.recent_activity">Последняя активность</h3>
+<!-- System overview -->
+<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px;">
+
+  <!-- Recent activity -->
+  <div class="card">
+    <div class="card-header">
+      <h3 data-i18n="home.recent_activity">Последняя активность</h3>
     </div>
-    <div class="p-6">
-      <div id="recent-activity" class="space-y-3">
-        <div class="flex items-center space-x-3 text-sm text-gray-500">
-          <div class="h-2 w-2 bg-gray-300 rounded-full"></div>
+    <div class="card-body" style="padding:20px;">
+      <div id="recent-activity" style="display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; align-items:center; gap:10px; font-size:13px; color:var(--text-muted);">
+          <div class="status-dot unknown"></div>
           <span>Загрузка данных активности...</span>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- system health -->
-  <div class="bg-white rounded-lg shadow border">
-    <div class="px-6 py-4 border-b border-gray-200">
-      <h3 class="text-lg font-medium text-gray-900" data-i18n="home.system_health">Состояние системы</h3>
+  <!-- System health -->
+  <div class="card">
+    <div class="card-header">
+      <h3 data-i18n="home.system_health">Состояние системы</h3>
     </div>
-    <div class="p-6 space-y-4">
-      <div class="flex items-center justify-between">
-        <span class="text-sm text-gray-600">База данных</span>
-        <div class="flex items-center space-x-2">
-          <div id="db-health-indicator" class="h-2 w-2 rounded-full bg-gray-400"></div>
-          <span class="text-sm text-gray-900" id="db-health-text">Проверка...</span>
+    <div class="card-body" style="padding:20px; display:flex; flex-direction:column; gap:14px;">
+
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <span style="font-size:13px; color:var(--text-secondary); font-weight:500;">База данных</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div id="db-health-indicator" class="status-dot unknown"></div>
+          <span style="font-size:13px; font-weight:500; color:var(--text-primary);"
+            id="db-health-text">Проверка...</span>
         </div>
       </div>
 
-      <div class="flex items-center justify-between">
-        <span class="text-sm text-gray-600">API сервер</span>
-        <div class="flex items-center space-x-2">
-          <div class="h-2 w-2 rounded-full bg-green-500"></div>
-          <span class="text-sm text-gray-900">Работает</span>
+      <div style="height:1px; background:var(--border);"></div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <span style="font-size:13px; color:var(--text-secondary); font-weight:500;">API сервер</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div class="status-dot online"></div>
+          <span style="font-size:13px; font-weight:500; color:var(--text-primary);">Работает</span>
         </div>
       </div>
 
-      <div class="flex items-center justify-between">
-        <span class="text-sm text-gray-600">Веб-интерфейс</span>
-        <div class="flex items-center space-x-2">
-          <div class="h-2 w-2 rounded-full bg-green-500"></div>
-          <span class="text-sm text-gray-900">Активен</span>
+      <div style="height:1px; background:var(--border);"></div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <span style="font-size:13px; color:var(--text-secondary); font-weight:500;">Веб-интерфейс</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div class="status-dot online"></div>
+          <span style="font-size:13px; font-weight:500; color:var(--text-primary);">Активен</span>
         </div>
       </div>
+
     </div>
   </div>
+
 </div>

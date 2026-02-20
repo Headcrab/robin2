@@ -1,46 +1,47 @@
-<div class="px-4 py-3 sm:px-6">
-  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-    <!-- system information -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-6 space-y-1 sm:space-y-0 text-xs text-gray-500">
-      <div class="flex items-center space-x-2">
-        <span class="font-medium">БД:</span>
-        <span id="dbtype" class="text-gray-700">—</span>
-        <span id="dbversion" class="text-gray-600">—</span>
+<div style="padding:12px 24px;">
+  <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;">
+
+    <!-- DB info -->
+    <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center;">
+      <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
+        <span
+          style="font-weight:600; color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">БД</span>
+        <span id="dbtype" style="color:var(--text-secondary); font-weight:500;">—</span>
+        <span id="dbversion" style="color:var(--text-muted);">—</span>
       </div>
-      
-      <div class="flex items-center space-x-2">
-        <span class="font-medium">Сервер:</span>
-        <span id="dbserver" class="text-gray-700">—</span>
+      <div style="width:1px; height:14px; background:var(--border);"></div>
+      <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
+        <span
+          style="font-weight:600; color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">Сервер</span>
+        <span id="dbserver"
+          style="color:var(--text-secondary); font-family:var(--font-mono,monospace); font-size:11px;">—</span>
       </div>
     </div>
 
-    <!-- uptime information -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-xs text-gray-500">
-      <div class="flex items-center space-x-2">
-        <span class="font-medium">Время работы БД:</span>
-        <span id="dbuptime" class="text-gray-700 font-mono">—</span>
+    <!-- Uptime info -->
+    <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center;">
+      <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
+        <span
+          style="font-weight:600; color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">Uptime
+          БД</span>
+        <span id="dbuptime"
+          style="color:var(--text-secondary); font-family:var(--font-mono,monospace); font-size:11px;">—</span>
       </div>
-      
-      <div class="flex items-center space-x-2">
-        <span class="font-medium">Время работы приложения:</span>
-        <span id="appuptime" class="text-gray-700 font-mono">—</span>
+      <div style="width:1px; height:14px; background:var(--border);"></div>
+      <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
+        <span
+          style="font-weight:600; color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">Приложение</span>
+        <span id="appuptime"
+          style="color:var(--text-secondary); font-family:var(--font-mono,monospace); font-size:11px;">—</span>
       </div>
     </div>
-  </div>
 
-  <!-- copyright and additional info -->
-  <div class="mt-3 pt-3 border-t border-gray-200">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-1 sm:space-y-0 text-xs text-gray-400">
-      <div class="flex items-center space-x-4">
-        <span>© 2024 Robin АСУТП</span>
-        <span>•</span>
-        <span>Система получения данных</span>
-      </div>
-      
-      <div class="flex items-center space-x-2">
-        <span>Последнее обновление:</span>
-        <span id="last-update" class="font-mono">—</span>
-      </div>
+    <!-- Copyright + last update -->
+    <div style="display:flex; align-items:center; gap:10px; font-size:11px; color:var(--text-muted);">
+      <span>© 2024 Robin АСУТП</span>
+      <span style="color:var(--border);">•</span>
+      <span>Обновлено: <span id="last-update" style="font-family:var(--font-mono,monospace);">—</span></span>
     </div>
+
   </div>
 </div>

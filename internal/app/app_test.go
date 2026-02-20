@@ -6,9 +6,19 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"path/filepath"
 	"robin2/internal/utils"
+	"runtime"
 	"testing"
 )
+
+// projectRoot вычисляет корень проекта из пути к файлу теста.
+// internal/app -> ../.. -> корень
+func projectRoot() string {
+	_, file, _, _ := runtime.Caller(0)
+	// file: .../internal/app/app_test.go
+	return filepath.Join(filepath.Dir(file), "..", "..")
+}
 
 func Test_endpoint_get_tag_list(t *testing.T) {
 	test_cases := []struct {
@@ -27,10 +37,11 @@ func Test_endpoint_get_tag_list(t *testing.T) {
 			expected: "",
 		},
 	}
+	t.Setenv("TEST_WORK_DIR", projectRoot())
 	app := NewApp()
 	err := app.initDatabase()
 	if err != nil {
-		t.Errorf("Error initializing database: %v", err)
+		t.Skipf("пропущено: нет соединения с БД: %v", err)
 	}
 	for _, test := range test_cases {
 		t.Run(test.name, func(t *testing.T) {
@@ -69,6 +80,7 @@ func Benchmark_NewApp(b *testing.B) {
 	}
 }
 func Benchmark_excelTimeToTime(b *testing.B) {
+	b.Setenv("TEST_WORK_DIR", projectRoot())
 	app := NewApp()
 	var err error
 	for i := 0; i < b.N; i++ {
@@ -79,6 +91,7 @@ func Benchmark_excelTimeToTime(b *testing.B) {
 	}
 }
 func Benchmark_tryParseDate(b *testing.B) {
+	b.Setenv("TEST_WORK_DIR", projectRoot())
 	app := NewApp()
 	// app := App{}
 	for i := 0; i < b.N; i++ {
