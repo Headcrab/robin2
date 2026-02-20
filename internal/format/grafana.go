@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	Register("grafana", &ResponseFormatterGrafana{})
+	Register("grafana", func() ResponseFormatter { return &ResponseFormatterGrafana{} })
 }
 
 type ResponseFormatterGrafana struct {

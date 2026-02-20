@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	Register("html", NewResponseFormatterHTML(2))
+	Register("html", func() ResponseFormatter { return NewResponseFormatterHTML(2) })
 }
 
 type ResponseFormatterHTML struct {

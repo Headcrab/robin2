@@ -10,24 +10,26 @@ import (
 )
 
 var (
-	registry map[string]ResponseFormatter
-	once     sync.Once
+	registry   = make(map[string]func() ResponseFormatter)
+	registryMu sync.RWMutex
 )
 
-func Register(name string, format ResponseFormatter) {
-	once.Do(func() {
-		registry = make(map[string]ResponseFormatter)
-	})
-	registry[name] = format
+func Register(name string, factory func() ResponseFormatter) {
+	registryMu.Lock()
+	registry[name] = factory
+	registryMu.Unlock()
 }
 
 func New(format string) (ResponseFormatter, error) {
-	once.Do(func() {
-		registry = make(map[string]ResponseFormatter)
-	})
-	formatter, ok := registry[format]
+	registryMu.RLock()
+	factory, ok := registry[format]
+	registryMu.RUnlock()
 	if !ok {
 		return nil, fmt.Errorf("formatter '%s' not found", format)
+	}
+	formatter := factory()
+	if formatter == nil {
+		return nil, fmt.Errorf("formatter '%s' factory returned nil", format)
 	}
 	return formatter, nil
 }
@@ -59,29 +61,51 @@ func (r *ResponseFormatterRaw) SetRound(r2 int) ResponseFormatter {
 }
 
 type FormatterPool struct {
-	formatters chan ResponseFormatter
+	size       int
+	mu         sync.Mutex
+	formatters map[string]chan ResponseFormatter
 }
 
 func NewFormatterPool(size int) *FormatterPool {
+	if size < 1 {
+		size = 1
+	}
 	return &FormatterPool{
-		formatters: make(chan ResponseFormatter, size),
+		size:       size,
+		formatters: make(map[string]chan ResponseFormatter),
 	}
 }
 
 func (p *FormatterPool) Get(format string) (ResponseFormatter, error) {
+	pool := p.getPool(format)
 	select {
-	case f := <-p.formatters:
+	case f := <-pool:
 		return f, nil
 	default:
-		fmtr, err := New(format)
-		return fmtr, err
+		return New(format)
 	}
 }
 
-func (p *FormatterPool) Put(f ResponseFormatter) {
+func (p *FormatterPool) Put(format string, f ResponseFormatter) {
+	if f == nil {
+		return
+	}
+	pool := p.getPool(format)
 	select {
-	case p.formatters <- f:
+	case pool <- f:
 	default:
 		// пул переполнен, пропускаем форматтер
 	}
+}
+
+func (p *FormatterPool) getPool(format string) chan ResponseFormatter {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	pool, ok := p.formatters[format]
+	if !ok {
+		pool = make(chan ResponseFormatter, p.size)
+		p.formatters[format] = pool
+	}
+	return pool
 }

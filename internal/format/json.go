@@ -10,7 +10,7 @@ import (
 
 // Регистрируем ResponseFormatterJSON при инициализации пакета
 func init() {
-	Register("json", &ResponseFormatterJSON{})
+	Register("json", func() ResponseFormatter { return &ResponseFormatterJSON{} })
 }
 
 // ResponseFormatterJSON структура с полем округления

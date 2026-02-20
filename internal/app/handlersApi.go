@@ -216,7 +216,7 @@ func (a *App) handleAPIGetTagList(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Неподдерживаемый формат вывода: "+err.Error(), http.StatusBadRequest)
 		return
 	}
-	defer a.formatterPool.Put(fmtr) // Возврат форматтера в пул
+	defer a.formatterPool.Put(format, fmtr) // Возврат форматтера в пул
 
 	// Сборка ответа в буфере
 	buf := fmtr.Process(tags)

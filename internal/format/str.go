@@ -11,7 +11,7 @@ import (
 
 // Регистрируем ResponseFormatterString при инициализации пакета
 func init() {
-	Register("text", &ResponseFormatterString{})
+	Register("text", func() ResponseFormatter { return &ResponseFormatterString{} })
 }
 
 // ResponseFormatterString структура с полем округления

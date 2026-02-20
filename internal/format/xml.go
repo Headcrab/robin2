@@ -9,7 +9,7 @@ import (
 )
 
 func init() {
-	Register("xml", &ResponseFormatterXML{})
+	Register("xml", func() ResponseFormatter { return &ResponseFormatterXML{} })
 }
 
 type ResponseFormatterXML struct {
