@@ -25,17 +25,29 @@ import (
 func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("rendered log page")
 
-	// Получим формат из параметров запроса
-	formatStr := r.URL.Query().Get("format")
+	formatStr := strings.ToLower(r.URL.Query().Get("format"))
 	if formatStr == "" {
-		formatStr = "text" // Устанавливаем формат по умолчанию, если он не указан
+		formatStr = "text"
 	}
 
-	// Установим заголовки для ответа
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Content-Type", fmt.Sprintf("application/%s", formatStr))
+	switch formatStr {
+	case "text", "str", "raw":
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		if err := streamLogAsText(w); err != nil {
+			logger.Error(fmt.Sprintf("Ошибка при потоковой выдаче логов: %v", err))
+		}
+		return
+	case "json":
+		w.Header().Set("Content-Type", "application/json")
+		if err := streamLogAsJSON(w); err != nil {
+			logger.Error(fmt.Sprintf("Ошибка при потоковой выдаче логов: %v", err))
+		}
+		return
+	default:
+		w.Header().Set("Content-Type", fmt.Sprintf("application/%s", formatStr))
+	}
 
-	// Получим историю логов
 	logs, err := logger.GetLogHistory()
 	if err != nil {
 		logger.Error(fmt.Sprintf("Ошибка при получении логов: %v", err))
@@ -43,7 +55,6 @@ func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Создадим форматировщик на основе параметра format
 	fmtr, err := format.New(formatStr)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Ошибка при создании форматировщика: %v", err))
@@ -51,14 +62,48 @@ func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Отформатируем логи
 	tagValue := fmtr.Process(logs)
 
-	// Запишем ответ
 	if _, err := w.Write(tagValue); err != nil {
 		logger.Error(fmt.Sprintf("Ошибка при записи ответа: %v", err))
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
+}
+
+func streamLogAsText(w http.ResponseWriter) error {
+	return logger.StreamLogHistory(func(item logger.LogItem) error {
+		_, err := fmt.Fprintf(w, "%s %s %s\n", item.Date.Format("2006-01-02 15:04:05"), item.Level, item.Msg)
+		return err
+	})
+}
+
+func streamLogAsJSON(w http.ResponseWriter) error {
+	if _, err := w.Write([]byte("[")); err != nil {
+		return err
+	}
+
+	first := true
+	err := logger.StreamLogHistory(func(item logger.LogItem) error {
+		if !first {
+			if _, err := w.Write([]byte(",")); err != nil {
+				return err
+			}
+		}
+		first = false
+
+		row, err := json.Marshal(item)
+		if err != nil {
+			return err
+		}
+		_, err = w.Write(row)
+		return err
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = w.Write([]byte("]"))
+	return err
 }
 
 // @Summary Получить значение тега

@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -306,30 +307,45 @@ type LogItem struct {
 type LogHistory []LogItem
 
 func GetLogHistory() (LogHistory, error) {
-	checkFileLog()
-	if file == nil {
-		return LogHistory{}, nil
-	}
-
-	// читаем файл по имени, не закрывая дескриптор
-	logFileName := logPath + getLogFileName()
-	f, err := os.ReadFile(logFileName)
+	history := LogHistory{}
+	err := StreamLogHistory(func(item LogItem) error {
+		history = append(history, item)
+		return nil
+	})
 	if err != nil {
 		return LogHistory{}, err
 	}
-	return parseLog(string(f)), nil
+	return history, nil
 }
 
-func parseLog(log string) []LogItem {
-	var logItems []LogItem
-	lines := strings.Split(log, "\n")
-	for _, line := range lines {
+func StreamLogHistory(consume func(LogItem) error) error {
+	checkFileLog()
+	if file == nil {
+		return nil
+	}
+
+	logFileName := logPath + getLogFileName()
+	f, err := os.Open(logFileName)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
 			continue
 		}
-		logItems = append(logItems, parseLogLine(line))
+		if err := consume(parseLogLine(line)); err != nil {
+			return err
+		}
 	}
-	return logItems
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func parseLogLine(line string) LogItem {
