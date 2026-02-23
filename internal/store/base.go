@@ -215,9 +215,21 @@ func (s *Base) runTagQuery(query string) (data.Tags, error) {
 
 	res := data.Tags{}
 	for rows.Next() {
-		currTag := &data.Tag{}
-		if err := rows.Scan(&currTag.Name, &currTag.Date, &currTag.Value); err != nil {
+		var (
+			name  string
+			date  time.Time
+			value sql.NullFloat64
+		)
+		if err := rows.Scan(&name, &date, &value); err != nil {
 			return nil, err
+		}
+		if !value.Valid {
+			continue
+		}
+		currTag := &data.Tag{
+			Name:  name,
+			Date:  date,
+			Value: float32(value.Float64),
 		}
 		res = append(res, currTag)
 	}

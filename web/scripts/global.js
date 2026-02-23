@@ -29,11 +29,15 @@ import {
     zoomInChartY,
     zoomOutChartY,
     resetChartView,
+    fitAllChartData,
     shiftFetchRangeLeft,
     shiftFetchRangeRight,
     expandFetchRange,
     shrinkFetchRange,
-    toggleSeriesVisibility
+    toggleSeriesVisibility,
+    saveChartPreset,
+    applyChartPreset,
+    deleteChartPreset
 } from './charts.js';
 import { initializeRefreshButton, copyToClipboard } from './utils.js';
 import { 
@@ -92,11 +96,15 @@ window.zoomOutChartX = zoomOutChartX;
 window.zoomInChartY = zoomInChartY;
 window.zoomOutChartY = zoomOutChartY;
 window.resetChartView = resetChartView;
+window.fitAllChartData = fitAllChartData;
 window.shiftFetchRangeLeft = shiftFetchRangeLeft;
 window.shiftFetchRangeRight = shiftFetchRangeRight;
 window.expandFetchRange = expandFetchRange;
 window.shrinkFetchRange = shrinkFetchRange;
 window.toggleSeriesVisibility = toggleSeriesVisibility;
+window.saveChartPreset = saveChartPreset;
+window.applyChartPreset = applyChartPreset;
+window.deleteChartPreset = deleteChartPreset;
 
 // theme and language functions
 window.toggleTheme = toggleTheme;

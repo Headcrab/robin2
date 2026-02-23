@@ -1,95 +1,18 @@
-<div style="display:flex; flex-direction:column; gap:20px;">
-  <div style="border-bottom:1px solid var(--border); padding-bottom:16px;">
-    <h2 style="font-size:22px; font-weight:700; color:var(--text-primary); letter-spacing:-0.4px; margin:0;"
-      data-i18n="charts.title">Графики</h2>
-    <p style="font-size:13.5px; color:var(--text-secondary); margin:4px 0 0;" data-i18n="charts.subtitle">
+<div class="charts-page">
+  <section class="charts-hero">
+    <h2 data-i18n="charts.title">Графики</h2>
+    <p data-i18n="charts.subtitle">
       Расширенный анализ трендов: X/Y масштаб, панорамирование, сглаживание и управление диапазоном
     </p>
-  </div>
+  </section>
 
-  <div class="card">
-    <div class="card-header">
-      <h3 data-i18n="charts.search_params">Параметры графика</h3>
-    </div>
-    <div class="card-body" style="display:flex; flex-direction:column; gap:14px;">
-      <form onsubmit="event.preventDefault(); drawChartData();"
-        style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px;">
-        <div class="form-group" style="grid-column:span 2;">
-          <label for="chartTagInput" class="form-label" data-i18n="charts.tag_input">Тег</label>
-          <div style="display:flex; gap:8px;">
-            <input type="text" id="chartTagInput" class="form-input" data-i18n-placeholder="charts.tag_placeholder"
-              placeholder="Введите имя тега (например A20_WT_01)" />
-            <button type="button" class="btn btn-outline" onclick="addChartTagsFromInput()"
-              data-i18n="charts.add_tag">Добавить</button>
-          </div>
-        </div>
-
-        <div class="form-group" style="grid-column:span 2;">
-          <label for="chartLikeInput" class="form-label" data-i18n="charts.search_mask">Маска поиска тегов</label>
-          <div style="display:flex; gap:8px;">
-            <input type="text" id="chartLikeInput" class="form-input" value="A20*" />
-            <button type="button" class="btn btn-outline" onclick="findChartTagsByMask()"
-              data-i18n="charts.find_tags">Найти теги</button>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="chartDateFrom" class="form-label" data-i18n="charts.date_from">Дата начала</label>
-          <input type="datetime-local" id="chartDateFrom" class="form-input" />
-        </div>
-
-        <div class="form-group">
-          <label for="chartDateTo" class="form-label" data-i18n="charts.date_to">Дата окончания</label>
-          <input type="datetime-local" id="chartDateTo" class="form-input" />
-        </div>
-
-        <div class="form-group">
-          <label for="chartCount" class="form-label" data-i18n="charts.points_count">Количество точек</label>
-          <input type="number" id="chartCount" class="form-input" value="300" min="10" max="30000" />
-        </div>
-
-        <div class="form-group" style="align-self:end;">
-          <div style="display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;">
-            <button type="button" class="btn btn-outline" onclick="clearChartPage()"
-              data-i18n="common.clear">Очистить</button>
-            <button type="submit" class="btn btn-primary" id="drawChartBtn" data-i18n="charts.draw_chart">
-              Построить график
-            </button>
-          </div>
-        </div>
-      </form>
-
-      <div class="chart-range-actions">
-        <button type="button" class="btn btn-outline btn-sm" onclick="shiftFetchRangeLeft()"
-          data-i18n="charts.range_left">Сместить влево</button>
-        <button type="button" class="btn btn-outline btn-sm" onclick="shiftFetchRangeRight()"
-          data-i18n="charts.range_right">Сместить вправо</button>
-        <button type="button" class="btn btn-outline btn-sm" onclick="expandFetchRange()"
-          data-i18n="charts.range_expand">Расширить диапазон</button>
-        <button type="button" class="btn btn-outline btn-sm" onclick="shrinkFetchRange()"
-          data-i18n="charts.range_shrink">Сузить диапазон</button>
-      </div>
-
-      <div id="chartSelectedTagsWrap" style="display:flex; flex-direction:column; gap:8px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-          <span class="form-label" data-i18n="charts.selected_tags">Выбранные теги</span>
-          <button type="button" class="btn btn-outline btn-sm" onclick="clearSelectedChartTags()"
-            data-i18n="charts.clear_tags">Очистить теги</button>
-        </div>
-        <div id="chartSelectedTags" class="tag-chip-list"></div>
-      </div>
-
-      <div id="chartSuggestionsWrap" style="display:flex; flex-direction:column; gap:8px;">
-        <span class="form-label" data-i18n="charts.found_tags">Найденные теги</span>
-        <div id="chartSuggestions" class="tag-suggestion-list"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
+  <div class="card charts-main-card">
+    <div class="card-header charts-main-header">
       <h3 data-i18n="charts.result_chart">График</h3>
-      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+    </div>
+
+    <div class="card-body charts-main-body">
+      <div class="charts-toolbar-grid">
         <div class="chart-zoom-box">
           <span class="chart-zoom-label" data-i18n="charts.zoom_x">Масштаб X</span>
           <button type="button" class="btn btn-outline btn-sm btn-icon" onclick="zoomOutChartX()" title="X-">
@@ -97,7 +20,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4" />
             </svg>
           </button>
-          <input type="range" id="chartZoomRangeX" min="1" max="20" step="0.25" value="1" style="width:120px;" />
+          <input type="number" id="chartZoomRangeX" min="0.01" step="0.1" value="1" class="chart-zoom-input" />
           <button type="button" class="btn btn-outline btn-sm btn-icon" onclick="zoomInChartX()" title="X+">
             <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -105,6 +28,7 @@
           </button>
           <span id="chartZoomLabelX" class="form-hint">100%</span>
         </div>
+
         <div class="chart-zoom-box">
           <span class="chart-zoom-label" data-i18n="charts.zoom_y">Масштаб Y</span>
           <button type="button" class="btn btn-outline btn-sm btn-icon" onclick="zoomOutChartY()" title="Y-">
@@ -112,7 +36,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4" />
             </svg>
           </button>
-          <input type="range" id="chartZoomRangeY" min="1" max="10" step="0.1" value="1" style="width:120px;" />
+          <input type="number" id="chartZoomRangeY" min="0.01" step="0.1" value="1" class="chart-zoom-input" />
           <button type="button" class="btn btn-outline btn-sm btn-icon" onclick="zoomInChartY()" title="Y+">
             <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.4">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -120,13 +44,7 @@
           </button>
           <span id="chartZoomLabelY" class="form-hint">100%</span>
         </div>
-        <button type="button" class="btn btn-outline btn-sm" onclick="resetChartView()" data-i18n="charts.reset_view">
-          Сбросить вид
-        </button>
-      </div>
-    </div>
-    <div class="card-body" style="display:flex; flex-direction:column; gap:12px;">
-      <div class="chart-options-grid">
+
         <label class="chart-option-item">
           <span data-i18n="charts.scale_mode">Шкалы</span>
           <select id="chartScaleMode" class="form-select">
@@ -134,6 +52,7 @@
             <option value="per_tag" data-i18n="charts.scale_per_tag">Отдельная шкала на тег</option>
           </select>
         </label>
+
         <label class="chart-option-item">
           <span data-i18n="charts.curve_mode">Линии</span>
           <select id="chartCurveMode" class="form-select">
@@ -141,6 +60,36 @@
             <option value="smooth" data-i18n="charts.curve_smooth">Сглаженная</option>
           </select>
         </label>
+
+        <label class="chart-option-item">
+          <span data-i18n="charts.aggregation_mode">Агрегация</span>
+          <select id="chartAggregationMode" class="form-select">
+            <option value="raw" data-i18n="charts.aggregation_raw">Без агрегации</option>
+            <option value="avg" data-i18n="charts.aggregation_avg">Среднее</option>
+            <option value="min" data-i18n="charts.aggregation_min">Минимум</option>
+            <option value="max" data-i18n="charts.aggregation_max">Максимум</option>
+            <option value="last" data-i18n="charts.aggregation_last">Последнее</option>
+          </select>
+        </label>
+
+        <label class="chart-option-item">
+          <span data-i18n="charts.downsample_mode">Downsampling</span>
+          <select id="chartDownsampleInterval" class="form-select">
+            <option value="off" data-i18n="charts.downsample_off">Выключено</option>
+            <option value="auto" data-i18n="charts.downsample_auto">Авто</option>
+            <option value="30s" data-i18n="charts.downsample_30s">30 секунд</option>
+            <option value="1m" data-i18n="charts.downsample_1m">1 минута</option>
+            <option value="5m" data-i18n="charts.downsample_5m">5 минут</option>
+            <option value="15m" data-i18n="charts.downsample_15m">15 минут</option>
+            <option value="1h" data-i18n="charts.downsample_1h">1 час</option>
+          </select>
+        </label>
+
+        <label class="chart-option-item">
+          <span data-i18n="charts.render_points">Точек на экран</span>
+          <input type="number" id="chartRenderTargetPoints" class="form-input" min="100" max="20000" value="1200" />
+        </label>
+
         <label class="chart-option-item">
           <span data-i18n="charts.smoothing">Сглаживание (окно)</span>
           <div class="chart-inline-control">
@@ -148,21 +97,97 @@
             <span id="chartSmoothingLabel" class="form-hint">1</span>
           </div>
         </label>
+
         <label class="chart-option-item chart-option-checkbox">
           <input type="checkbox" id="chartShowPoints" checked />
           <span data-i18n="charts.show_points">Показывать точки</span>
         </label>
+
         <label class="chart-option-item chart-option-checkbox">
           <input type="checkbox" id="chartShowValues" />
           <span data-i18n="charts.show_values">Показывать значения</span>
         </label>
       </div>
 
+      <div class="charts-presets-row">
+        <label class="chart-option-item">
+          <span data-i18n="charts.preset_name">Название пресета</span>
+          <input type="text" id="chartPresetName" class="form-input" data-i18n-placeholder="charts.preset_name_placeholder"
+            placeholder="например: Котел-1 смена" />
+        </label>
+        <label class="chart-option-item">
+          <span data-i18n="charts.preset_select">Сохраненные пресеты</span>
+          <select id="chartPresetSelect" class="form-select"></select>
+        </label>
+        <button type="button" class="btn btn-outline" onclick="saveChartPreset()" data-i18n="charts.preset_save">
+          Сохранить
+        </button>
+        <button type="button" class="btn btn-outline" onclick="applyChartPreset()" data-i18n="charts.preset_apply">
+          Применить
+        </button>
+        <button type="button" class="btn btn-outline" onclick="deleteChartPreset()"
+          data-i18n="charts.preset_delete">
+          Удалить
+        </button>
+      </div>
+
       <div id="chartLegend" class="chart-legend"></div>
+      <div id="chartRenderMeta" class="chart-render-meta"></div>
 
       <div class="chart-scroll-hint" data-i18n="charts.scroll_hint">
         Панорамирование: перетаскивание мышью (Shift + drag для Y), скролл по X. Масштаб: Ctrl + колесо (X) и Alt +
         колесо (Y).
+      </div>
+
+      <div class="chart-command-bar">
+        <div class="chart-action-group">
+          <span class="chart-action-title" data-i18n="charts.group_range">Диапазон</span>
+          <div class="chart-action-row">
+            <button type="button" class="btn btn-outline btn-sm chart-action-btn" onclick="shiftFetchRangeLeft()">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 6 9 12l6 6" />
+              </svg>
+              <span data-i18n="charts.range_left">Сместить влево</span>
+            </button>
+            <button type="button" class="btn btn-outline btn-sm chart-action-btn" onclick="shiftFetchRangeRight()">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m9 6 6 6-6 6" />
+              </svg>
+              <span data-i18n="charts.range_right">Сместить вправо</span>
+            </button>
+            <button type="button" class="btn btn-outline btn-sm chart-action-btn" onclick="expandFetchRange()">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 12h16M12 4v16" />
+              </svg>
+              <span data-i18n="charts.range_expand">Расширить диапазон</span>
+            </button>
+            <button type="button" class="btn btn-outline btn-sm chart-action-btn" onclick="shrinkFetchRange()">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 12h16" />
+              </svg>
+              <span data-i18n="charts.range_shrink">Сузить диапазон</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="chart-action-group">
+          <span class="chart-action-title" data-i18n="charts.group_view">Вид</span>
+          <div class="chart-action-row">
+            <button type="button" class="btn btn-outline btn-sm chart-action-btn chart-action-btn-primary"
+              onclick="fitAllChartData()">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+              </svg>
+              <span data-i18n="charts.fit_all">Fit all</span>
+            </button>
+            <button type="button" class="btn btn-outline btn-sm chart-action-btn" onclick="resetChartView()">
+              <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 1 0 3-6.7M3 3v6h6" />
+              </svg>
+              <span data-i18n="charts.reset_view">Сбросить вид</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <div id="chartViewport" class="chart-viewport">
@@ -170,6 +195,78 @@
         <div id="chartEmptyState" class="chart-empty-state" data-i18n="charts.empty">
           Выберите теги и нажмите "Построить график"
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card charts-controls-card">
+    <div class="card-header">
+      <h3 data-i18n="charts.search_params">Параметры графика</h3>
+    </div>
+    <div class="card-body charts-controls-body">
+      <form class="charts-input-form" onsubmit="event.preventDefault(); drawChartData();">
+        <label class="form-group charts-span-2">
+          <span class="form-label" data-i18n="charts.tag_input">Тег</span>
+          <div class="charts-inline-row">
+            <input type="text" id="chartTagInput" class="form-input" data-i18n-placeholder="charts.tag_placeholder"
+              placeholder="Введите имя тега (например A20_WT_01)" />
+            <button type="button" class="btn btn-outline" onclick="addChartTagsFromInput()" data-i18n="charts.add_tag">
+              Добавить
+            </button>
+          </div>
+        </label>
+
+        <label class="form-group charts-span-2">
+          <span class="form-label" data-i18n="charts.search_mask">Маска поиска тегов</span>
+          <div class="charts-inline-row">
+            <input type="text" id="chartLikeInput" class="form-input" value="A20*" />
+            <button type="button" class="btn btn-outline" onclick="findChartTagsByMask()" data-i18n="charts.find_tags">
+              Найти теги
+            </button>
+          </div>
+        </label>
+
+        <label class="form-group">
+          <span class="form-label" data-i18n="charts.date_from">Дата начала</span>
+          <input type="datetime-local" id="chartDateFrom" class="form-input" />
+        </label>
+
+        <label class="form-group">
+          <span class="form-label" data-i18n="charts.date_to">Дата окончания</span>
+          <input type="datetime-local" id="chartDateTo" class="form-input" />
+        </label>
+
+        <label class="form-group">
+          <span class="form-label" data-i18n="charts.points_count">Количество точек</span>
+          <input type="number" id="chartCount" class="form-input" value="300" min="10" max="30000" />
+        </label>
+
+        <div class="form-group charts-actions-right">
+          <div class="charts-actions-row">
+            <button type="button" class="btn btn-outline" onclick="clearChartPage()" data-i18n="common.clear">
+              Очистить
+            </button>
+            <button type="submit" class="btn btn-primary" id="drawChartBtn" data-i18n="charts.draw_chart">
+              Построить график
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <div class="charts-tags-section">
+        <div class="charts-tags-title-row">
+          <span class="form-label" data-i18n="charts.selected_tags">Выбранные теги</span>
+          <button type="button" class="btn btn-outline btn-sm" onclick="clearSelectedChartTags()"
+            data-i18n="charts.clear_tags">
+            Очистить теги
+          </button>
+        </div>
+        <div id="chartSelectedTags" class="tag-chip-list"></div>
+      </div>
+
+      <div class="charts-tags-section">
+        <span class="form-label" data-i18n="charts.found_tags">Найденные теги</span>
+        <div id="chartSuggestions" class="tag-suggestion-list"></div>
       </div>
     </div>
   </div>
