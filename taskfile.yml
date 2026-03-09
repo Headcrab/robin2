@@ -1,15 +1,37 @@
 version: "3"
 
-dotenv: [".env"]
-
 vars:
-  NEW_VERSION:
-    sh: echo {{.PROJECT_VERSION}} | awk -F. -v OFS=. '{$3++; print $1, $2, $3}'
+  PROJECT_NAME:
+    sh: >-
+      powershell -NoProfile -Command
+      "(Select-String -Path '.env' -Pattern '^PROJECT_NAME\\s*=' | Select-Object -First 1).Line.Split('=', 2)[1].Trim()"
+  PROJECT_VERSION:
+    sh: >-
+      powershell -NoProfile -Command
+      "(Select-String -Path '.env' -Pattern '^PROJECT_VERSION\\s*=' | Select-Object -First 1).Line.Split('=', 2)[1].Trim()"
+  PORT:
+    sh: >-
+      powershell -NoProfile -Command
+      "(Select-String -Path '.env' -Pattern '^PORT\\s*=' | Select-Object -First 1).Line.Split('=', 2)[1].Trim()"
+  EXE:
+    sh: >-
+      powershell -NoProfile -Command
+      "(Select-String -Path '.env' -Pattern '^EXE\\s*=' | Select-Object -First 1).Line.Split('=', 2)[1].Trim()"
+  BIN_NAME: "{{.PROJECT_NAME}}{{.EXE}}"
+  BIN_PATH: "./bin/{{.BIN_NAME}}"
   PROJECT_NAME_LOW:
-    sh: echo {{.PROJECT_NAME}} | tr A-Z a-z
+    sh: >-
+      powershell -NoProfile -Command
+      "'{{.PROJECT_NAME}}'.ToLowerInvariant()"
+  COMPOSE_DEV: "deploy/docker-compose.dev.yml"
+  COMPOSE_PROD: "deploy/docker-compose.prod.yml"
 
 tasks:
-  # Build tasks
+  default:
+    desc: "show available tasks"
+    cmds:
+      - task --list
+
   swagger:
     desc: "generate swagger documentation"
     cmds:
@@ -17,66 +39,23 @@ tasks:
 
   build:
     desc: "build the application binary"
-    deps: ["update_version", "swagger"]
+    deps: ["swagger"]
     cmds:
-      - echo "Building project {{.PROJECT_NAME}} version {{.NEW_VERSION}}..."
-      - CGO_ENABLED=0 go build -ldflags "-s -w -X main.Name={{.PROJECT_NAME}} -X main.AppVersion={{.NEW_VERSION}}" -trimpath -o ./bin/robin{{.EXE}} {{.PROJECT_PATH}}
-      - echo "Build completed successfully."
+      - go build -trimpath -o {{.BIN_PATH}} ./cmd
 
-  # Run tasks
   run:
-    desc: "run the application"
+    desc: "build and run the application"
     deps: ["build"]
-    dir: "."
     cmds:
-      - ./bin/robin{{.EXE}}
+      - "{{.BIN_PATH}}"
 
   run:debug:
-    desc: "run the application with debug flags"
+    desc: "build and run the application with debug flags"
     deps: ["swagger"]
-    dir: "."
     cmds:
-      - go build -gcflags="all=-N -l" -o ./bin/robin{{.EXE}} {{.PROJECT_PATH}}
-      - ./bin/robin{{.EXE}}
+      - go build -gcflags=all=-N -gcflags=all=-l -o {{.BIN_PATH}} ./cmd
+      - "{{.BIN_PATH}}"
 
-  # Docker tasks
-  docker:build:
-    desc: "build main application docker image"
-    deps: ["update_version"]
-    cmds:
-      - docker build --build-arg PROJECT_NAME={{.PROJECT_NAME}} --build-arg PROJECT_VERSION={{.NEW_VERSION}} --build-arg PORT={{.PORT}} -f deploy/robin/Dockerfile -t {{.PROJECT_NAME_LOW}} .
-
-  docker:build:clickhouse:
-    desc: "build clickhouse docker image"
-    cmds:
-      - docker build -f deploy/clickhouse/Dockerfile -t {{.PROJECT_NAME_LOW}}-clickhouse deploy/clickhouse
-
-  docker:run:
-    desc: "run docker containers"
-    deps: ["docker:build", "docker:build:clickhouse"]
-    cmds:
-      - PROJECT_NAME={{.PROJECT_NAME}} PROJECT_VERSION={{.NEW_VERSION}} PORT={{.PORT}} docker-compose -f ./deploy/docker-compose.dev.yml up -d
-
-  docker:stop:
-    desc: "stop and clean docker containers"
-    cmds:
-      - docker-compose -f ./deploy/docker-compose.dev.yml down || true
-      - docker-compose -f ./deploy/docker-compose.prod.yml down || true
-      - |
-        if docker images {{.PROJECT_NAME_LOW}}-clickhouse -q; then
-          docker rmi {{.PROJECT_NAME_LOW}}-clickhouse
-        fi
-      - |
-        if docker images {{.PROJECT_NAME_LOW}} -q; then
-          docker rmi {{.PROJECT_NAME_LOW}}
-        fi
-
-  docker:logs:
-    desc: "show docker container logs"
-    cmds:
-      - docker-compose -f ./deploy/docker-compose.dev.yml logs -f
-
-  # Test and quality tasks
   test:
     desc: "run tests"
     cmds:
@@ -87,8 +66,99 @@ tasks:
     cmds:
       - golangci-lint run
 
-  # Utility tasks
-  update_version:
-    internal: true
+  version:bump:patch:
+    desc: "increment PROJECT_VERSION patch in .env"
     cmds:
-      - sed -i -E "s/PROJECT_VERSION.*/PROJECT_VERSION={{.NEW_VERSION}}/" .env
+      - >-
+        powershell -NoProfile -Command
+        "$p='PROJECT_VERSION=([0-9]+)\.([0-9]+)\.([0-9]+)';
+        $content=Get-Content '.env';
+        $updated=$content | ForEach-Object {
+          if ($_ -match $p) {
+            'PROJECT_VERSION=' + $matches[1] + '.' + $matches[2] + '.' + ([int]$matches[3] + 1)
+          } else {
+            $_
+          }
+        };
+        Set-Content '.env' $updated"
+
+  docker:build:
+    desc: "build robin and clickhouse images with docker compose"
+    env:
+      PROJECT_NAME: "{{.PROJECT_NAME}}"
+      PROJECT_VERSION: "{{.PROJECT_VERSION}}"
+      PORT: "{{.PORT}}"
+    cmds:
+      - docker compose -f {{.COMPOSE_DEV}} build --no-cache robin clickhouse
+
+  docker:up:
+    desc: "start dev docker stack"
+    env:
+      PROJECT_NAME: "{{.PROJECT_NAME}}"
+      PROJECT_VERSION: "{{.PROJECT_VERSION}}"
+      PORT: "{{.PORT}}"
+    cmds:
+      - docker compose -f {{.COMPOSE_DEV}} up -d
+
+  docker:rebuild:
+    desc: "rebuild and restart dev docker stack"
+    deps: ["docker:build"]
+    env:
+      PROJECT_NAME: "{{.PROJECT_NAME}}"
+      PROJECT_VERSION: "{{.PROJECT_VERSION}}"
+      PORT: "{{.PORT}}"
+    cmds:
+      - docker compose -f {{.COMPOSE_DEV}} up -d
+
+  docker:down:
+    desc: "stop dev docker stack"
+    env:
+      PROJECT_NAME: "{{.PROJECT_NAME}}"
+      PROJECT_VERSION: "{{.PROJECT_VERSION}}"
+      PORT: "{{.PORT}}"
+    cmds:
+      - docker compose -f {{.COMPOSE_DEV}} down
+
+  docker:ps:
+    desc: "show dev docker stack status"
+    env:
+      PROJECT_NAME: "{{.PROJECT_NAME}}"
+      PROJECT_VERSION: "{{.PROJECT_VERSION}}"
+      PORT: "{{.PORT}}"
+    cmds:
+      - docker compose -f {{.COMPOSE_DEV}} ps
+
+  docker:logs:
+    desc: "show dev docker stack logs"
+    env:
+      PROJECT_NAME: "{{.PROJECT_NAME}}"
+      PROJECT_VERSION: "{{.PROJECT_VERSION}}"
+      PORT: "{{.PORT}}"
+    cmds:
+      - docker compose -f {{.COMPOSE_DEV}} logs -f
+
+  docker:clean:
+    desc: "stop dev/prod stacks and remove local images"
+    cmds:
+      - docker compose -f {{.COMPOSE_DEV}} down --remove-orphans
+      - docker compose -f {{.COMPOSE_PROD}} down --remove-orphans
+      - powershell -NoProfile -Command "if (docker image inspect '{{.PROJECT_NAME_LOW}}-clickhouse' *> $null) { docker rmi '{{.PROJECT_NAME_LOW}}-clickhouse' }"
+      - powershell -NoProfile -Command "if (docker image inspect '{{.PROJECT_NAME_LOW}}-robin' *> $null) { docker rmi '{{.PROJECT_NAME_LOW}}-robin' }"
+
+  docker:prod:up:
+    desc: "start prod docker stack"
+    env:
+      PROJECT_NAME: "{{.PROJECT_NAME}}"
+      PROJECT_VERSION: "{{.PROJECT_VERSION}}"
+      PORT: "{{.PORT}}"
+    cmds:
+      - docker compose -f {{.COMPOSE_PROD}} up -d
+
+  docker:prod:down:
+    desc: "stop prod docker stack"
+    env:
+      PROJECT_NAME: "{{.PROJECT_NAME}}"
+      PROJECT_VERSION: "{{.PROJECT_VERSION}}"
+      PORT: "{{.PORT}}"
+    cmds:
+      - docker compose -f {{.COMPOSE_PROD}} down
