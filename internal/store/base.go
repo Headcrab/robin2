@@ -480,19 +480,49 @@ func (s *Base) GetTagCount(tag string, from time.Time, to time.Time, count int) 
 	}
 	res := make(map[string]map[time.Time]float32, len(tags))
 	for _, t := range tags {
-		resDt := make(map[time.Time]float32, count)
-		for i := 0; i < count; i++ {
-			dateFrom := from.Add(time.Duration(tmDiff*float64(i)) * time.Second)
+		resDt, err := sampleTagCountValues(from, count, tmDiff, func(dateFrom time.Time) (float32, error) {
 			valOut, err := s.GetTagDate(t, dateFrom)
 			if err != nil {
-				return nil, err
+				return 0, err
 			}
-			val := valOut.Value
-			resDt[dateFrom] = float32(val)
+			return float32(valOut.Value), nil
+		})
+		if err != nil {
+			return nil, err
 		}
 		res[t] = resDt
 	}
 	return res, nil
+}
+
+func sampleTagCountValues(from time.Time, count int, tmDiff float64, fetch func(time.Time) (float32, error)) (map[time.Time]float32, error) {
+	resDt := make(map[time.Time]float32, count)
+	var (
+		lastVal float32
+		hasLast bool
+	)
+
+	for i := 0; i < count; i++ {
+		dateFrom := from.Add(time.Duration(tmDiff*float64(i)) * time.Second)
+		val, err := fetch(dateFrom)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				if hasLast {
+					val = lastVal
+				} else {
+					val = -1
+				}
+			} else {
+				return nil, err
+			}
+		} else {
+			lastVal = val
+			hasLast = true
+		}
+		resDt[dateFrom] = val
+	}
+
+	return resDt, nil
 }
 
 // GetTagCountGroup получает значения тегов, в нужном количестве, сгруппированных по интервалам времени.
