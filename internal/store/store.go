@@ -31,7 +31,7 @@ func New(cfg config.Config) (Store, error) {
 type Store interface {
 	Connect(name string, cache cache.Cache) error
 	GetTagDate(tag string, date time.Time) (*data.Tag, error)
-	// GetTagsDate(tags []string, date time.Time) (, error)
+	GetTagsDate(tags []string, date time.Time) (data.Tags, error)
 	GetTagCount(tag string, from time.Time, to time.Time, strCount int) (map[string]map[time.Time]float32, error)
 	GetTagCountGroup(tag string, from time.Time, to time.Time, strCount int, group string) (data.Tags, error)
 	GetTagFromTo(tag string, from time.Time, to time.Time) (data.Tags, error)

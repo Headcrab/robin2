@@ -206,6 +206,27 @@ func (s *Base) buildBatchTagQuery(baseQuery string, tags []string) (string, bool
 	return "", false
 }
 
+func (s *Base) buildBatchTagDateQuery(baseQuery string, tags []string, date time.Time) (string, bool) {
+	if len(tags) == 0 {
+		return "", false
+	}
+
+	query := s.replaceTemplate(map[string]string{
+		"{date}": date.Format("2006-01-02 15:04:05"),
+	}, baseQuery)
+
+	if len(tags) == 1 {
+		return strings.Replace(query, "{tag}", escapeSQLString(tags[0]), 1), true
+	}
+
+	lowered := strings.ToLower(query)
+	if strings.Contains(lowered, " order by ") || strings.Contains(lowered, " limit ") || strings.Contains(lowered, " top ") {
+		return "", false
+	}
+
+	return s.buildBatchTagQuery(query, tags)
+}
+
 func (s *Base) runTagQuery(query string) (data.Tags, error) {
 	rows, err := s.db.Query(query)
 	if err != nil {
@@ -290,21 +311,140 @@ func (s *Base) GetTagDate(tag string, date time.Time) (*data.Tag, error) {
 
 	query := s.config.CurrDB.Query["get_tag_date"]
 	query = s.replaceTemplate(map[string]string{"{tag}": tag, "{date}": date.Format("2006-01-02 15:04:05")}, query)
-	res := data.Tag{}
-	err := s.db.QueryRow(query).Scan(&res.Name, &res.Date, &res.Value)
+	rows, err := s.db.Query(query)
 	if err != nil {
 		return nil, err
 	}
-	currTag.Value = res.Value
+	defer rows.Close()
 
-	if s.cache != nil && res.Value != -1 {
-		err = s.cache.Set(res.Name, date, float32(res.Value))
+	cols, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	if !rows.Next() {
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
+		return nil, sql.ErrNoRows
+	}
+
+	switch len(cols) {
+	case 1:
+		var value sql.NullFloat64
+		if err := rows.Scan(&value); err != nil {
+			return nil, err
+		}
+		if value.Valid {
+			currTag.Value = float32(value.Float64)
+		}
+	case 3:
+		var (
+			name  sql.NullString
+			ts    sql.NullTime
+			value sql.NullFloat64
+		)
+		if err := rows.Scan(&name, &ts, &value); err != nil {
+			return nil, err
+		}
+		if name.Valid && name.String != "" {
+			currTag.Name = name.String
+		}
+		if ts.Valid {
+			currTag.Date = ts.Time
+		}
+		if value.Valid {
+			currTag.Value = float32(value.Float64)
+		}
+	default:
+		return nil, fmt.Errorf("unsupported get_tag_date column count: %d", len(cols))
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if s.cache != nil && currTag.Value != -1 {
+		err = s.cache.Set(currTag.Name, date, currTag.Value)
 		if err != nil {
 			logger.Error(err.Error())
 		}
 	}
 
 	return &currTag, nil
+}
+
+func (s *Base) GetTagsDate(tags []string, date time.Time) (data.Tags, error) {
+	if date.IsZero() {
+		return nil, errors.ErrInvalidDate
+	}
+	if s.db == nil {
+		return nil, errors.ErrDbConnectionFailed
+	}
+
+	normalized := make([]string, 0, len(tags))
+	seen := make(map[string]struct{}, len(tags))
+	for _, tag := range tags {
+		tag = strings.TrimSpace(tag)
+		if tag == "" {
+			continue
+		}
+		if _, ok := seen[tag]; ok {
+			continue
+		}
+		seen[tag] = struct{}{}
+		normalized = append(normalized, tag)
+	}
+	if len(normalized) == 0 {
+		return data.Tags{}, nil
+	}
+
+	found := make(map[string]*data.Tag, len(normalized))
+	missing := make([]string, 0, len(normalized))
+	for _, tag := range normalized {
+		if val, err := s.cache.Get(tag, date); err == nil {
+			found[tag] = &data.Tag{Name: tag, Date: date, Value: val}
+			continue
+		}
+		missing = append(missing, tag)
+	}
+
+	if len(missing) > 0 {
+		baseQuery := s.config.CurrDB.Query["get_tag_date"]
+		batchResult, batchErr := data.Tags(nil), error(nil)
+		if query, ok := s.buildBatchTagDateQuery(baseQuery, missing, date); ok {
+			batchResult, batchErr = s.runTagQuery(query)
+		}
+
+		if batchErr == nil && len(batchResult) > 0 {
+			for _, tagValue := range batchResult {
+				found[tagValue.Name] = tagValue
+				if s.cache != nil && tagValue.Value != -1 {
+					if err := s.cache.Set(tagValue.Name, date, float32(tagValue.Value)); err != nil {
+						logger.Error(err.Error())
+					}
+				}
+			}
+		}
+
+		for _, tag := range missing {
+			if _, ok := found[tag]; ok {
+				continue
+			}
+			tagValue, err := s.GetTagDate(tag, date)
+			if err != nil {
+				continue
+			}
+			found[tag] = tagValue
+		}
+	}
+
+	res := make(data.Tags, 0, len(normalized))
+	for _, tag := range normalized {
+		if tagValue, ok := found[tag]; ok {
+			res = append(res, tagValue)
+		}
+	}
+	return res, nil
 }
 
 // func (s *Base) cacheDay(tag string, day time.Time) {

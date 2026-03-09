@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
-	"robin2/internal/data"
 	"robin2/internal/decode"
 	"robin2/internal/format"
 	"robin2/internal/logger"
@@ -505,13 +504,9 @@ func (a *App) getTagsOnDate(tags []string, date, fmt string, round int) []byte {
 		return []byte("#Error: " + err.Error())
 	}
 
-	tagsVal := data.Tags{}
-	for _, tag := range tags {
-		tagValue, err := a.store.GetTagDate(tag, dateTime)
-		if err != nil {
-			continue
-		}
-		tagsVal = append(tagsVal, tagValue)
+	tagsVal, err := a.store.GetTagsDate(tags, dateTime)
+	if err != nil {
+		return []byte("#Error: " + err.Error())
 	}
 	fmtr, err := format.New(fmt)
 	if err != nil {

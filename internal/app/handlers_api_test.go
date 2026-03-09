@@ -282,6 +282,11 @@ func Test_handleAPIGetTag(t *testing.T) {
 			query:    "/get/tag/?tag=A20_WT_01,A20_WT_01&date=2026-02-19 09:00:00",
 			wantCode: 200,
 		},
+		{
+			name:     "несколько тегов+date+xml",
+			query:    "/get/tag/?tag=A20_WT_01,A20_WT_01&date=2026-02-19 09:00:00&format=xml",
+			wantCode: 200,
+		},
 		// --- несколько тегов через запятую + from+to+group ---
 		{
 			name:     "несколько тегов+from+to+group=avg",
