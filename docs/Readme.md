@@ -4,10 +4,11 @@ This folder contains the project documentation that is still relevant to the cur
 
 Recommended reading order:
 
-1. `FUNCTIONAL_CAPABILITIES.md` — what the service actually does today.
-2. `../Readme.md` — quick start, routes, and local launch notes.
-3. `../spec.md` — implementation-oriented route and config reference.
-4. `todo.md` — remaining technical debt and roadmap items.
+1. `../Readme.md` — English project overview.
+2. `../README.ru.md` — Russian project overview.
+3. `FUNCTIONAL_CAPABILITIES.md` — what the service actually does today.
+4. `../spec.md` — implementation-oriented route and config reference.
+5. `todo.md` — remaining technical debt and roadmap items.
 
 Generated Swagger artifacts also live here:
 

@@ -1,41 +1,66 @@
 # Robin2
 
-`Robin2` is a Go service for reading historical process tags from industrial databases, exposing them over HTTP API, and serving a small built-in web UI.
+[![Go 1.26.1](https://img.shields.io/badge/Go-1.26.1-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](./LICENSE)
+[![Docker Ready](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](./deploy/docker-compose.dev.yml)
+[![Swagger](https://img.shields.io/badge/API-Swagger-85EA2D?logo=swagger&logoColor=222)](http://localhost:8008/api/swagger/)
+[![Русская версия](https://img.shields.io/badge/README-RU-1F6FEB)](./README.ru.md)
 
-## What It Does
+Industrial tag history service for querying process data, exposing HTTP APIs, and serving a built-in web UI from a single Go binary.
 
-- reads tag values at a point in time or over a period;
-- aggregates and samples time series;
-- searches tags by mask;
-- returns up/down event timestamps;
-- decodes tag names using `config/tag_classifier.json`;
-- executes stored SQL templates;
-- serves logs, status, Swagger, and web pages from the same binary.
+## Overview
 
-## Supported Backends
+Robin2 is built for operational data access in SCADA / historian-style environments. It can query tag values at a specific point in time, return ranges, aggregate and sample series, decode tag names, execute stored SQL templates, and expose service health, logs, and Swagger from the same runtime.
 
-Databases configured in the project:
+## Highlights
 
-- `mssql`
-- `mysql`
-- `clickhouse`
-- `oracle`
+- point-in-time and range reads for process tags;
+- aggregation with `avg`, `sum`, `count`, `min`, `max`;
+- range sampling with `count`;
+- tag lookup by mask;
+- up/down event timestamp lookup;
+- tag decoding through `config/tag_classifier.json`;
+- SQL template CRUD and execution;
+- built-in logs, docs, Swagger, and web UI.
 
-Cache backends:
+## Stack
 
-- `memory`
-- `redis`
+- Go `1.26.1`
+- ClickHouse, MySQL, MS SQL, Oracle backends
+- Redis or in-memory cache
+- HTML templates + JS frontend
+- Swagger-generated API docs
+- Docker / Docker Compose deployment
 
-The active database and cache are selected through `config/Robin.json` with `curr_db` and `curr_cache`.
+## Quick Start
+
+1. Copy `.env.example` to `.env`.
+2. Fill in the secrets for the active database profile from `config/Robin.json`.
+3. Run locally:
+
+```powershell
+go run ./cmd
+```
+
+Or build a binary:
+
+```powershell
+go build -o ./bin/Robin.exe ./cmd
+```
+
+Or use task:
+
+```powershell
+task build
+task docker:rebuild
+```
 
 ## Configuration
 
-Project settings live in:
+Main config files:
 
 - `config/Robin.json`
 - `.env`
-
-`config/Robin.json` now uses environment placeholders for sensitive fields, for example `${ROBIN_DB_CLICKHOUSE_DOCKER_USER}`.
 
 Important environment variables:
 
@@ -47,27 +72,11 @@ Important environment variables:
 - `ROBIN_ADMIN_TOKEN`
 - `ROBIN_DB_*`
 
-`ROBIN_ADMIN_TOKEN` protects admin endpoints. If it is empty, admin-only routes return `503 Service Unavailable`.
+Sensitive database settings are injected via `${ENV_NAME}` placeholders in `config/Robin.json`.
 
-## Run Locally
+## API Surface
 
-1. Copy `.env.example` to `.env` and fill in the required secrets.
-2. Make sure the active database from `config/Robin.json` is reachable.
-3. Start the service:
-
-```powershell
-go run ./cmd
-```
-
-Or build it:
-
-```powershell
-go build -o ./bin/robin.exe ./cmd
-```
-
-## Main Routes
-
-Public API:
+Public routes:
 
 - `GET /get/tag/`
 - `GET /get/tag/list/`
@@ -80,7 +89,7 @@ Public API:
 - `GET /api/swagger/`
 - `GET /api/swagger/doc.json`
 
-Admin-only API:
+Admin routes:
 
 - `POST /api/reload/`
 - `GET /templ/list/`
@@ -95,14 +104,21 @@ Log cleanup:
 - `POST /api/log/clear/`
 - `DELETE /api/log/clear/`
 
-Access to `/api/log/clear/` is allowed either with an admin token or from the same origin as the web UI.
+Admin token can be passed through:
 
-Admin token can be passed as:
-
-- `X-Admin-Token: <token>`
+- `X-Admin-Token`
 - `Authorization: Bearer <token>`
 
-## Examples
+## Docs
+
+- English spec: [spec.md](./spec.md)
+- Functional capabilities: [docs/FUNCTIONAL_CAPABILITIES.md](./docs/FUNCTIONAL_CAPABILITIES.md)
+- Docs index: [docs/Readme.md](./docs/Readme.md)
+- Russian README: [README.ru.md](./README.ru.md)
+- MIT License: [LICENSE](./LICENSE)
+- MIT License (RU): [LICENSE.ru.md](./LICENSE.ru.md)
+
+## Example Requests
 
 Get a tag value at a date:
 
@@ -132,4 +148,13 @@ Reload config:
 curl -X POST "http://localhost:8008/api/reload/" -H "X-Admin-Token: change-me"
 ```
 
-Swagger UI is available at [http://localhost:8008/api/swagger/](http://localhost:8008/api/swagger/).
+## Project Layout
+
+```text
+cmd/        application entrypoint
+internal/   core application packages
+config/     runtime configuration
+docs/       markdown docs + generated swagger
+deploy/     docker and deployment assets
+web/        templates, scripts, styles, images
+```
