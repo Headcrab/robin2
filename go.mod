@@ -1,8 +1,8 @@
 module robin2
 
-go 1.24.0
+go 1.26.1
 
-toolchain go1.24.2
+toolchain go1.26.1
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.40.3
