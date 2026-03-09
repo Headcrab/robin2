@@ -394,6 +394,9 @@ func (a *App) handleAPIClearLog(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	if !a.requireLogClearAccess(w, r) {
+		return
+	}
 
 	// Установим заголовки для ответа
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
