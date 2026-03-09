@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"robin2/internal/logger"
 	"robin2/internal/utils"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -36,8 +37,10 @@ func (a *App) handleDirectory(d string) http.HandlerFunc {
 }
 
 func getOnePage(name string, descr string, data []string, pageNum, linesPerPage int) map[string]interface{} {
-	pagesTotal := len(data)/(linesPerPage+1) + 1
-	// pagesTotal = thenIf(pagesTotal == 0, 1, pagesTotal)
+	pagesTotal := 1
+	if linesPerPage > 0 && len(data) > 0 {
+		pagesTotal = (len(data) + linesPerPage - 1) / linesPerPage
+	}
 	if pageNum > pagesTotal {
 		pageNum = pagesTotal
 	}
@@ -55,50 +58,64 @@ func getOnePage(name string, descr string, data []string, pageNum, linesPerPage 
 
 // generatePageSwitcherHTML generates the HTML for the page switcher component.
 func generatePageSwitcherHTML(name string, pageNum, pagesTotal int) template.HTML {
-	// pageSwitcher := fmt.Sprintf("<span class='text-center list-group text-list-item'>Страница %d из %d <br>", pageNum, pagesTotal)
-	pageSwitcher := "<span class='text-center fixed-bottom2'>"
-	// show 10 pages only, current must be in list
 	if pagesTotal < 2 {
-		return template.HTML(pageSwitcher)
+		return ""
 	}
 
-	pageSwitcher += getFormattedPageNumber(name, 1, pageNum == 1, "")
-
-	pageLimit := 11
-	if pagesTotal <= pageLimit {
-		for i := 2; i < pagesTotal; i++ {
-			pageSwitcher += getFormattedPageNumber(name, i, pageNum == i, "")
+	pages := getVisiblePageNumbers(pageNum, pagesTotal)
+	parts := make([]string, 0, len(pages)+2)
+	prevPage := 0
+	for _, p := range pages {
+		if prevPage != 0 && p-prevPage > 1 {
+			parts = append(parts, `<span class="pagination-ellipsis" aria-hidden="true">...</span>`)
 		}
-	} else {
-		if pageNum < pageLimit-1 {
-			for i := 2; i < pageLimit-1; i++ {
-				pageSwitcher += getFormattedPageNumber(name, i, pageNum == i, "")
-			}
-			pageSwitcher += getFormattedPageNumber(name, pageNum+1, false, "»")
-		} else if pageNum > pagesTotal-pageLimit+3 {
-			pageSwitcher += getFormattedPageNumber(name, pageNum-1, false, "«")
-			for i := pagesTotal - pageLimit + 3; i < pagesTotal; i++ {
-				pageSwitcher += getFormattedPageNumber(name, i, pageNum == i, "")
-			}
-		} else {
-			pageSwitcher += getFormattedPageNumber(name, pageNum-1, false, "«")
-			for i := pageNum - (pageLimit-4)/2; i <= pageNum+(pageLimit-4)/2; i++ {
-				pageSwitcher += getFormattedPageNumber(name, i, pageNum == i, "")
-			}
-			pageSwitcher += getFormattedPageNumber(name, pageNum+1, false, "»")
-		}
+		parts = append(parts, getFormattedPageNumber(name, p, pageNum == p, ""))
+		prevPage = p
 	}
 
-	pageSwitcher += getFormattedPageNumber(name, pagesTotal, pageNum == pagesTotal, "")
-
-	pageSwitcher += "</span><br>"
-	return template.HTML(pageSwitcher)
+	return template.HTML(strings.Join(parts, ""))
 }
 
 func getFormattedPageNumber(name string, pageNum int, isCurr bool, pagerName string) string {
-	return fmt.Sprintf(`<button class='page-number %s' href='#' onclick='loadPage("/%s?page=%d")'>%s</button>`,
-		utils.ThenIf(isCurr, "page-number-current", ""), name, pageNum,
-		utils.ThenIf(pagerName == "", fmt.Sprintf("%d", pageNum), pagerName))
+	label := utils.ThenIf(pagerName == "", fmt.Sprintf("%d", pageNum), pagerName)
+	url := fmt.Sprintf("/%s?page=%d", name, pageNum)
+	if isCurr {
+		return fmt.Sprintf(`<span class="active" aria-current="page">%s</span>`, label)
+	}
+	return fmt.Sprintf(`<a href="%s" onclick='loadPage("%s"); return false;'>%s</a>`, url, url, label)
+}
+
+func getVisiblePageNumbers(pageNum, pagesTotal int) []int {
+	pageSet := map[int]struct{}{
+		1:          {},
+		pagesTotal: {},
+		pageNum:    {},
+	}
+
+	for i := pageNum - 1; i <= pageNum+1; i++ {
+		if i > 1 && i < pagesTotal {
+			pageSet[i] = struct{}{}
+		}
+	}
+
+	if pageNum <= 4 {
+		for i := 2; i <= min(5, pagesTotal-1); i++ {
+			pageSet[i] = struct{}{}
+		}
+	}
+
+	if pageNum >= pagesTotal-3 {
+		for i := max(2, pagesTotal-4); i < pagesTotal; i++ {
+			pageSet[i] = struct{}{}
+		}
+	}
+
+	pages := make([]int, 0, len(pageSet))
+	for p := range pageSet {
+		pages = append(pages, p)
+	}
+	sort.Ints(pages)
+	return pages
 }
 
 // getDataSubset determines the subset of data to be displayed on the requested page.

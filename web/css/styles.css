@@ -1429,6 +1429,15 @@ input[type="datetime-local"].form-input {
   box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
 }
 
+.pagination .pagination-ellipsis {
+  min-width: auto;
+  padding: 0 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  box-shadow: none;
+}
+
 /* ============================================================
    HOME PAGE HERO
    ============================================================ */
