@@ -35,6 +35,8 @@ services:
     volumes:
       - clickhouse:/var/lib/clickhouse
       - D:/work/docker/copy_to_clickhouse:/var/lib/clickhouse/copyed
+      - D:/work/docker/copy_to_clickhouse_:/var/lib/clickhouse/copyed_legacy
+      - D:/work/docker/copy_to_clickhouse_from_rail:/var/lib/clickhouse/copyed_truckscales
     ports:
       - 8123:8123
       - 9000:9000

@@ -13,8 +13,12 @@ declare -A truckscales_patterns=(
     ["rail_*.json.gz"]="truckscales.stat"
 )
 
-path="/var/lib/clickhouse/copyed/"
 clickhouse_client=(clickhouse-client --password password123 -u admin)
+paths=(
+    "/var/lib/clickhouse/copyed"
+    "/var/lib/clickhouse/copyed_legacy"
+    "/var/lib/clickhouse/copyed_truckscales"
+)
 
 import_json_each_row() {
     local file=$1
@@ -34,15 +38,19 @@ process_pattern_group() {
     shift
     local -n patterns_ref=$1
 
-    for pattern in "${!patterns_ref[@]}"; do
-        mapfile -t files < <(find "$path" -maxdepth 1 -type f -name "$pattern")
-        for file in "${files[@]}"; do
-            if "$importer" "$file" "${patterns_ref[$pattern]}"; then
-                rm "$file"
-                echo "Imported and removed $file"
-            else
-                echo "Import failed for $file"
-            fi
+    for path in "${paths[@]}"; do
+        [[ -d "$path" ]] || continue
+
+        for pattern in "${!patterns_ref[@]}"; do
+            mapfile -t files < <(find "$path" -maxdepth 1 -type f -name "$pattern")
+            for file in "${files[@]}"; do
+                if "$importer" "$file" "${patterns_ref[$pattern]}"; then
+                    rm "$file"
+                    echo "Imported and removed $file"
+                else
+                    echo "Import failed for $file"
+                fi
+            done
         done
     done
 }

@@ -18,6 +18,12 @@ These scripts run automatically on first start when the ClickHouse data director
 
 `script_download.sh` supports both `av_*.json.gz` and `rail_*.json.gz`.
 
+The dev stack mounts three source directories into the container:
+
+- `D:\work\docker\copy_to_clickhouse` -> `/var/lib/clickhouse/copyed`
+- `D:\work\docker\copy_to_clickhouse_` -> `/var/lib/clickhouse/copyed_legacy`
+- `D:\work\docker\copy_to_clickhouse_from_rail` -> `/var/lib/clickhouse/copyed_truckscales`
+
 - `result_*.json.gz` and `hs_*.json.gz` are imported as `JSONEachRow` into `runtime.history`
 - `av_*.json.gz` and `rail_*.json.gz` are converted by `transform_truckscales_json.py` and inserted into `truckscales.stat`
 
