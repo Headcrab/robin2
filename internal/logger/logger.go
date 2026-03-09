@@ -72,7 +72,7 @@ func init() {
 
 	logPath = getEnv("LOG_PATH", "./log/")
 	defaultLogFileName = getEnv("LOG_DEFAULT_FILE_NAME", "robin.log")
-	logLevel = getEnv("LOG_LEVEL", "info")
+	logLevel = getEnv("LOG_LEVEL", "warn")
 
 }
 

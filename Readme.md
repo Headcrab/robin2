@@ -73,6 +73,7 @@ Important environment variables:
 - `ROBIN_DB_*`
 
 Sensitive database settings are injected via `${ENV_NAME}` placeholders in `config/Robin.json`.
+Default log level is `warn`, so only warnings and errors are written unless you explicitly lower it.
 
 ## API Surface
 
