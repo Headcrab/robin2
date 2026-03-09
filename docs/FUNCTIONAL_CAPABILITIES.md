@@ -1,333 +1,123 @@
-# Robin2: детальная документация по функциональным возможностям
+# Robin2: Functional Capabilities
 
-## 1. Назначение приложения
+## Purpose
 
-`Robin2` — серверное Go-приложение для получения и выдачи технологических данных (тегов) из исторических БД АСУТП через HTTP API и встроенный веб-интерфейс.
+`Robin2` is a Go service that reads process history data from industrial databases and exposes it through HTTP endpoints and a small embedded web UI.
 
-Ключевые сценарии:
-- получение значений тегов на дату и за период;
-- агрегация и дискретизация рядов;
-- поиск тегов;
-- определение дат включения/отключения состояния (up/down);
-- выполнение SQL-шаблонов;
-- просмотр состояния сервиса и логов;
-- работа через web UI (данные, теги, логи, документация, Swagger).
+## Core Capabilities
 
-## 2. Общая функциональная архитектура
+### Tag data
 
-Приложение состоит из функциональных подсистем:
-- HTTP API (операции с тегами, шаблонами, логами и статусом);
-- Web UI на HTML templates + JS;
-- слой хранилищ (`store`) с поддержкой СУБД;
-- слой кэша (`cache`);
-- форматтеры ответов (`text`, `json`, `xml`, `html`, `grafana`);
-- декодер тегов на базе `config/tag_classifier.json`;
-- подсистема логирования с ротацией.
+- read a single tag value at a specific date;
+- read one or more tags for a time range;
+- aggregate values by `avg`, `sum`, `count`, `min`, `max`;
+- sample a period into a fixed number of points with `count`;
+- round output values;
+- return data as `text`, `json`, `xml`, `html`, or `grafana` where supported by the handler.
 
-Дополнительно:
-- middleware тайминга (заголовок `X-Execution-Time`);
-- middleware access-логирования входящих запросов.
+### Tag search and decoding
 
-## 3. Поддерживаемые хранилища и кэш
+- search tag names by `like` mask;
+- decode tag names using `config/tag_classifier.json`;
+- return decoded structures for one or more tags.
 
-### 3.1 СУБД
+### State transitions
 
-Поддерживаемые типы БД на уровне реализации:
+- find down events with `GET /get/tag/down/`;
+- find up events with `GET /get/tag/up/`;
+- select a specific event by index with `count`.
+
+### Templates
+
+- list stored SQL templates;
+- read template body;
+- create or edit templates;
+- delete templates;
+- execute templates with arguments and optional database override.
+
+These operations are intentionally restricted because they touch SQL execution.
+
+### Service operations
+
+- return app info and uptime;
+- return database status;
+- stream logs as text or JSON;
+- clear logs;
+- reload runtime configuration;
+- serve Swagger UI and JSON spec.
+
+## Current Access Model
+
+Admin token source:
+
+- `ROBIN_ADMIN_TOKEN`
+
+Accepted headers:
+
+- `X-Admin-Token`
+- `Authorization: Bearer <token>`
+
+Admin-only routes:
+
+- `POST /api/reload/`
+- `GET /templ/list/`
+- `POST /templ/add/`
+- `GET /templ/get/`
+- `POST /templ/edit/`
+- `DELETE /templ/delete/`
+- `POST /templ/exec/`
+
+Special rule:
+
+- `/api/log/clear/` allows either a valid admin token or same-origin web requests.
+
+## Input Validation
+
+Template subsystem validation:
+
+- template names: `^[A-Za-z0-9_.:-]+$`
+- template list mask: `^[A-Za-z0-9_.:%-]*$`
+- template argument keys: `^[A-Za-z0-9_]+$`
+
+Date parsing:
+
+- uses `date_formats` from `config/Robin.json`;
+- also accepts Excel serial dates;
+- also accepts large numeric Unix timestamps interpreted as milliseconds.
+
+## Supported Infrastructure
+
+Databases:
+
 - `clickhouse`
 - `mysql`
 - `mssql`
 - `oracle`
 
-Активная БД выбирается через:
-- `curr_db` в `config/Robin.json`.
+Cache:
 
-### 3.2 Кэш
-
-Поддерживаемые типы кэша:
 - `memory`
 - `redis`
-- `memoryByte` (зарегистрирован, но обычно не используется как основной)
 
-Активный кэш выбирается через:
-- `curr_cache` в `config/Robin.json`.
+## Web UI
 
-## 4. Форматы времени и даты
+Built-in pages:
 
-Входные даты и время парсятся по массиву `date_formats` из конфигурации.
-
-Поддерживается также:
-- Excel-формат даты (число);
-- unix timestamp в миллисекундах (при больших числовых значениях).
-
-Если дата не распознана, сервис возвращает ошибку `#Error: ...` или HTTP-ошибку (в зависимости от endpoint).
-
-## 5. Форматы ответа
-
-Зарегистрированные форматтеры:
-- `text`
-- `json`
-- `xml`
-- `html`
-- `grafana`
-
-Важно:
-- в комментариях встречается `raw`, но он не зарегистрирован как формат;
-- часть endpoint-ов использует только текстовый ответ независимо от `format` (например `up/down`).
-
-## 6. Функциональные возможности API
-
-## 6.1 Получение значения тега
-
-Маршрут:
-- `GET /get/tag/`
-
-Варианты работы (по параметрам):
-- `tag + date` — значение тега на момент времени;
-- `tag + from + to` — ряд значений за период;
-- `tag + from + to + group` — агрегат по периоду;
-- `tag + from + to + count` — дискретизация периода на `count` точек;
-- `tag + from + to + count + group` — дискретизация + агрегация.
-
-Поддержка:
-- несколько тегов через запятую в параметре `tag`;
-- округление через `round` (по умолчанию `round` из конфига);
-- выбор формата через `format`.
-
-Параметры:
-- `tag` — имя тега или список тегов через запятую;
-- `date` — момент времени;
-- `from`, `to` — границы периода;
-- `group` — агрегатор (`avg`, `sum`, `count`, `min`, `max`, и иные, если поддержаны SQL шаблоном БД);
-- `count` — число точек выборки;
-- `round` — знаков после запятой;
-- `format` — формат ответа.
-
-## 6.2 Получение списка тегов
-
-Маршрут:
-- `GET /get/tag/list/`
-
-Возможности:
-- фильтрация по маске через `like`;
-- форматируемый ответ через `format`.
-
-Параметры:
-- `like` — маска поиска;
-- `format` — формат вывода.
-
-Примечание:
-- в текущей реализации `format` лучше передавать явно; при пустом `format` возможен `400`.
-
-## 6.3 Определение событий отключения/включения
-
-Маршруты:
-- `GET /get/tag/down/`
-- `GET /get/tag/up/`
-
-Возможности:
-- поиск дат изменения состояния тега на `0` (down) или `1` (up);
-- выбор конкретного события по индексу через `count`.
-
-Параметры:
-- `tag` — имя тега;
-- `from`, `to` — интервал;
-- `count` — номер события (начиная с `0`).
-
-Ответ:
-- текстовая дата `YYYY-MM-DD HH:MM:SS` либо пустая строка.
-
-## 6.4 Декодирование имен тегов
-
-Маршрут:
-- `GET /tag/decode/`
-
-Возможности:
-- декодирование одного или нескольких тегов;
-- использование правил из `config/tag_classifier.json`;
-- выдача структуры расшифровки по каждому тегу.
-
-Параметры:
-- `tag` — тег или список тегов через запятую;
-- `format` — формат ответа.
-
-Примечание:
-- если `format` не указан, в текущей реализации возможна ошибка форматтера.
-
-## 6.5 Работа с шаблонами SQL
-
-Маршруты:
-- `GET /templ/list/` — список шаблонов;
-- `GET /templ/add/` — добавление шаблона;
-- `GET /templ/get/` — чтение шаблона;
-- `GET /templ/edit/` — изменение шаблона;
-- `GET /templ/delete/` — удаление шаблона;
-- `GET /templ/exec/` — выполнение шаблона.
-
-Параметры (основные):
-- `name` — имя шаблона;
-- `body` — SQL текст шаблона;
-- `args` — аргументы в виде `k1=v1,k2=v2`;
-- `format` — формат результата;
-- `db` — имя БД (передается параметром в exec).
-
-Особенности:
-- шаблоны хранятся в таблице `runtime.templates` (ожидаются поля `ID`, `Name`, `Body`);
-- при `exec` подстановка делается по `{param}` в тексте шаблона;
-- поддерживаются CRUD и исполнение через HTTP.
-
-## 6.6 Системные endpoint-ы
-
-Маршруты:
-- `GET /api/info/` — имя, версия, uptime, счетчик операций;
-- `GET /api/status/` — статус и uptime БД + uptime приложения;
-- `GET /api/reload/` — перечитать `config/Robin.json`, переинициализировать БД/кэш;
-- `GET /api/log/` — получить лог;
-- `POST|DELETE /api/log/clear/` — очистить лог;
-- `GET /api/swagger/` — Swagger UI;
-- `GET /api/swagger/doc.json` — JSON спецификация Swagger.
-
-Замечания:
-- `op_count` инкрементируется не всеми endpoint-ами, а в основном в обработчике `/get/tag/`;
-- `/api/log/` наиболее стабильно работает с `format=text`.
-
-## 6.7 API v2 (заготовка)
-
-Маршрут:
-- `GET /api/v2/get/...`
-
-Текущее состояние:
-- endpoint существует, но реализован как заготовка;
-- возвращает разбор сегментов пути, без полноценной бизнес-логики.
-
-## 7. Веб-интерфейс (функциональные возможности)
-
-### 7.1 Разделы интерфейса
-
-Доступные страницы:
-- `/` — главная (статистика, quick actions, health);
-- `/data/` — поиск и просмотр данных тегов;
-- `/tags/` — поиск и просмотр списка тегов;
-- `/logs/` — просмотр журналов;
-- `/docs/` — список markdown-документов из папки `docs`;
-- `/docs/view/?file=...` — просмотр markdown документа;
-- `/swagger/` — встроенный просмотр Swagger (iframe).
-
-### 7.2 Работа с данными через UI
-
-Возможности страницы `/data/`:
-- ввод тега, периода, количества записей;
-- запрос данных через API;
-- отображение таблицы результатов;
-- индикация качества значения;
-- экспорт таблицы в CSV.
-
-### 7.3 Работа с тегами через UI
-
-Возможности страницы `/tags/`:
-- поиск по маске;
-- list/grid режим отображения;
-- копирование имени тега;
-- переход к поиску данных по выбранному тегу;
-- экспорт списка тегов.
-
-### 7.4 Работа с логами через UI
-
-Возможности страницы `/logs/`:
-- просмотр логов;
-- экспорт логов в файл;
-- очистка логов (вызов `/api/log/clear/`);
-- постраничная навигация.
-
-### 7.5 Документация внутри UI
-
-Возможности:
-- автоматическое перечисление `.md` файлов из `docs/`;
-- безопасный просмотр markdown (ограничение на имя файла и расширение);
-- рендер Markdown в HTML через `goldmark`.
-
-### 7.6 UX-функции интерфейса
-
-Поддерживается:
-- светлая/темная тема;
-- переключение языков (`ru`, `kk`, `en`);
-- мобильное меню;
-- breadcrumbs;
-- уведомления (success/error);
-- периодическое обновление статуса системы;
-- сохранение части параметров поиска в `sessionStorage/localStorage`.
-
-## 8. Конфигурируемые возможности
-
-Файл:
-- `config/Robin.json`
-
-Ключевые настройки:
-- `port` — порт HTTP сервера;
-- `round` — округление по умолчанию;
-- `date_formats` — допустимые форматы даты/времени;
-- `curr_db`, `db[]` — активная БД и список подключений;
-- `curr_cache`, `cache[]` — активный кэш и список конфигураций кэша;
-- SQL-шаблоны запросов в `db[].query`.
-
-Переменные окружения (`.env`):
-- имя/версия проекта;
-- путь и уровень логирования;
-- параметры ротации логов.
-
-## 9. Нефункциональные возможности, влияющие на эксплуатацию
-
-- graceful shutdown по сигналам ОС;
-- логирование в консоль + файл;
-- ротация файла лога по размеру/времени;
-- измерение времени обработки запроса (`X-Execution-Time`);
-- выдача статических файлов (`/images/`, `/scripts/`, `/css/`) с базовой защитой от path traversal.
-
-## 10. Ограничения и важные нюансы текущей реализации
-
-- Аутентификация/авторизация отсутствует.
-- Не все endpoint-ы строго валидируют HTTP метод (исключение: `/api/log/clear/`).
-- `format=raw` документирован в комментариях, но не поддержан в реестре форматтеров.
-- `/api/v2/get/` пока не завершен функционально.
-- Часть JS в UI содержит fallback-запросы к endpoint-ам, которых нет как полноценного API (используются резервные сценарии).
-- Подсистема шаблонов зависит от наличия `runtime.templates` и совместимости SQL-синтаксиса конкретной БД.
-- `get_up_dates/get_down_dates` зависят от наличия соответствующих SQL в `db[].query` активной БД.
-
-## 11. Полный каталог маршрутов приложения
-
-API:
-- `/get/tag/`
-- `/get/tag/list/`
-- `/get/tag/up/`
-- `/get/tag/down/`
-- `/tag/decode/`
-- `/templ/list/`
-- `/templ/add/`
-- `/templ/get/`
-- `/templ/edit/`
-- `/templ/delete/`
-- `/templ/exec/`
-- `/api/info/`
-- `/api/reload/`
-- `/api/log/`
-- `/api/log/clear/`
-- `/api/status/`
-- `/api/swagger/`
-- `/api/swagger/doc.json`
-- `/api/v2/get/`
-
-Web/UI и статика:
 - `/`
 - `/data/`
 - `/tags/`
 - `/logs/`
+- `/charts/`
 - `/docs/`
 - `/docs/view/`
 - `/swagger/`
-- `/images/`
-- `/scripts/`
-- `/css/`
-- `/favicon.ico`
 
----
+The UI also serves static files from `/images/`, `/scripts/`, and `/css/`.
 
-Документ составлен по фактической реализации кода (роутинг, обработчики, конфигурация, шаблоны UI, форматтеры и store/cache слои) в текущем проекте `robin2`.
+## Operational Notes
+
+- config is loaded from `config/Robin.json`;
+- secret values can be injected via `${ENV_NAME}` placeholders;
+- startup and config reload validate the active backend before connecting;
+- request timing is exposed through middleware with `X-Execution-Time`;
+- `/api/v2/get/...` exists but is still only a stub, not a stable feature.

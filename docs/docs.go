@@ -40,9 +40,9 @@ const docTemplate = `{
         },
         "/api/log/": {
             "get": {
-                "description": "Возвращает логи приложения",
+                "description": "Возвращает логи приложения в text/json и других зарегистрированных форматах",
                 "produces": [
-                    "application/json"
+                    "text/plain"
                 ],
                 "tags": [
                     "System"
@@ -51,7 +51,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Формат вывода (str - по умолчанию, json, raw)",
+                        "description": "Формат вывода (text, str, raw, json, xml, html, grafana)",
                         "name": "format",
                         "in": "query"
                     }
@@ -60,10 +60,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
+                            "type": "string"
                         }
                     }
                 }
@@ -73,7 +70,7 @@ const docTemplate = `{
             "post": {
                 "description": "Очищает файл логов приложения",
                 "produces": [
-                    "plain/text"
+                    "text/plain"
                 ],
                 "tags": [
                     "System"
@@ -97,7 +94,7 @@ const docTemplate = `{
             "delete": {
                 "description": "Очищает файл логов приложения",
                 "produces": [
-                    "plain/text"
+                    "text/plain"
                 ],
                 "tags": [
                     "System"
@@ -120,23 +117,46 @@ const docTemplate = `{
             }
         },
         "/api/reload/": {
-            "get": {
-                "description": "Презагружает конфигурационный файл приложения в случае изменения",
+            "post": {
+                "description": "Перечитывает config/Robin.json и переинициализирует активные БД и кэш. Требует admin token",
                 "produces": [
-                    "plain/text"
+                    "text/plain"
                 ],
                 "tags": [
                     "System"
                 ],
-                "summary": "Презагрузить конфигурационный файл",
+                "summary": "Перезагрузить конфигурационный файл",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Admin token",
+                        "name": "X-Admin-Token",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer admin token",
+                        "name": "Authorization",
+                        "in": "header"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -146,7 +166,7 @@ const docTemplate = `{
             "get": {
                 "description": "Возвращает значение тега на выбранную дату.",
                 "produces": [
-                    "plain/text json"
+                    "text/plain"
                 ],
                 "tags": [
                     "Tag"
@@ -220,7 +240,7 @@ const docTemplate = `{
             "get": {
                 "description": "Возвращает дату и время отключения оборудования",
                 "produces": [
-                    "plain/text"
+                    "text/plain"
                 ],
                 "tags": [
                     "Tag"
@@ -270,7 +290,7 @@ const docTemplate = `{
             "get": {
                 "description": "Возвращает список всех тегов по маске",
                 "produces": [
-                    "plain/text"
+                    "text/plain"
                 ],
                 "tags": [
                     "Tag"
@@ -307,7 +327,7 @@ const docTemplate = `{
             "get": {
                 "description": "Возвращает дату и время включения оборудования",
                 "produces": [
-                    "plain/text"
+                    "text/plain"
                 ],
                 "tags": [
                     "Tag"
@@ -357,7 +377,7 @@ const docTemplate = `{
             "get": {
                 "description": "Возвращает расшифровку имени тега",
                 "produces": [
-                    "plain/text json"
+                    "application/json"
                 ],
                 "tags": [
                     "Tag"
@@ -391,11 +411,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/templ/add": {
-            "get": {
-                "description": "Добавляет шаблон",
+        "/templ/add/": {
+            "post": {
+                "description": "Добавляет шаблон. Требует admin token",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
                 "produces": [
-                    "plain/text"
+                    "text/plain"
                 ],
                 "tags": [
                     "Template"
@@ -404,16 +427,28 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Admin token",
+                        "name": "X-Admin-Token",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer admin token",
+                        "name": "Authorization",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Имя шаблона",
                         "name": "name",
-                        "in": "query",
+                        "in": "formData",
                         "required": true
                     },
                     {
                         "type": "string",
                         "description": "Тело шаблона",
                         "name": "body",
-                        "in": "query",
+                        "in": "formData",
                         "required": true
                     }
                 ],
@@ -421,20 +456,35 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
             }
         },
-        "/templ/del": {
-            "get": {
-                "description": "Удаляет шаблон",
+        "/templ/delete/": {
+            "delete": {
+                "description": "Удаляет шаблон. Требует admin token",
                 "produces": [
-                    "plain/text"
+                    "text/plain"
                 ],
                 "tags": [
                     "Template"
@@ -443,6 +493,18 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Admin token",
+                        "name": "X-Admin-Token",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer admin token",
+                        "name": "Authorization",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Имя шаблона",
                         "name": "name",
                         "in": "query",
@@ -453,20 +515,38 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
             }
         },
-        "/templ/edit": {
-            "get": {
-                "description": "Изменяет тело шаблона",
+        "/templ/edit/": {
+            "post": {
+                "description": "Изменяет тело шаблона. Требует admin token",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
                 "produces": [
-                    "plain/text"
+                    "text/plain"
                 ],
                 "tags": [
                     "Template"
@@ -475,16 +555,28 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Admin token",
+                        "name": "X-Admin-Token",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer admin token",
+                        "name": "Authorization",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Имя шаблона",
                         "name": "name",
-                        "in": "query",
+                        "in": "formData",
                         "required": true
                     },
                     {
                         "type": "string",
                         "description": "Тело шаблона",
                         "name": "body",
-                        "in": "query",
+                        "in": "formData",
                         "required": true
                     }
                 ],
@@ -492,20 +584,38 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
             }
         },
-        "/templ/exec": {
-            "get": {
-                "description": "Выполняет шаблон",
+        "/templ/exec/": {
+            "post": {
+                "description": "Выполняет шаблон. Требует admin token",
+                "consumes": [
+                    "application/x-www-form-urlencoded"
+                ],
                 "produces": [
-                    "plain/text"
+                    "text/plain"
                 ],
                 "tags": [
                     "Template"
@@ -514,49 +624,76 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Admin token",
+                        "name": "X-Admin-Token",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer admin token",
+                        "name": "Authorization",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Имя шаблона",
                         "name": "name",
-                        "in": "query",
+                        "in": "formData",
                         "required": true
                     },
                     {
                         "type": "string",
                         "description": "Имя базы данных",
                         "name": "db",
-                        "in": "query"
+                        "in": "formData"
                     },
                     {
                         "type": "string",
-                        "description": "Формат вывода (str - по умолчанию, json, raw)",
+                        "description": "Формат вывода (text, str, raw, json, xml, html, grafana)",
                         "name": "format",
-                        "in": "query"
+                        "in": "formData"
                     },
                     {
-                        "type": "array",
-                        "description": "Список аргументов",
+                        "type": "string",
+                        "description": "Список аргументов k1=v1,k2=v2",
                         "name": "args",
-                        "in": "query"
+                        "in": "formData"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "405": {
+                        "description": "Method Not Allowed",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 },
                 "x-try-it-out-enabled": false
             }
         },
-        "/templ/get": {
+        "/templ/get/": {
             "get": {
-                "description": "Возвращает тело шаблона",
+                "description": "Возвращает тело шаблона. Требует admin token",
                 "produces": [
-                    "plain/text"
+                    "text/plain"
                 ],
                 "tags": [
                     "Template"
@@ -565,6 +702,18 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Admin token",
+                        "name": "X-Admin-Token",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer admin token",
+                        "name": "Authorization",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
                         "description": "Имя шаблона",
                         "name": "name",
                         "in": "query",
@@ -575,26 +724,47 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
             }
         },
-        "/templ/list": {
+        "/templ/list/": {
             "get": {
-                "description": "Возвращает список шаблонов",
+                "description": "Возвращает список шаблонов. Требует admin token",
                 "produces": [
-                    "plain/text"
+                    "text/plain"
                 ],
                 "tags": [
                     "Template"
                 ],
                 "summary": "Получить список шаблонов",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Admin token",
+                        "name": "X-Admin-Token",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer admin token",
+                        "name": "Authorization",
+                        "in": "header"
+                    },
                     {
                         "type": "string",
                         "description": "Маска поиска шаблона",
@@ -606,10 +776,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }

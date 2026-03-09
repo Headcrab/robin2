@@ -1,139 +1,58 @@
 # TODO Robin2
 
-> Легенда статусов:
->
-> * `[ ]` — задача не выполнена
-> * `[~]` — работа ведётся
-> * `[x]` — задача выполнена и проверена
->
-> Приоритеты:
->
-> * **P0** — критично, необходимо закрыть до следующего публичного развёртывания
-> * **P1** — важно, желательно закрыть в ближайший минорный релиз (≤ 1 мес.)
-> * **P2** — улучшения и косметические доработки
+Status legend:
 
----
+- `[ ]` not done
+- `[~]` in progress
+- `[x]` done
 
-## P0 — Критические задачи
+## P0
 
-### 1. Безопасность
+### Security
 
-1.1 Параметризация SQL‐запросов вместо конкатенации строк
+- `[ ]` Parameterize template metadata queries and template execution paths in `internal/store/base.go`.
+- `[x]` Protect `/templ/*` with admin token and non-GET methods for mutating operations.
+- `[x]` Protect `/api/reload/` with admin token and `POST`.
+- `[x]` Limit `/api/log/clear/` to `POST|DELETE` and gate it by same-origin or admin token.
+- `[ ]` Add a global recover middleware so panics become controlled HTTP failures.
+- `[ ]` Replace mixed `200 OK + #Error:` responses with proper HTTP status codes on template endpoints.
 
-* `[ ]` **internal/store/base.go**
+### Secrets and config
 
-  * `[ ]` TemplateGet
-  * `[ ]` TemplateList
-  * `[ ]` TemplateExec
-  * `[ ]` ExecQuery
-* `[ ]` **internal/store/clickhouse/clickhouse.go** — корректно использовать named/position placeholders
-* `[ ]` **internal/store/mysql/mysql.go**, **oracle.go**, **mssql.go** — обновить Prepare/Exec логку
-* `[ ]` Создать модульные тесты на попытки SQL-инъекций (пакет `store_test`)
+- `[x]` Remove hardcoded DB credentials from `config/Robin.json`.
+- `[x]` Expand `${ENV_NAME}` placeholders from environment during config reload.
+- `[x]` Fail startup or reload when the active DB/cache still depends on unresolved env secrets.
 
-1.2 Авторизация и разграничение прав
+## P1
 
-* `[ ]` Реализовать middleware `auth.JWT`, читающий секрет из ENV
-* `[ ]` Добавить проверку `auth` на эндпойнтах:
-  `/templ/*`, `/api/reload`, `/api/log`, `/api/*` (кроме `/api/info`, `/api/health`)
-* `[ ]` Добавить защиту Swagger UI: bearer token через `Authorize`
+### Store and SQL portability
 
-1.3 Ограничить CORS
+- `[ ]` Make template CRUD portable across supported drivers.
+- `[ ]` Respect selected DB name in template execution and close temporary connections correctly.
+- `[ ]` Apply configured DB timeouts to ping and connection flows.
 
-* `[ ]` Переместить установку заголовка **Access-Control-Allow-Origin** в общее middleware
-* `[ ]` Считать разрешённые Origin-ы из `config.CORS.AllowedOrigins` (массив)
+### Web and runtime safety
 
-1.4 Глобальный recover‑middleware
+- `[ ]` Remove or scope global `pageCache` so users do not share cached UI state.
+- `[ ]` Escape log lines before rendering them into HTML.
+- `[ ]` Make `op_count` atomic.
 
-* `[ ]` Создать `internal/middleware/recover.go` с `defer recover()`
-* `[ ]` Зарегистрировать в `app.go` до Log и Timing middleware
+### Testing
 
-1.5 Исправить двойную отправку ответа при ошибке
+- `[~]` Add focused tests for admin-token enforcement and config env expansion.
+- `[ ]` Separate unit tests from integration tests that require a live database.
+- `[ ]` Decide whether Excel serial dates should resolve to UTC or local time and align tests with code.
 
-* `[ ]` `internal/app/handlersApi.go`, функция `handleTemplateAdd`, строка `if err != nil ...` — добавить `return` после `http.Error`
+## P2
 
----
+### Cleanup
 
-## P1 — Важные задачи
+- `[ ]` Split large handler/store files into smaller units.
+- `[ ]` Decide whether `/api/v2/get/...` should be implemented or removed from public routing.
+- `[ ]` Revisit web page validation for `/data/` and add clearer user-facing errors.
 
-### 2. Архитектура / SOLID
+### Documentation
 
-2.1 Разделить интерфейс `Store`
-
-* `[ ]` Выделить `TagStore`, `TemplateStore`, `MetaStore`
-* `[ ]` Актуализировать импорты во всех местах (`app`, `handlers`)
-
-2.2 Декларативное хранение шаблонов
-
-* `[ ]` Переместить таблицу `runtime.templates` в отдельный модуль `templrepo`
-* `[ ]` Реализовать JSON‑бэкенд как альтернативу БД (файл в `data/templates.json`)
-
-2.3 Dependency Injection для `App`
-
-* `[ ]` Конструктор `NewApp(store.Store, cache.Cache, logger.Logger)`
-* `[ ]` Поддержать старый вызов для обратной совместимости (deprecated)
-
-### 3. Производительность
-
-3.1 Пакетные запросы
-
-* `[ ]` Переписать `GetTagCount` на один SQL используя агрегирование (ClickHouse: `arrayJoin`, MS SQL: `WITH cte`)
-* `[ ]` Переписать `GetTagFromTo` для группового SELECT с `IN` по списку тегов
-
-3.2 Ограничить параллелизм
-
-* `[ ]` Добавить параметр `store.parallel_limit` (default: 8)
-* `[ ]` Подключить существующий `WorkerPool` к `GetTagFromTo`
-
-3.3 Кэш TTL
-
-* `[ ]` MemoryCache: janitor goroutine, удаляющая записи старше TTL раз в N минут (N = TTL/4)
-* `[ ]` RedisCache: `SetEX`+`TTL` configurable
-
-### 4. Тесты
-
-4.1 Unit‑тесты мок‑Store
-
-* `[ ]` Пакет `internal/store/mock`, реализующий `TagStore`, `TemplateStore`
-* `[ ]` Обновить существующие тесты, убрать реальную БД из CI
-
-4.2 Интеграционные тесты
-
-* `[ ]` `docker-compose.test.yml` — ClickHouse + Robin2
-* `[ ]` GitHub Actions workflow `ci.yml` запуск `go test ./...`
-
----
-
-## P2 — Низкий приоритет
-
-### 5. Чистота кода
-
-5.1 Удалить или довести неиспользуемый код
-
-* `[ ]` Пакет `queuedserver` (решить, удалить или интегрировать)
-* `[ ]` `internal/cache/memoryByte.go` (доделать MD5‑ключи или убрать)
-
-5.2 Разбивка крупных файлов
-
-* `[ ]` `handlersApi.go` → `handlers_tag.go`, `handlers_template.go`, `handlers_log.go`
-* `[ ]` `base.go` → `base_tag.go`, `base_template.go`, `base_cache.go`
-
-5.3 Унификация логирования
-
-* `[ ]` Единый формат: `time | level | message | context`
-* `[ ]` Исключить дублирование Error‑логов (выше одного уровня)
-
-### 6. Документация
-
-6.1 README
-
-* `[ ]` Описание схемы БД, миграция `runtime.templates`
-* `[ ]` Полное описание переменных .env
-
-6.2 API‑документация
-
-* `[ ]` JSON‑формат ошибок `{ "error": "..." }`, коды 4xx/5xx
-* `[ ]` Пример авторизации в Swagger (`Bearer <token>`)
-
----
-
-> *Последнее обновление: 2025‑06‑11*
+- `[x]` Sync README, spec, and docs folder with the current route set and security model.
+- `[x]` Remove one-off fix notes from `docs/`.
+- `[ ]` Document error response conventions once handlers stop mixing plain text and HTTP errors.

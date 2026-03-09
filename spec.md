@@ -1,206 +1,264 @@
-# Спецификация проекта Robin
+# Robin2 Specification
 
-Этот документ описывает конфигурацию, API и структуры данных для проекта Robin.
+This document describes the current configuration model, HTTP routes, and operational constraints of the project as implemented in the repository.
 
-## 1. Конфигурация (`config/Robin.json`)
+## 1. Configuration
 
-Основной конфигурационный файл приложения.
+Main config file: `config/Robin.json`
 
-```json
-{
-    "port": 8008,
-    "round": 2,
-    "date_formats": [
-        "2006-01-02 15:04:05",
-        "..."
-    ],
-    "curr_db": "hs0",
-    "db": [
-        {
-            "name": "hs0",
-            "type": "mssql",
-            "host": "hs0",
-            "port": "1433",
-            "user": "sa",
-            "password": "...",
-            "database": "Runtime",
-            "timeout": 30,
-            "connection_string": "...",
-            "query": {
-                "get_tag_date": "...",
-                "get_tag_from_to": "...",
-                "..."
-            }
-        }
-    ],
-    "curr_cache": "redis.localhost",
-    "cache": [
-        {
-            "name": "redis.localhost",
-            "type": "redis",
-            "ttl": 1,
-            "active": "false",
-            "host": "localhost",
-            "port": "6379",
-            "..."
-        }
-    ]
-}
-```
+Key fields:
 
-### Основные параметры:
+- `port`: HTTP port.
+- `round`: default numeric rounding.
+- `date_formats`: accepted input date/time layouts.
+- `curr_db`: active database profile name.
+- `db`: database connection profiles and SQL query templates.
+- `curr_cache`: active cache profile name.
+- `cache`: cache profiles.
 
-*   `port`: Порт, на котором запускается веб-сервер.
-*   `round`: Количество знаков после запятой для округления числовых значений по умолчанию.
-*   `date_formats`: Массив форматов дат, которые приложение пытается распознать.
-*   `curr_db`: Имя текущей базы данных для использования из списка `db`.
-*   `db`: Массив объектов, описывающих подключения к базам данных (поддерживаются `mssql`, `mysql`, `clickhouse`).
-    *   Каждый объект содержит параметры подключения и маппинг `query` с именованными SQL-запросами.
-*   `curr_cache`: Имя текущего кэша для использования из списка `cache`.
-*   `cache`: Массив объектов, описывающих конфигурации кэша (поддерживаются `redis`, `memory`).
+Supported database types:
 
----
+- `mssql`
+- `mysql`
+- `clickhouse`
+- `oracle`
 
-## 2. API Эндпоинты
+Supported cache types:
 
-### 2.1. Системные
+- `memory`
+- `redis`
+
+### Environment Expansion
+
+`config/Robin.json` may contain `${ENV_NAME}` placeholders in database and cache settings. On reload, the service expands them from process environment before selecting the active backend.
+
+If the current database or cache still contains unresolved environment references, startup or reload fails validation.
+
+Relevant environment variables include:
+
+- `ROBIN_ADMIN_TOKEN`
+- `ROBIN_DB_HS0_*`
+- `ROBIN_DB_APPSRV_*`
+- `ROBIN_DB_MYSQL_LOCAL_*`
+- `ROBIN_DB_MYSQL_DOCKER_*`
+- `ROBIN_DB_CLICKHOUSE_DOCKER_*`
+
+## 2. Authentication and Access Rules
+
+Admin-only routes require `ROBIN_ADMIN_TOKEN` and accept it through:
+
+- `X-Admin-Token`
+- `Authorization: Bearer <token>`
+
+Admin-only routes:
+
+- `POST /api/reload/`
+- `GET /templ/list/`
+- `POST /templ/add/`
+- `GET /templ/get/`
+- `POST /templ/edit/`
+- `DELETE /templ/delete/`
+- `POST /templ/exec/`
+
+`/api/log/clear/` is less strict:
+
+- accepts `POST` and `DELETE`;
+- allows either a valid admin token or a same-origin request based on `Origin` or `Referer`.
+
+## 3. HTTP API
+
+### 3.1 System
 
 #### `GET /api/info/`
-**@Summary**: Получить информацию о приложении.
-**@Description**: Возвращает имя, версию и время работы приложения.
-**@Tags**: System
 
-#### `GET /api/reload/`
-**@Summary**: Перезагрузить конфигурацию.
-**@Description**: Перечитывает конфигурационный файл `config/Robin.json`.
-**@Tags**: System
-
-#### `GET /api/log/`
-**@Summary**: Получить лог.
-**@Description**: Возвращает логи приложения.
-**@Tags**: System
-**@Parameters**:
-*   `format` (query, string, optional): Формат вывода (`text`, `json`). По умолчанию `text`.
-
-#### `GET /api/log/clear/`
-**@Summary**: Очистить лог.
-**@Description**: Очищает файл логов.
-**@Tags**: System
-
-#### `GET /api/status/`
-**@Summary**: Получить статус сервера.
-**@Description**: Возвращает статус сервера и текущей базы данных.
-**@Tags**: System
-
-### 2.2. Данные тегов
-
-#### `GET /get/tag/`
-**@Summary**: Получить значение тега.
-**@Description**: Универсальный эндпоинт для получения данных по тегам.
-**@Tags**: Tag
-**@Parameters**:
-*   `tag` (query, string, required): Имя тега. Можно несколько через запятую.
-*   `date` (query, string, optional): Дата для получения значения (`YYYY-MM-DD HH:MM:SS`).
-*   `from` (query, string, optional): Начало периода.
-*   `to` (query, string, optional): Конец периода.
-*   `group` (query, string, optional): Функция агрегации (`avg`, `sum`, `count`, `min`, `max`).
-*   `count` (query, string, optional): Количество значений (для интерполяции).
-*   `round` (query, int, optional): Округление, знаков после запятой.
-*   `format` (query, string, optional): Формат вывода (`text`, `json`, `grafana`).
-
-#### `GET /get/tag/list/`
-**@Summary**: Получить список тегов.
-**@Description**: Возвращает список тегов по маске.
-**@Tags**: Tag
-**@Parameters**:
-*   `like` (query, string, optional): Маска для поиска тегов (например, `TAG*`).
-*   `format` (query, string, optional): Формат вывода (`text`, `json`).
-
-#### `GET /get/tag/up/`
-**@Summary**: Получить даты включения оборудования.
-**@Description**: Возвращает дату и время, когда значение тега изменилось на `1`.
-**@Tags**: Tag
-**@Parameters**:
-*   `tag` (query, string, required): Имя тега.
-*   `from` (query, string, required): Начало периода.
-*   `to` (query, string, required): Конец периода.
-*   `count` (query, int, optional): Порядковый номер события.
-
-#### `GET /get/tag/down/`
-**@Summary**: Получить даты выключения оборудования.
-**@Description**: Возвращает дату и время, когда значение тега изменилось на `0`.
-**@Tags**: Tag
-**@Parameters**:
-*   `tag` (query, string, required): Имя тега.
-*   `from` (query, string, required): Начало периода.
-*   `to` (query, string, required): Конец периода.
-*   `count` (query, int, optional): Порядковый номер события.
-
-### 2.3. Прочее
-
-#### `GET /tag/decode/`
-**@Summary**: Декодировать тег
-**@Description**: Разбирает сложное имя тега на составляющие.
-**@Tags**: Tag
-**@Parameters**:
-*   `tag` (query, string, required): Имя тега для разбора.
-
----
-
-## 3. Структуры данных
-
-Основные структуры данных, используемые в ответах API.
-
-### `Tag`
-
-Представляет одну точку данных для тега.
+Returns JSON:
 
 ```json
 {
-  "name": "TEN_1.Value",
-  "date": "2023-10-01T12:00:00Z",
-  "value": 123.45
+  "name": "Robin",
+  "version": "2.4.99",
+  "uptime": "1m12s",
+  "op_count": 42
 }
 ```
 
-### `Tags`
+#### `GET /api/status/`
 
-Массив объектов `Tag`.
+Returns JSON with database name, type, version, uptime, and application uptime.
 
-### `TimePoint` (пользовательский формат)
+#### `GET /api/log/`
 
-Группировка метрик по временным точкам.
+Supported `format` values:
 
-```json
-[
-    {
-        "time": "2023-10-01T12:00:00Z",
-        "data": [
-            {
-                "name": "TEN_1.Value",
-                "value": 123.45
-            },
-            {
-                "name": "TEN_2.Value",
-                "value": 234.56
-            }
-        ]
-    }
-]
-```
+- `text`
+- `str` -> normalized to `text`
+- `raw` -> normalized to `text`
+- `json`
+- any formatter registered in `internal/format` and supported by the handler path
 
-### Grafana Time Series
+#### `POST /api/reload/`
 
-Формат для интеграции с Grafana.
+Reloads `config/Robin.json`, validates the active backend, and reinitializes cache/store.
 
-```json
-[
-  {
-    "target": "TEN_1.Value",
-    "datapoints": [
-      [123.45, 1696161600000],
-      [123.50, 1696161660000]
-    ]
-  }
-]
-``` 
+Requires admin token.
+
+#### `POST /api/log/clear/`
+#### `DELETE /api/log/clear/`
+
+Clears log files.
+
+Requires admin token or same-origin web access.
+
+### 3.2 Tags
+
+#### `GET /get/tag/`
+
+Modes:
+
+- `tag + date`
+- `tag + from + to`
+- `tag + from + to + group`
+- `tag + from + to + count`
+- `tag + from + to + count + group`
+
+Parameters:
+
+- `tag`: one tag or comma-separated list.
+- `date`: point-in-time lookup.
+- `from`, `to`: range.
+- `group`: aggregation function such as `avg`, `sum`, `count`, `min`, `max`.
+- `count`: number of points for sampled output.
+- `round`: decimal precision override.
+- `format`: response formatter.
+
+#### `GET /get/tag/list/`
+
+Parameters:
+
+- `like`
+- `format`
+
+Default response format is `json`.
+
+#### `GET /get/tag/up/`
+#### `GET /get/tag/down/`
+
+Parameters:
+
+- `tag`
+- `from`
+- `to`
+- `count`
+
+Return plain text timestamp or empty body.
+
+#### `GET /tag/decode/`
+
+Parameters:
+
+- `tag`
+- `format`
+
+Uses `config/tag_classifier.json`.
+
+Default response format is `json`.
+
+### 3.3 Templates
+
+#### `GET /templ/list/`
+
+Query parameters:
+
+- `like`
+
+Restrictions:
+
+- admin token required;
+- `like` must match `^[A-Za-z0-9_.:%-]*$`.
+
+#### `POST /templ/add/`
+
+Form parameters:
+
+- `name`
+- `body`
+
+Restrictions:
+
+- admin token required;
+- `name` must match `^[A-Za-z0-9_.:-]+$`.
+
+#### `GET /templ/get/`
+
+Query parameters:
+
+- `name`
+
+Restrictions:
+
+- admin token required;
+- `name` must match `^[A-Za-z0-9_.:-]+$`.
+
+#### `POST /templ/edit/`
+
+Form parameters:
+
+- `name`
+- `body`
+
+Restrictions:
+
+- admin token required;
+- `name` must match `^[A-Za-z0-9_.:-]+$`.
+
+#### `DELETE /templ/delete/`
+
+Form/query parameters:
+
+- `name`
+
+Restrictions:
+
+- admin token required;
+- `name` must match `^[A-Za-z0-9_.:-]+$`.
+
+#### `POST /templ/exec/`
+
+Form parameters:
+
+- `name`
+- `db`
+- `format`
+- `args` formatted as `k1=v1,k2=v2`
+
+Restrictions:
+
+- admin token required;
+- template name and optional database name must match `^[A-Za-z0-9_.:-]+$`;
+- argument keys must match `^[A-Za-z0-9_]+$`.
+
+## 4. Web UI
+
+Pages served by the binary:
+
+- `/`
+- `/data/`
+- `/tags/`
+- `/logs/`
+- `/charts/`
+- `/docs/`
+- `/docs/view/`
+- `/swagger/`
+
+Static assets:
+
+- `/images/`
+- `/scripts/`
+- `/css/`
+- `/favicon.ico`
+
+The `/docs/` page renders Markdown files from the local `docs` directory.
+
+## 5. API v2
+
+`GET /api/v2/get/...` is present in routing but currently acts as a stub that echoes path segments. It is not a stable data API yet.

@@ -18,21 +18,20 @@ paths:
       - System
   /api/log/:
     get:
-      description: Возвращает логи приложения
+      description: Возвращает логи приложения в text/json и других зарегистрированных
+        форматах
       parameters:
-      - description: Формат вывода (str - по умолчанию, json, raw)
+      - description: Формат вывода (text, str, raw, json, xml, html, grafana)
         in: query
         name: format
         type: string
       produces:
-      - application/json
+      - text/plain
       responses:
         "200":
           description: OK
           schema:
-            items:
-              type: string
-            type: array
+            type: string
       summary: Получить лог
       tags:
       - System
@@ -40,7 +39,7 @@ paths:
     delete:
       description: Очищает файл логов приложения
       produces:
-      - plain/text
+      - text/plain
       responses:
         "200":
           description: Логи очищены
@@ -56,7 +55,7 @@ paths:
     post:
       description: Очищает файл логов приложения
       produces:
-      - plain/text
+      - text/plain
       responses:
         "200":
           description: Логи очищены
@@ -70,18 +69,34 @@ paths:
       tags:
       - System
   /api/reload/:
-    get:
-      description: Презагружает конфигурационный файл приложения в случае изменения
+    post:
+      description: Перечитывает config/Robin.json и переинициализирует активные БД
+        и кэш. Требует admin token
+      parameters:
+      - description: Admin token
+        in: header
+        name: X-Admin-Token
+        type: string
+      - description: Bearer admin token
+        in: header
+        name: Authorization
+        type: string
       produces:
-      - plain/text
+      - text/plain
       responses:
         "200":
           description: OK
           schema:
-            items:
-              type: string
-            type: array
-      summary: Презагрузить конфигурационный файл
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "405":
+          description: Method Not Allowed
+          schema:
+            type: string
+      summary: Перезагрузить конфигурационный файл
       tags:
       - System
   /get/tag/:
@@ -122,7 +137,7 @@ paths:
         name: format
         type: string
       produces:
-      - plain/text json
+      - text/plain
       responses:
         "200":
           description: OK
@@ -155,7 +170,7 @@ paths:
         name: count
         type: string
       produces:
-      - plain/text
+      - text/plain
       responses:
         "200":
           description: OK
@@ -179,7 +194,7 @@ paths:
         name: format
         type: string
       produces:
-      - plain/text
+      - text/plain
       responses:
         "200":
           description: OK
@@ -212,7 +227,7 @@ paths:
         name: count
         type: string
       produces:
-      - plain/text
+      - text/plain
       responses:
         "200":
           description: OK
@@ -237,7 +252,7 @@ paths:
         name: format
         type: string
       produces:
-      - plain/text json
+      - application/json
       responses:
         "200":
           description: OK
@@ -248,151 +263,257 @@ paths:
       summary: Получить расшифровку имени тега
       tags:
       - Tag
-  /templ/add:
-    get:
-      description: Добавляет шаблон
+  /templ/add/:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Добавляет шаблон. Требует admin token
       parameters:
+      - description: Admin token
+        in: header
+        name: X-Admin-Token
+        type: string
+      - description: Bearer admin token
+        in: header
+        name: Authorization
+        type: string
       - description: Имя шаблона
-        in: query
+        in: formData
         name: name
         required: true
         type: string
       - description: Тело шаблона
-        in: query
+        in: formData
         name: body
         required: true
         type: string
       produces:
-      - plain/text
+      - text/plain
       responses:
         "200":
           description: OK
           schema:
-            items:
-              type: string
-            type: array
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "405":
+          description: Method Not Allowed
+          schema:
+            type: string
       summary: Добавить шаблон
       tags:
       - Template
-  /templ/del:
-    get:
-      description: Удаляет шаблон
+  /templ/delete/:
+    delete:
+      description: Удаляет шаблон. Требует admin token
       parameters:
+      - description: Admin token
+        in: header
+        name: X-Admin-Token
+        type: string
+      - description: Bearer admin token
+        in: header
+        name: Authorization
+        type: string
       - description: Имя шаблона
         in: query
         name: name
         required: true
         type: string
       produces:
-      - plain/text
+      - text/plain
       responses:
         "200":
           description: OK
           schema:
-            items:
-              type: string
-            type: array
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "405":
+          description: Method Not Allowed
+          schema:
+            type: string
       summary: Удалить шаблон
       tags:
       - Template
-  /templ/edit:
-    get:
-      description: Изменяет тело шаблона
+  /templ/edit/:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Изменяет тело шаблона. Требует admin token
       parameters:
+      - description: Admin token
+        in: header
+        name: X-Admin-Token
+        type: string
+      - description: Bearer admin token
+        in: header
+        name: Authorization
+        type: string
       - description: Имя шаблона
-        in: query
+        in: formData
         name: name
         required: true
         type: string
       - description: Тело шаблона
-        in: query
+        in: formData
         name: body
         required: true
         type: string
       produces:
-      - plain/text
+      - text/plain
       responses:
         "200":
           description: OK
           schema:
-            items:
-              type: string
-            type: array
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "405":
+          description: Method Not Allowed
+          schema:
+            type: string
       summary: Изменить тело шаблона
       tags:
       - Template
-  /templ/exec:
-    get:
-      description: Выполняет шаблон
+  /templ/exec/:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Выполняет шаблон. Требует admin token
       parameters:
+      - description: Admin token
+        in: header
+        name: X-Admin-Token
+        type: string
+      - description: Bearer admin token
+        in: header
+        name: Authorization
+        type: string
       - description: Имя шаблона
-        in: query
+        in: formData
         name: name
         required: true
         type: string
       - description: Имя базы данных
-        in: query
+        in: formData
         name: db
         type: string
-      - description: Формат вывода (str - по умолчанию, json, raw)
-        in: query
+      - description: Формат вывода (text, str, raw, json, xml, html, grafana)
+        in: formData
         name: format
         type: string
-      - description: Список аргументов
-        in: query
+      - description: Список аргументов k1=v1,k2=v2
+        in: formData
         name: args
-        type: array
+        type: string
       produces:
-      - plain/text
+      - text/plain
       responses:
         "200":
           description: OK
           schema:
-            items:
-              type: string
-            type: array
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "405":
+          description: Method Not Allowed
+          schema:
+            type: string
       summary: Выполнить шаблон
       tags:
       - Template
       x-try-it-out-enabled: false
-  /templ/get:
+  /templ/get/:
     get:
-      description: Возвращает тело шаблона
+      description: Возвращает тело шаблона. Требует admin token
       parameters:
+      - description: Admin token
+        in: header
+        name: X-Admin-Token
+        type: string
+      - description: Bearer admin token
+        in: header
+        name: Authorization
+        type: string
       - description: Имя шаблона
         in: query
         name: name
         required: true
         type: string
       produces:
-      - plain/text
+      - text/plain
       responses:
         "200":
           description: OK
           schema:
-            items:
-              type: string
-            type: array
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
       summary: Получить тело шаблона
       tags:
       - Template
-  /templ/list:
+  /templ/list/:
     get:
-      description: Возвращает список шаблонов
+      description: Возвращает список шаблонов. Требует admin token
       parameters:
+      - description: Admin token
+        in: header
+        name: X-Admin-Token
+        type: string
+      - description: Bearer admin token
+        in: header
+        name: Authorization
+        type: string
       - description: Маска поиска шаблона
         in: query
         name: like
         type: string
       produces:
-      - plain/text
+      - text/plain
       responses:
         "200":
           description: OK
           schema:
-            items:
-              type: string
-            type: array
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
       summary: Получить список шаблонов
       tags:
       - Template
