@@ -743,7 +743,10 @@ func (s *Base) GetTagFromToGroup(tag string, from time.Time, to time.Time, group
 
 	switch group {
 	case "avg", "sum", "min", "max":
-		query = s.config.CurrDB.Query["get_tag_from_to_group"]
+		query = s.config.CurrDB.Query["get_tag_from_to_group_fast"]
+		if query == "" {
+			query = s.config.CurrDB.Query["get_tag_from_to_group"]
+		}
 
 	case "dif":
 		query = s.config.CurrDB.Query["get_tag_from_to_group_dif"]

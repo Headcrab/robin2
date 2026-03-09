@@ -1,18 +1,19 @@
-FROM clickhouse/clickhouse-server:head
+FROM clickhouse/clickhouse-server:25.8.18.1
 
-# 
 ENV TZ=Asia/Almaty
-# Установка cron и других необходимых пакетов
-RUN apt-get update 
-RUN apt-get install -y tzdata 
-RUN apt-get install -y cron 
-RUN apt-get install -y mc 
-RUN apt-get install -y sshfs
+# Установка cron и инструментов для импорта архивов
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tzdata cron mc sshfs python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /var/lib/clickhouse/copyed
+
 # Добавление скрипта
 ADD script_download.sh /etc/cron.d/script_download.sh
 COPY init/ /docker-entrypoint-initdb.d/
+COPY transform_truckscales_json.py /usr/local/bin/transform_truckscales_json.py
 # Дать права на исполнение скрипту
-RUN chmod +x /etc/cron.d/script_download.sh
+RUN chmod +x /etc/cron.d/script_download.sh /usr/local/bin/transform_truckscales_json.py
 # Добавление задач в cron
 RUN echo "* * * * * root /etc/cron.d/script_download.sh >> /var/log/cron.log 2>&1" >> /etc/cron.d/cron-task
 # Ежемесячное удаление логов cron

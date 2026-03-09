@@ -1,38 +1,51 @@
 #!/bin/bash
+set -uo pipefail
 
-# Массив шаблонов имен файлов и соответствующих таблиц ClickHouse
-declare -A patterns=(
+exec 1>>/var/log/import_script.log 2>&1
+
+declare -A direct_patterns=(
     ["result_*.json.gz"]="runtime.history (TagName, DateTime, Value)"
     ["hs_*.json.gz"]="runtime.history (TagName, DateTime, Value)"
-    ["av_*.json.gz"]="truckscales.stat (DateTime, CertNum, Tare, Brutto, DriverName, VanNum, CargoType)"
 )
 
-# Путь к файлам
+declare -A truckscales_patterns=(
+    ["av_*.json.gz"]="truckscales.stat"
+    ["rail_*.json.gz"]="truckscales.stat"
+)
+
 path="/var/lib/clickhouse/copyed/"
+clickhouse_client=(clickhouse-client --password password123 -u admin)
 
-# Лог-файл
-log_file="/var/log/import_script.log"
+import_json_each_row() {
+    local file=$1
+    local table=$2
+    "${clickhouse_client[@]}" --query="INSERT INTO ${table} FROM INFILE '${file}' COMPRESSION 'gzip' FORMAT JSONEachRow"
+}
 
-# Конфигурация клиента ClickHouse
-clickhouse_client_config="--password password123 -u admin"
+import_truckscales_json() {
+    local file=$1
+    local table=$2
+    /usr/local/bin/transform_truckscales_json.py "$file" | \
+        "${clickhouse_client[@]}" --query="INSERT INTO ${table} FORMAT JSONEachRow"
+}
 
-# Перебор всех шаблонов
-for pattern in "${!patterns[@]}"; do
-    # Проверяем, есть ли файлы, соответствующие шаблону
-    files=($(find $path -maxdepth 1 -name "$pattern"))
-    if [ ${#files[@]} -gt 0 ]; then
-        # Файлы найдены, выполнение запроса INSERT
+process_pattern_group() {
+    local importer=$1
+    shift
+    local -n patterns_ref=$1
+
+    for pattern in "${!patterns_ref[@]}"; do
+        mapfile -t files < <(find "$path" -maxdepth 1 -type f -name "$pattern")
         for file in "${files[@]}"; do
-            clickhouse-client $clickhouse_client_config --query="INSERT INTO ${patterns[$pattern]} FROM INFILE '${file}' COMPRESSION 'gzip' FORMAT JSONEachRow"
-            if [ $? -eq 0 ]; then
-                # Если запрос выполнен успешно, удаляем файл
+            if "$importer" "$file" "${patterns_ref[$pattern]}"; then
                 rm "$file"
+                echo "Imported and removed $file"
             else
-                echo "Ошибка при импорте файла $file" >>$log_file
+                echo "Import failed for $file"
             fi
         done
-    fi
-done
+    done
+}
 
-# Перенаправляем все сообщения скрипта в лог-файл
-exec 1>>$log_file 2>&1
+process_pattern_group import_json_each_row direct_patterns
+process_pattern_group import_truckscales_json truckscales_patterns
