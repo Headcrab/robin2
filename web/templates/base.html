@@ -39,7 +39,9 @@
     <nav id="mobile-nav" aria-label="Мобильная навигация">
       <div class="mobile-nav-header">
         <div class="mobile-nav-brand">
-          <img src="/images/icon.png" alt="Robin" class="mobile-nav-brand-icon" />
+          <div class="mobile-nav-brand-icon" aria-hidden="true">
+            <span class="brand-mark">R</span>
+          </div>
           <div>
             <div class="mobile-nav-brand-title">Robin АСУТП</div>
             <div class="mobile-nav-brand-sub">Data System</div>
@@ -84,7 +86,6 @@
       </div>
 
       <div class="mobile-nav-status">
-        <div class="sidebar-status-label" data-i18n="status.system_status">Статус системы</div>
         <div class="sidebar-status-row">
           <div id="mobile-dbstatus" class="status-dot unknown"></div>
           <span id="mobile-dbstatus-text">Проверка...</span>

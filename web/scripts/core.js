@@ -5,7 +5,6 @@ import { updateBreadcrumb } from './navigation.js';
 function loadPage(url) {
     saveParams();
     showLoader();
-    updateBreadcrumb(url);
     
     const TIMEOUT = 60000;
 

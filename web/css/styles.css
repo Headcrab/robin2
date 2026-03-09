@@ -172,19 +172,21 @@ body {
 .sidebar-brand-icon {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, var(--brand-500), var(--accent-500));
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  box-shadow: none;
 }
 
-.sidebar-brand-icon img {
-  width: 24px;
-  height: 24px;
-  filter: brightness(0) invert(1);
+.brand-mark {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.08em;
+  color: #ffffff;
 }
 
 .sidebar-brand-text {
@@ -2403,18 +2405,89 @@ input[type="datetime-local"].form-input {
   padding: 0 24px 18px;
 }
 
+.footer-shell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 24px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(188, 204, 220, 0.72);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text-secondary);
+}
+
+.footer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.footer-meta-end {
+  justify-content: flex-end;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.footer-block {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.footer-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.footer-value {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.footer-note {
+  color: var(--text-muted);
+}
+
+.footer-code {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.footer-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--border);
+}
+
+.footer-bullet {
+  color: var(--border-secondary);
+}
+
 .header-shell {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
+  min-height: 72px;
 }
 
 .header-main {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  justify-content: center;
+  min-height: 72px;
 }
 
 .header-copy {
@@ -2432,9 +2505,12 @@ input[type="datetime-local"].form-input {
 
 .header-title {
   margin: 0;
-  font-size: clamp(24px, 2vw, 34px);
-  line-height: 1.08;
+  font-size: clamp(22px, 1.9vw, 32px);
+  line-height: 1.06;
   letter-spacing: -0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-breadcrumbs {
@@ -2451,7 +2527,7 @@ input[type="datetime-local"].form-input {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
@@ -2473,19 +2549,6 @@ input[type="datetime-local"].form-input {
   border-color: var(--brand-300);
   color: var(--brand-600);
   transform: translateY(-1px);
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  height: 42px;
-  padding: 0 14px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--text-secondary);
-  font-weight: 600;
 }
 
 .header-switchers {
@@ -2558,10 +2621,14 @@ input[type="datetime-local"].form-input {
 .mobile-nav-brand-icon {
   width: 42px;
   height: 42px;
-  padding: 9px;
+  padding: 0;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--brand-500), var(--accent-500));
-  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.24);
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(188, 204, 220, 0.85);
+  box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .mobile-nav-brand-title {
@@ -3047,6 +3114,15 @@ input[type="datetime-local"].form-input {
     flex-direction: column;
   }
 
+  .header-main {
+    min-height: auto;
+  }
+
+  .header-title {
+    white-space: normal;
+    overflow: visible;
+  }
+
   .header-actions,
   .workspace-hero-actions,
   .charts-stage-meta {
@@ -3095,5 +3171,17 @@ input[type="datetime-local"].form-input {
 
   .table-shell {
     padding: 0 8px 8px;
+  }
+
+  .footer-shell,
+  .footer-meta,
+  .footer-meta-end {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .footer-divider,
+  .footer-bullet {
+    display: none;
   }
 }

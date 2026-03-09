@@ -1,47 +1,36 @@
-<div style="padding:12px 24px;">
-  <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;">
-
-    <!-- DB info -->
-    <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center;">
-      <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
-        <span
-          style="font-weight:600; color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">БД</span>
-        <span id="dbtype" style="color:var(--text-secondary); font-weight:500;">—</span>
-        <span id="dbversion" style="color:var(--text-muted);">—</span>
-      </div>
-      <div style="width:1px; height:14px; background:var(--border);"></div>
-      <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
-        <span
-          style="font-weight:600; color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">Сервер</span>
-        <span id="dbserver"
-          style="color:var(--text-secondary); font-family:var(--font-mono,monospace); font-size:11px;">—</span>
-      </div>
+<div class="footer-shell">
+  <div class="footer-meta">
+    <div class="footer-block">
+      <span class="footer-label">БД</span>
+      <span id="dbtype" class="footer-value">—</span>
+      <span id="dbversion" class="footer-note">—</span>
     </div>
 
-    <!-- Uptime info -->
-    <div style="display:flex; flex-wrap:wrap; gap:16px; align-items:center;">
-      <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
-        <span
-          style="font-weight:600; color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">Uptime
-          БД</span>
-        <span id="dbuptime"
-          style="color:var(--text-secondary); font-family:var(--font-mono,monospace); font-size:11px;">—</span>
-      </div>
-      <div style="width:1px; height:14px; background:var(--border);"></div>
-      <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
-        <span
-          style="font-weight:600; color:var(--text-muted); text-transform:uppercase; font-size:10px; letter-spacing:0.5px;">Приложение</span>
-        <span id="appuptime"
-          style="color:var(--text-secondary); font-family:var(--font-mono,monospace); font-size:11px;">—</span>
-      </div>
+    <span class="footer-divider" aria-hidden="true"></span>
+
+    <div class="footer-block">
+      <span class="footer-label">Сервер</span>
+      <span id="dbserver" class="footer-code">—</span>
+    </div>
+  </div>
+
+  <div class="footer-meta">
+    <div class="footer-block">
+      <span class="footer-label">Uptime БД</span>
+      <span id="dbuptime" class="footer-code">—</span>
     </div>
 
-    <!-- Copyright + last update -->
-    <div style="display:flex; align-items:center; gap:10px; font-size:11px; color:var(--text-muted);">
-      <span>© 2024 Robin АСУТП</span>
-      <span style="color:var(--border);">•</span>
-      <span>Обновлено: <span id="last-update" style="font-family:var(--font-mono,monospace);">—</span></span>
-    </div>
+    <span class="footer-divider" aria-hidden="true"></span>
 
+    <div class="footer-block">
+      <span class="footer-label">Приложение</span>
+      <span id="appuptime" class="footer-code">—</span>
+    </div>
+  </div>
+
+  <div class="footer-meta footer-meta-end">
+    <span>© 2024 Robin АСУТП</span>
+    <span class="footer-bullet" aria-hidden="true">•</span>
+    <span>Обновлено: <span id="last-update" class="footer-code">—</span></span>
   </div>
 </div>
