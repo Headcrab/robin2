@@ -13,7 +13,7 @@ function downloadFile(filename, content, mimeType) {
 }
 
 function clearSearchForm() {
-    const form = document.querySelector('form');
+    const form = document.querySelector('.data-workbench form');
     if (form) {
         form.reset();
     }
@@ -22,24 +22,59 @@ function clearSearchForm() {
     const dateFrom = document.getElementById('dateFrom');
     const dateTo = document.getElementById('dateTo');
     const searchCount = document.getElementById('searchCount');
+    const snapshotDate = document.getElementById('snapshotDate');
+    const eventIndex = document.getElementById('eventIndex');
 
     if (searchInput) searchInput.value = '';
     if (dateFrom) dateFrom.value = '';
     if (dateTo) dateTo.value = '';
     if (searchCount) searchCount.value = '300';
+    if (snapshotDate) snapshotDate.value = '';
+    if (eventIndex) eventIndex.value = '0';
+
+    const summaryDefaults = {
+        dataSummaryPoints: '0',
+        dataSummaryWindow: '—',
+        dataSummaryMin: '—',
+        dataSummaryMax: '—',
+        dataSummaryAvg: '—'
+    };
+    Object.entries(summaryDefaults).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+        }
+    });
+
+    const aggregateResult = document.getElementById('aggregateResult');
+    if (aggregateResult) {
+        aggregateResult.innerHTML = `
+            <div class="insight-row">
+                <span>AVG</span>
+                <strong>—</strong>
+            </div>
+        `;
+    }
+
+    const snapshotResult = document.getElementById('snapshotResult');
+    if (snapshotResult) snapshotResult.textContent = 'Выбери тег и дату';
+    const decodeResult = document.getElementById('dataDecodeResult');
+    if (decodeResult) decodeResult.textContent = 'Нажми decode для текущего тега';
+    const eventResult = document.getElementById('eventResult');
+    if (eventResult) eventResult.textContent = 'Используется текущий тег и текущий диапазон';
 
     const results = document.getElementById('data-results');
     if (results) {
         results.innerHTML = `
             <tr>
-                <td colspan="6" class="text-center py-8 text-gray-500">
-                    <div class="flex flex-col items-center space-y-3">
-                        <svg class="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <td colspan="6" class="table-empty-cell">
+                    <div class="table-empty-state">
+                        <svg class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                         <div>
-                            <p class="text-lg font-medium text-gray-900">Введите параметры поиска</p>
-                            <p class="text-gray-500">Заполните форму выше для поиска данных</p>
+                            <p>Введите параметры поиска</p>
+                            <span>Заполните форму выше для поиска данных</span>
                         </div>
                     </div>
                 </td>

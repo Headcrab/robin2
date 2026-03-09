@@ -13,7 +13,13 @@ import {
     loadSwagger,
     searchTagData,
     loadHomePageData,
-    initializeDataPage
+    initializeDataPage,
+    applyDataRangePreset,
+    queryCurrentValue,
+    queryAggregate,
+    queryEvent,
+    decodeCurrentTag,
+    openDataInCharts
 } from './data.js';
 import {
     initializeChartsPage,
@@ -35,6 +41,8 @@ import {
     expandFetchRange,
     shrinkFetchRange,
     toggleSeriesVisibility,
+    copyChartShareLink,
+    openChartDataView,
     saveChartPreset,
     applyChartPreset,
     deleteChartPreset
@@ -63,6 +71,12 @@ window.loadPage = loadPage;
 window.getTagOnDate = getTagOnDate;
 window.getTagList = getTagList;
 window.loadSwagger = loadSwagger;
+window.applyDataRangePreset = applyDataRangePreset;
+window.queryCurrentValue = queryCurrentValue;
+window.queryAggregate = queryAggregate;
+window.queryEvent = queryEvent;
+window.decodeCurrentTag = decodeCurrentTag;
+window.openDataInCharts = openDataInCharts;
 window.showErrorNotification = showErrorNotification;
 window.showSuccessNotification = showSuccessNotification;
 window.setViewMode = setViewMode;
@@ -102,6 +116,8 @@ window.shiftFetchRangeRight = shiftFetchRangeRight;
 window.expandFetchRange = expandFetchRange;
 window.shrinkFetchRange = shrinkFetchRange;
 window.toggleSeriesVisibility = toggleSeriesVisibility;
+window.copyChartShareLink = copyChartShareLink;
+window.openChartDataView = openChartDataView;
 window.saveChartPreset = saveChartPreset;
 window.applyChartPreset = applyChartPreset;
 window.deleteChartPreset = deleteChartPreset;

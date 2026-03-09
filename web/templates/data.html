@@ -1,169 +1,259 @@
-<!-- Data search page -->
-<div style="display:flex; flex-direction:column; gap:20px;">
-
-  <!-- Page header -->
-  <div style="border-bottom:1px solid var(--border); padding-bottom:16px;">
-    <h2 style="font-size:22px; font-weight:700; color:var(--text-primary); letter-spacing:-0.4px; margin:0;"
-      data-i18n="data.title">Данные АСУТП</h2>
-    <p style="font-size:13.5px; color:var(--text-secondary); margin:4px 0 0;" data-i18n="data.subtitle">Поиск и анализ
-      данных по тегам</p>
-  </div>
-
-  <!-- Search form -->
-  <div class="card">
-    <div class="card-header">
-      <h3 data-i18n="data.search_params">Параметры поиска</h3>
+<div class="workspace-page data-workbench">
+  <section class="workspace-hero">
+    <div class="workspace-hero-copy">
+      <span class="workspace-badge">Data Workbench</span>
+      <h2 data-i18n="data.title">Данные АСУТП</h2>
+      <p data-i18n="data.subtitle">Компактный поиск, выборка, декодирование тегов и быстрый переход в графики</p>
     </div>
-    <div class="card-body">
-      <form style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px;"
-        onsubmit="event.preventDefault(); getTagOnDate();">
 
-        <!-- Tag input -->
-        <div class="form-group">
-          <label for="searchInput" class="form-label" data-i18n="data.tag">Тег</label>
-          <div class="form-input-icon-wrap">
-            <svg class="form-input-icon" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-              stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a2 2 0 012-2z" />
-            </svg>
-            <input type="text" id="searchInput" class="form-input" data-i18n-placeholder="data.tag_placeholder"
-              placeholder="Введите название тега" value="" autocomplete="off" />
+    <div class="workspace-hero-actions">
+      <button type="button" class="btn btn-outline" onclick="loadPage('/tags/');">
+        Каталог тегов
+      </button>
+      <button type="button" class="btn btn-primary" onclick="openDataInCharts();">
+        Открыть в графиках
+      </button>
+    </div>
+  </section>
+
+  <div class="workspace-grid">
+    <div class="workspace-main">
+      <section class="card toolbar-card">
+        <div class="card-header">
+          <div>
+            <h3>Основной запрос</h3>
+            <p class="card-subtitle">Диапазонная выборка с компактной таблицей и summary-метриками</p>
+          </div>
+          <div class="toolbar-presets">
+            <button type="button" class="btn btn-outline btn-sm" onclick="applyDataRangePreset('5m')">5м</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="applyDataRangePreset('1h')">1ч</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="applyDataRangePreset('8h')">8ч</button>
+            <button type="button" class="btn btn-outline btn-sm" onclick="applyDataRangePreset('24h')">24ч</button>
           </div>
         </div>
 
-        <!-- Date from -->
-        <div class="form-group">
-          <label for="dateFrom" class="form-label" data-i18n="data.date_from">Дата начала</label>
-          <input type="datetime-local" id="dateFrom" name="dateFrom" class="form-input" value="" />
-        </div>
-
-        <!-- Date to -->
-        <div class="form-group">
-          <label for="dateTo" class="form-label" data-i18n="data.date_to">Дата окончания</label>
-          <input type="datetime-local" id="dateTo" name="dateTo" class="form-input" value="" />
-        </div>
-
-        <!-- Count -->
-        <div class="form-group">
-          <label for="searchCount" class="form-label" data-i18n="data.record_count">Количество записей</label>
-          <input type="number" id="searchCount" class="form-input" placeholder="Макс. записей" value="300" min="1"
-            max="10000" />
-        </div>
-
-        <!-- Buttons -->
-        <div style="grid-column:1/-1; display:flex; justify-content:flex-end; gap:10px; padding-top:4px;">
-          <button type="button" onclick="clearSearchForm()" class="btn btn-outline" data-i18n="common.clear">
-            Очистить
-          </button>
-          <button type="submit" id="searchBtn" class="btn btn-primary" data-i18n="data.find_data">
-            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            Найти данные
-          </button>
-        </div>
-
-      </form>
-    </div>
-  </div>
-
-  <!-- Results -->
-  <div class="card">
-    <div class="card-header">
-      <h3 data-i18n="data.search_results">Результаты поиска</h3>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <button onclick="exportData()" class="btn btn-outline btn-sm" data-i18n-title="data.export_data"
-          title="Экспорт данных">
-          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <span data-i18n="common.export">Экспорт</span>
-        </button>
-        <button onclick="getTagOnDate()" class="btn btn-outline btn-sm btn-icon" title="Обновить данные">
-          <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        </button>
-      </div>
-    </div>
-
-    <!-- Table -->
-    <div style="overflow-x:auto;">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th class="col-time" data-i18n="data.table.time">Время</th>
-            <th class="col-tag" data-i18n="data.table.tag">Тег</th>
-            <th class="col-value" data-i18n="data.table.value">Значение</th>
-            <th class="col-quality" data-i18n="data.table.quality">Качество</th>
-            <th class="col-unit" data-i18n="data.table.unit">Единица</th>
-            <th class="col-description" data-i18n="data.table.description">Описание</th>
-          </tr>
-        </thead>
-        <tbody id="data-results">
-          {{if .data}}
-          {{range .data}}
-          <tr class="data-row" data-raw="{{.}}" data-original="{{formatDataString .}}">
-            <td class="col-time">--</td>
-            <td class="col-tag">--</td>
-            <td class="col-value">--</td>
-            <td class="col-quality">
-              <span class="quality-unknown">--</span>
-            </td>
-            <td class="col-unit">--</td>
-            <td class="col-description">--</td>
-          </tr>
-          {{else}}
-          <tr>
-            <td colspan="6" style="text-align:center; padding:48px 20px; color:var(--text-muted);">
-              <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
-                <svg width="44" height="44" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
-                  style="color:var(--border);">
+        <div class="card-body">
+          <form class="query-grid" onsubmit="event.preventDefault(); getTagOnDate();">
+            <label class="form-group query-grid-span-2">
+              <span class="form-label" data-i18n="data.tag">Тег</span>
+              <div class="form-input-icon-wrap">
+                <svg class="form-input-icon" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                  stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M9 17v-2m3 2v-4m3 4v-6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.99 1.99 0 013 12V7a2 2 0 012-2z" />
                 </svg>
-                <div>
-                  <p style="font-size:14px; font-weight:600; color:var(--text-secondary); margin:0 0 4px;">Нет данных
-                  </p>
-                  <p style="font-size:12.5px; margin:0;">Попробуйте изменить параметры поиска</p>
-                </div>
+                <input type="text" id="searchInput" class="form-input"
+                  data-i18n-placeholder="data.tag_placeholder" placeholder="Введите название тега"
+                  autocomplete="off" />
               </div>
-            </td>
-          </tr>
-          {{end}}
-          {{else}}
-          <tr>
-            <td colspan="6" style="text-align:center; padding:48px 20px; color:var(--text-muted);">
-              <div style="display:flex; flex-direction:column; align-items:center; gap:12px;">
-                <svg width="44" height="44" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"
-                  style="color:var(--border);">
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <span class="form-hint">Можно указать несколько тегов через запятую, если нужен общий range-запрос</span>
+            </label>
+
+            <label class="form-group">
+              <span class="form-label" data-i18n="data.date_from">Дата начала</span>
+              <input type="datetime-local" id="dateFrom" name="dateFrom" class="form-input" />
+            </label>
+
+            <label class="form-group">
+              <span class="form-label" data-i18n="data.date_to">Дата окончания</span>
+              <input type="datetime-local" id="dateTo" name="dateTo" class="form-input" />
+            </label>
+
+            <label class="form-group">
+              <span class="form-label" data-i18n="data.record_count">Количество записей</span>
+              <input type="number" id="searchCount" class="form-input" value="300" min="1" max="10000" />
+            </label>
+
+            <div class="query-actions">
+              <button type="button" onclick="clearSearchForm()" class="btn btn-outline" data-i18n="common.clear">
+                Очистить
+              </button>
+              <button type="submit" id="searchBtn" class="btn btn-primary" data-i18n="data.find_data">
+                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                <div>
-                  <p style="font-size:14px; font-weight:600; color:var(--text-secondary); margin:0 0 4px;">Введите
-                    параметры поиска</p>
-                  <p style="font-size:12.5px; margin:0;">Заполните форму выше для поиска данных</p>
-                </div>
-              </div>
-            </td>
-          </tr>
-          {{end}}
-        </tbody>
-      </table>
+                Найти данные
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="metrics-grid compact-metrics">
+        <article class="metric-card">
+          <span class="metric-label">Строк</span>
+          <strong id="dataSummaryPoints">0</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Окно</span>
+          <strong id="dataSummaryWindow">—</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Min</span>
+          <strong id="dataSummaryMin">—</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Max</span>
+          <strong id="dataSummaryMax">—</strong>
+        </article>
+        <article class="metric-card">
+          <span class="metric-label">Avg</span>
+          <strong id="dataSummaryAvg">—</strong>
+        </article>
+      </section>
+
+      <section class="card results-card">
+        <div class="card-header">
+          <div>
+            <h3 data-i18n="data.search_results">Результаты поиска</h3>
+            <p class="card-subtitle">Временной ряд с быстрой визуальной оценкой значений</p>
+          </div>
+          <div class="result-actions">
+            <button onclick="exportData()" class="btn btn-outline btn-sm" data-i18n-title="data.export_data"
+              title="Экспорт данных">
+              Экспорт
+            </button>
+            <button onclick="getTagOnDate()" class="btn btn-outline btn-sm" title="Обновить данные">
+              Обновить
+            </button>
+          </div>
+        </div>
+
+        <div class="table-shell">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="col-time" data-i18n="data.table.time">Время</th>
+                <th class="col-tag" data-i18n="data.table.tag">Тег</th>
+                <th class="col-value" data-i18n="data.table.value">Значение</th>
+                <th class="col-quality" data-i18n="data.table.quality">Качество</th>
+                <th class="col-unit" data-i18n="data.table.unit">Единица</th>
+                <th class="col-description" data-i18n="data.table.description">Описание</th>
+              </tr>
+            </thead>
+            <tbody id="data-results">
+              {{if .data}}
+              {{range .data}}
+              <tr class="data-row" data-raw="{{.}}" data-original="{{formatDataString .}}">
+                <td class="col-time">--</td>
+                <td class="col-tag">--</td>
+                <td class="col-value">--</td>
+                <td class="col-quality"><span class="quality-unknown">--</span></td>
+                <td class="col-unit">--</td>
+                <td class="col-description">--</td>
+              </tr>
+              {{else}}
+              <tr>
+                <td colspan="6" class="table-empty-cell">
+                  <div class="table-empty-state">
+                    <p>Нет данных</p>
+                    <span>Попробуйте изменить параметры поиска</span>
+                  </div>
+                </td>
+              </tr>
+              {{end}}
+              {{else}}
+              <tr>
+                <td colspan="6" class="table-empty-cell">
+                  <div class="table-empty-state">
+                    <p>Введите параметры поиска</p>
+                    <span>Заполните форму выше для получения данных</span>
+                  </div>
+                </td>
+              </tr>
+              {{end}}
+            </tbody>
+          </table>
+        </div>
+
+        {{if .page}}
+        <div class="results-footer">
+          <div class="pagination">{{.page}}</div>
+        </div>
+        {{end}}
+      </section>
     </div>
 
-    <!-- Pagination -->
-    {{if .page}}
-    <div style="padding:16px 20px; border-top:1px solid var(--border);">
-      <div style="display:flex; justify-content:center;">
-        {{.page}}
-      </div>
-    </div>
-    {{end}}
+    <aside class="workspace-side">
+      <section class="card side-tool-card">
+        <div class="card-header">
+          <div>
+            <h3>Instant tools</h3>
+            <p class="card-subtitle">Snapshot, decode и jump без ручной возни с URL</p>
+          </div>
+        </div>
+        <div class="card-body side-tool-body">
+          <label class="form-group">
+            <span class="form-label">Дата/время снимка</span>
+            <input type="datetime-local" id="snapshotDate" class="form-input" />
+          </label>
 
+          <div class="inline-button-grid">
+            <button type="button" class="btn btn-outline" onclick="queryCurrentValue()">Значение на дату</button>
+            <button type="button" class="btn btn-outline" onclick="decodeCurrentTag()">Decode тега</button>
+          </div>
+
+          <div class="result-panel">
+            <div class="result-panel-label">Snapshot</div>
+            <div id="snapshotResult" class="result-panel-body">Выбери тег и дату</div>
+          </div>
+
+          <div class="result-panel">
+            <div class="result-panel-label">Decode</div>
+            <div id="dataDecodeResult" class="result-panel-body">Нажми decode для текущего тега</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card side-tool-card">
+        <div class="card-header">
+          <div>
+            <h3>Агрегаты</h3>
+            <p class="card-subtitle">Быстрые scalar-запросы по текущему диапазону</p>
+          </div>
+        </div>
+        <div class="card-body side-tool-body">
+          <div class="inline-button-grid">
+            <button type="button" class="btn btn-outline" onclick="queryAggregate('avg')">AVG</button>
+            <button type="button" class="btn btn-outline" onclick="queryAggregate('min')">MIN</button>
+            <button type="button" class="btn btn-outline" onclick="queryAggregate('max')">MAX</button>
+            <button type="button" class="btn btn-outline" onclick="queryAggregate('sum')">SUM</button>
+            <button type="button" class="btn btn-outline" onclick="queryAggregate('count')">COUNT</button>
+          </div>
+
+          <div id="aggregateResult" class="insight-list">
+            <div class="insight-row">
+              <span>AVG</span>
+              <strong>—</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card side-tool-card">
+        <div class="card-header">
+          <div>
+            <h3>События</h3>
+            <p class="card-subtitle">Поиск ближайших up/down в пределах текущего окна</p>
+          </div>
+        </div>
+        <div class="card-body side-tool-body">
+          <label class="form-group">
+            <span class="form-label">Индекс события</span>
+            <input type="number" id="eventIndex" class="form-input" value="0" min="0" />
+          </label>
+
+          <div class="inline-button-grid">
+            <button type="button" class="btn btn-outline" onclick="queryEvent('up')">Первое включение</button>
+            <button type="button" class="btn btn-outline" onclick="queryEvent('down')">Первое отключение</button>
+          </div>
+
+          <div class="result-panel">
+            <div class="result-panel-label">Результат</div>
+            <div id="eventResult" class="result-panel-body">Используется текущий тег и текущий диапазон</div>
+          </div>
+        </div>
+      </section>
+    </aside>
   </div>
 </div>

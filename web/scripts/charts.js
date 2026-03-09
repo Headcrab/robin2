@@ -79,7 +79,7 @@ function initializeChartsPage() {
 }
 
 function bindChartControlEvents() {
-    const root = document.querySelector('.charts-page');
+    const root = document.querySelector('.charts-workbench');
     if (!root || root.dataset.bound === '1') return;
     root.dataset.bound = '1';
 
@@ -317,15 +317,19 @@ function clearSelectedChartTags() {
 }
 
 function renderSelectedChartTags() {
-    const container = document.getElementById('chartSelectedTags');
-    if (!container) return;
+    const containers = ['chartSelectedTags', 'chartSelectedTagsSecondary']
+        .map((id) => document.getElementById(id))
+        .filter(Boolean);
+    if (!containers.length) return;
 
     if (chartState.selectedTags.length === 0) {
-        container.innerHTML = '<span class="tag-empty-hint">Теги не выбраны</span>';
+        containers.forEach((container) => {
+            container.innerHTML = '<span class="tag-empty-hint">Теги не выбраны</span>';
+        });
         return;
     }
 
-    container.innerHTML = chartState.selectedTags
+    const markup = chartState.selectedTags
         .map(
             (tag, index) => `
         <span class="tag-chip" style="border-color:${CHART_COLORS[index % CHART_COLORS.length]}44;">
@@ -336,6 +340,10 @@ function renderSelectedChartTags() {
     `
         )
         .join('');
+
+    containers.forEach((container) => {
+        container.innerHTML = markup;
+    });
 }
 
 async function findChartTagsByMask() {
@@ -1491,6 +1499,44 @@ function clearChartPage() {
     writeChartParamsToURL();
 }
 
+async function copyChartShareLink() {
+    const url = `${window.location.origin}/charts/${window.location.search || ''}`;
+    try {
+        await navigator.clipboard.writeText(url);
+        showSuccessNotification('Ссылка на график скопирована');
+    } catch (_) {
+        const input = document.createElement('input');
+        input.value = url;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        showSuccessNotification('Ссылка на график скопирована');
+    }
+}
+
+function openChartDataView() {
+    if (!chartState.selectedTags.length) {
+        showErrorNotification('Добавьте минимум один тег');
+        return;
+    }
+
+    const params = new URLSearchParams();
+    params.set('tag', chartState.selectedTags.join(','));
+
+    const dateFrom = document.getElementById('chartDateFrom');
+    const dateTo = document.getElementById('chartDateTo');
+    const countInput = document.getElementById('chartCount');
+
+    if (dateFrom?.value) params.set('from', dateFrom.value);
+    if (dateTo?.value) params.set('to', dateTo.value);
+    if (countInput?.value) params.set('count', countInput.value);
+
+    if (typeof window.loadPage === 'function') {
+        window.loadPage(`/data/?${params.toString()}`);
+    }
+}
+
 function saveChartPreset() {
     const presetNameInput = document.getElementById('chartPresetName');
     if (!presetNameInput) return;
@@ -1784,6 +1830,8 @@ export {
     expandFetchRange,
     shrinkFetchRange,
     toggleSeriesVisibility,
+    copyChartShareLink,
+    openChartDataView,
     saveChartPreset,
     applyChartPreset,
     deleteChartPreset

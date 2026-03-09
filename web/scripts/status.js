@@ -26,7 +26,7 @@ function updateSystemStatus(data) {
     updateElementText('appuptime', data.appuptime);
 
     const isOk = data.dbstatus === 'green';
-    const statusClass = isOk ? 'bg-green-500' : 'bg-red-500';
+    const statusClass = isOk ? 'online' : 'offline';
     const statusText = isOk ? 'Работает' : 'Ошибка';
 
     updateStatusIndicator('dbstatus', statusClass);
@@ -44,7 +44,8 @@ function updateSystemStatus(data) {
 function updateStatusIndicator(elementId, statusClass) {
     const element = document.getElementById(elementId);
     if (element) {
-        element.className = element.className.replace(/bg-(green|red|gray)-\d+/, statusClass);
+        element.classList.remove('online', 'offline', 'unknown', 'bg-green-500', 'bg-red-500', 'bg-gray-300');
+        element.classList.add(statusClass);
     }
 }
 
@@ -56,7 +57,7 @@ function updateElementText(elementId, text) {
 }
 
 function setStatusError() {
-    const errorClass = 'bg-red-500';
+    const errorClass = 'offline';
     const errorText = 'Ошибка связи';
 
     updateStatusIndicator('dbstatus', errorClass);
@@ -79,7 +80,7 @@ function updateLastUpdateTime() {
 function updateHomePageStats(data) {
     if (data) {
         const isOk = data.dbstatus === 'green';
-        const statusClass = isOk ? 'bg-green-500' : 'bg-red-500';
+        const statusClass = isOk ? 'online' : 'offline';
         const statusText = isOk ? 'Работает' : 'Ошибка';
         updateStatusIndicator('home-status', statusClass);
         updateElementText('system-status-text', statusText);
@@ -159,7 +160,7 @@ function loadRecentActivity(api) {
 
                 return `
                     <div class="flex items-center space-x-3 text-sm">
-                        <div class="h-2 w-2 rounded-full ${levelClass}"></div>
+                        <div class="status-dot ${levelClass}"></div>
                         <span class="text-gray-500 font-mono text-xs">${time}</span>
                         <span class="text-gray-900 flex-1">${escapeHtml(message).slice(0, 80)}</span>
                     </div>
@@ -187,16 +188,16 @@ function getLevelClass(level) {
         case 'ERR':
         case 'ERROR':
         case 'FATAL':
-            return 'bg-red-500';
+            return 'offline';
         case 'WRN':
         case 'WARN':
         case 'WARNING':
-            return 'bg-yellow-500';
+            return 'warn';
         case 'DBG':
         case 'DEBUG':
-            return 'bg-blue-500';
+            return 'info';
         default:
-            return 'bg-green-500';
+            return 'online';
     }
 }
 
@@ -211,8 +212,8 @@ function showNoActivityMessage() {
     const recentActivityContainer = document.getElementById('recent-activity');
     if (recentActivityContainer) {
         recentActivityContainer.innerHTML = `
-            <div class="flex items-center space-x-3 text-sm text-gray-500">
-                <div class="h-2 w-2 bg-gray-300 rounded-full"></div>
+            <div class="activity-empty">
+                <div class="status-dot unknown"></div>
                 <span>Нет недавних событий</span>
             </div>
         `;

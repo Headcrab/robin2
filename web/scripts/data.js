@@ -83,26 +83,28 @@ function getTagOnDate() {
 
             const normalizedData = normalizeApiData(parsedData, tag);
             updateDataTable(normalizedData, tag);
+            updateDataInsights(normalizedData, tag, dateFrom, dateTo);
 
             const rowsCount = Array.isArray(normalizedData) ? normalizedData.length : String(data).split('\n').filter(Boolean).length;
             showSuccessNotification(`Найдено записей: ${rowsCount}`);
         })
         .catch(error => {
             showErrorNotification(`Ошибка загрузки данных: ${error.message}`);
+            resetDataInsights();
             
             // Показываем пустую таблицу
             const tbody = document.getElementById('data-results');
             if (tbody) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="text-center py-8 text-gray-500">
-                            <div class="flex flex-col items-center space-y-3">
-                                <svg class="h-12 w-12 text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <td colspan="6" class="table-empty-cell">
+                            <div class="table-empty-state table-empty-state-error">
+                                <svg class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 <div>
-                                    <p class="text-lg font-medium text-gray-900">Ошибка загрузки</p>
-                                    <p class="text-gray-500">${error.message}</p>
+                                    <p>Ошибка загрузки</p>
+                                    <span>${error.message}</span>
                                 </div>
                             </div>
                         </td>
@@ -116,6 +118,317 @@ function getTagOnDate() {
                 searchBtn.innerHTML = originalText;
             }
         });
+}
+
+function applyDataRangePreset(preset) {
+    const dateFrom = document.getElementById('dateFrom');
+    const dateTo = document.getElementById('dateTo');
+    if (!dateFrom || !dateTo) return;
+
+    const now = new Date();
+    const from = new Date(now);
+    const presetMap = {
+        '5m': 5 * 60 * 1000,
+        '1h': 60 * 60 * 1000,
+        '8h': 8 * 60 * 60 * 1000,
+        '24h': 24 * 60 * 60 * 1000
+    };
+    from.setTime(now.getTime() - (presetMap[preset] || 5 * 60 * 1000));
+
+    dateFrom.value = from.toISOString().slice(0, 16);
+    dateTo.value = now.toISOString().slice(0, 16);
+    syncSnapshotDate();
+}
+
+function syncSnapshotDate() {
+    const snapshotDate = document.getElementById('snapshotDate');
+    const dateTo = document.getElementById('dateTo');
+    if (snapshotDate && dateTo && dateTo.value) {
+        snapshotDate.value = dateTo.value;
+    }
+}
+
+function getPrimaryTag() {
+    const raw = document.getElementById('searchInput')?.value || '';
+    return String(raw)
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean)[0] || '';
+}
+
+function getDataRangeParams() {
+    const tag = getPrimaryTag();
+    const dateFrom = document.getElementById('dateFrom')?.value || '';
+    const dateTo = document.getElementById('dateTo')?.value || '';
+
+    return {
+        tag,
+        from: convertDateTimeLocal(dateFrom),
+        to: convertDateTimeLocal(dateTo),
+        fromLocal: dateFrom,
+        toLocal: dateTo
+    };
+}
+
+async function fetchDataApi(path, params, expectJson = false) {
+    const apiElement = document.getElementById('apiserver');
+    if (!apiElement) throw new Error('API сервер недоступен');
+
+    const search = new URLSearchParams();
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && String(value) !== '') {
+            search.set(key, String(value));
+        }
+    });
+
+    const response = await fetch(`${apiElement.textContent.trim()}${path}?${search.toString()}`);
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const text = await response.text();
+    if (text.startsWith('#Error:')) {
+        throw new Error(text);
+    }
+
+    if (!expectJson) {
+        return text;
+    }
+
+    try {
+        return JSON.parse(text);
+    } catch (_) {
+        return text;
+    }
+}
+
+function setPanelResult(id, html) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+}
+
+function resetDataInsights() {
+    const defaults = {
+        dataSummaryPoints: '0',
+        dataSummaryWindow: '—',
+        dataSummaryMin: '—',
+        dataSummaryMax: '—',
+        dataSummaryAvg: '—'
+    };
+    Object.entries(defaults).forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+    });
+
+    setPanelResult('snapshotResult', 'Выбери тег и дату');
+    setPanelResult('dataDecodeResult', 'Нажми decode для текущего тега');
+    setPanelResult('eventResult', 'Используется текущий тег и текущий диапазон');
+    setPanelResult('aggregateResult', insightRow('AVG', '—'));
+}
+
+function updateDataInsights(data, currentTag, from, to) {
+    if (!Array.isArray(data) || !data.length) {
+        resetDataInsights();
+        return;
+    }
+
+    const numericValues = data
+        .map((item) => Number.parseFloat(String(item?.value ?? '').replace(',', '.')))
+        .filter((value) => Number.isFinite(value));
+
+    const points = document.getElementById('dataSummaryPoints');
+    const windowEl = document.getElementById('dataSummaryWindow');
+    const minEl = document.getElementById('dataSummaryMin');
+    const maxEl = document.getElementById('dataSummaryMax');
+    const avgEl = document.getElementById('dataSummaryAvg');
+
+    if (points) points.textContent = String(data.length);
+    if (windowEl) windowEl.textContent = describeWindow(from, to);
+
+    if (!numericValues.length) {
+        if (minEl) minEl.textContent = '—';
+        if (maxEl) maxEl.textContent = '—';
+        if (avgEl) avgEl.textContent = '—';
+        return;
+    }
+
+    const min = Math.min(...numericValues);
+    const max = Math.max(...numericValues);
+    const avg = numericValues.reduce((sum, value) => sum + value, 0) / numericValues.length;
+
+    if (minEl) minEl.textContent = formatValue(min);
+    if (maxEl) maxEl.textContent = formatValue(max);
+    if (avgEl) avgEl.textContent = formatValue(avg);
+
+    if (currentTag) {
+        setPanelResult('aggregateResult', [
+            insightRow('AVG', formatValue(avg)),
+            insightRow('MIN', formatValue(min)),
+            insightRow('MAX', formatValue(max)),
+            insightRow('COUNT', String(data.length))
+        ].join(''));
+    }
+}
+
+function describeWindow(from, to) {
+    if (!from || !to) return '—';
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) return '—';
+    const diff = Math.max(0, toDate.getTime() - fromDate.getTime());
+    const minutes = Math.round(diff / 60000);
+    if (minutes < 60) return `${minutes} мин`;
+    const hours = (minutes / 60).toFixed(minutes % 60 === 0 ? 0 : 1);
+    return `${hours} ч`;
+}
+
+function insightRow(label, value) {
+    return `<div class="insight-row"><span>${label}</span><strong>${value}</strong></div>`;
+}
+
+async function queryCurrentValue() {
+    const tag = getPrimaryTag();
+    const snapshotDate = document.getElementById('snapshotDate')?.value || document.getElementById('dateTo')?.value || '';
+    if (!tag) {
+        showErrorNotification('Сначала укажи тег');
+        return;
+    }
+    if (!snapshotDate) {
+        showErrorNotification('Укажи дату снимка');
+        return;
+    }
+
+    setPanelResult('snapshotResult', 'Загрузка...');
+    try {
+        const payload = await fetchDataApi('/get/tag/', {
+            tag,
+            date: convertDateTimeLocal(snapshotDate),
+            format: 'json'
+        }, true);
+        const value = extractScalarValue(payload);
+        setPanelResult('snapshotResult', `<strong>${formatValue(value)}</strong><span>${tag}</span>`);
+    } catch (error) {
+        setPanelResult('snapshotResult', `<span class="result-error">${error.message}</span>`);
+    }
+}
+
+async function queryAggregate(group) {
+    const { tag, from, to } = getDataRangeParams();
+    if (!tag) {
+        showErrorNotification('Сначала укажи тег');
+        return;
+    }
+    if (!from || !to) {
+        showErrorNotification('Укажи диапазон');
+        return;
+    }
+
+    setPanelResult('aggregateResult', insightRow(group.toUpperCase(), '...'));
+    try {
+        const payload = await fetchDataApi('/get/tag/', {
+            tag,
+            from,
+            to,
+            group,
+            format: 'json'
+        }, true);
+        const value = extractScalarValue(payload);
+        setPanelResult('aggregateResult', insightRow(group.toUpperCase(), formatValue(value)));
+    } catch (error) {
+        setPanelResult('aggregateResult', `<div class="result-error">${error.message}</div>`);
+    }
+}
+
+async function queryEvent(type) {
+    const { tag, from, to } = getDataRangeParams();
+    const count = document.getElementById('eventIndex')?.value || '0';
+    if (!tag) {
+        showErrorNotification('Сначала укажи тег');
+        return;
+    }
+    if (!from || !to) {
+        showErrorNotification('Укажи диапазон');
+        return;
+    }
+
+    const endpoint = type === 'down' ? '/get/tag/down/' : '/get/tag/up/';
+    setPanelResult('eventResult', 'Загрузка...');
+    try {
+        const text = await fetchDataApi(endpoint, { tag, from, to, count });
+        setPanelResult('eventResult', `<strong>${text || 'Не найдено'}</strong>`);
+    } catch (error) {
+        setPanelResult('eventResult', `<span class="result-error">${error.message}</span>`);
+    }
+}
+
+async function decodeCurrentTag() {
+    const tag = getPrimaryTag();
+    if (!tag) {
+        showErrorNotification('Сначала укажи тег');
+        return;
+    }
+
+    setPanelResult('dataDecodeResult', 'Загрузка...');
+    try {
+        const payload = await fetchDataApi('/tag/decode/', { tag, format: 'json' }, true);
+        const data = payload?.[tag] || payload?.tag || payload;
+        if (!data || typeof data !== 'object') {
+            setPanelResult('dataDecodeResult', `<span>${String(data || 'Нет данных')}</span>`);
+            return;
+        }
+
+        const rows = Object.entries(data)
+            .filter(([, value]) => value !== null && value !== undefined && String(value).trim() !== '')
+            .map(([key, value]) => insightRow(key, escapeHtml(String(value))));
+
+        setPanelResult('dataDecodeResult', rows.length ? rows.join('') : 'Пустой ответ');
+    } catch (error) {
+        setPanelResult('dataDecodeResult', `<span class="result-error">${error.message}</span>`);
+    }
+}
+
+function openDataInCharts() {
+    const tagValue = document.getElementById('searchInput')?.value?.trim() || '';
+    if (!tagValue) {
+        showErrorNotification('Сначала укажи тег');
+        return;
+    }
+
+    const params = new URLSearchParams();
+    params.set('tags', tagValue);
+
+    const dateFrom = document.getElementById('dateFrom')?.value || '';
+    const dateTo = document.getElementById('dateTo')?.value || '';
+    const count = document.getElementById('searchCount')?.value || '300';
+
+    if (dateFrom) params.set('from', dateFrom);
+    if (dateTo) params.set('to', dateTo);
+    if (count) params.set('count', count);
+
+    if (typeof window.loadPage === 'function') {
+        window.loadPage(`/charts/?${params.toString()}`);
+    }
+}
+
+function extractScalarValue(payload) {
+    if (payload && typeof payload === 'object') {
+        if (Object.prototype.hasOwnProperty.call(payload, 'value')) {
+            return payload.value;
+        }
+        if (Array.isArray(payload.rows) && payload.rows[0] && payload.rows[0].length) {
+            return payload.rows[0][payload.rows[0].length - 1];
+        }
+    }
+    return payload;
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
 }
 
 function convertDateTimeLocal(datetimeLocal) {
@@ -146,14 +459,14 @@ function updateDataTable(data, currentTag) {
     if (!data || (Array.isArray(data) && data.length === 0)) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" class="text-center py-8 text-gray-500">
-                    <div class="flex flex-col items-center space-y-3">
-                        <svg class="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <td colspan="6" class="table-empty-cell">
+                    <div class="table-empty-state">
+                        <svg class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <div>
-                            <p class="text-lg font-medium text-gray-900">Нет данных</p>
-                            <p class="text-gray-500">По указанным параметрам данные не найдены</p>
+                            <p>Нет данных</p>
+                            <span>По указанным параметрам данные не найдены</span>
                         </div>
                     </div>
                 </td>
@@ -166,14 +479,14 @@ function updateDataTable(data, currentTag) {
         if (data.startsWith('#Error:')) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="text-center py-8 text-red-500">
-                        <div class="flex flex-col items-center space-y-3">
-                            <svg class="h-12 w-12 text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <td colspan="6" class="table-empty-cell">
+                        <div class="table-empty-state table-empty-state-error">
+                            <svg class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <div>
-                                <p class="text-lg font-medium text-gray-900">Ошибка API</p>
-                                <p class="text-red-500">${data}</p>
+                                <p>Ошибка API</p>
+                                <span>${data}</span>
                             </div>
                         </div>
                     </td>
@@ -233,7 +546,7 @@ function updateDataTable(data, currentTag) {
                 <td class="col-tag">${tag}</td>
                 <td class="col-value value-cell" data-value="${value}">${value}</td>
                 <td class="col-quality">
-                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getQualityClass(quality)}">
+                    <span class="quality-pill ${getQualityClass(quality)}">
                         ${quality}
                     </span>
                 </td>
@@ -250,14 +563,14 @@ function updateDataTable(data, currentTag) {
 
     tbody.innerHTML = `
         <tr>
-            <td colspan="6" class="text-center py-8 text-gray-500">
-                <div class="flex flex-col items-center space-y-3">
-                    <svg class="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <td colspan="6" class="table-empty-cell">
+                <div class="table-empty-state">
+                    <svg class="empty-state-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     <div>
-                        <p class="text-lg font-medium text-gray-900">Неподдерживаемый формат данных</p>
-                        <p class="text-gray-500">Проверьте параметры запроса или формат ответа API</p>
+                        <p>Неподдерживаемый формат данных</p>
+                        <span>Проверьте параметры запроса или формат ответа API</span>
                     </div>
                 </div>
             </td>
@@ -414,7 +727,30 @@ function initializeDataPage() {
         dateTo.value = now.toISOString().slice(0, 16);
     }
 
+    syncSnapshotDate();
+    dateTo?.addEventListener('change', syncSnapshotDate);
     formatServerRenderedRows();
+    updateDataInsights(readTableRowsAsData(), searchInput?.value || '', dateFrom?.value || '', dateTo?.value || '');
+}
+
+function readTableRowsAsData() {
+    const rows = document.querySelectorAll('#data-results tr.data-row');
+    return Array.from(rows)
+        .map((row) => {
+            const raw = row.getAttribute('data-raw') || row.getAttribute('data-original') || '';
+            if (!raw) return null;
+
+            const parsed = parseDataString(raw);
+            return {
+                timestamp: parsed.time,
+                tag: parsed.tag || getPrimaryTag() || getCurrentTag(),
+                value: parsed.value,
+                quality: parsed.quality || 'OK',
+                unit: parsed.unit || getUnitForTag(parsed.tag || getCurrentTag()),
+                description: parsed.description || getDescriptionForTag(parsed.tag || getCurrentTag())
+            };
+        })
+        .filter(Boolean);
 }
 
 function formatServerRenderedRows() {
@@ -444,7 +780,7 @@ function formatServerRenderedRows() {
         }
         if (qualityCell) {
             qualityCell.textContent = parsed.quality;
-            qualityCell.className = `inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getQualityClass(parsed.quality)}`;
+            qualityCell.className = `quality-pill ${getQualityClass(parsed.quality)}`;
         }
         if (unitCell) unitCell.textContent = parsed.unit || '—';
         if (descriptionCell) descriptionCell.textContent = parsed.description || '—';
@@ -929,11 +1265,17 @@ function searchTagData(tag) {
 
 export { 
     getTagOnDate,
+    applyDataRangePreset,
     getTagList, 
     loadHomePageData,
     loadSwagger,
     initializeDataPage,
     updateDataTable,
+    queryCurrentValue,
+    queryAggregate,
+    queryEvent,
+    decodeCurrentTag,
+    openDataInCharts,
     searchTagData,
     formatTimestamp,
     formatValue,

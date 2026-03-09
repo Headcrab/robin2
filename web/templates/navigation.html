@@ -1,87 +1,60 @@
-<!-- Desktop navigation -->
-<nav style="height:100%; display:flex; flex-direction:column; position:relative;" aria-label="Основная навигация">
-
-  <!-- Top gradient line -->
-  <div
-    style="position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,#6366f1,#06b6d4);">
-  </div>
-
-  <!-- Brand -->
-  <div style="padding:20px 16px 16px; border-bottom:1px solid rgba(255,255,255,0.06);">
-    <div style="display:flex; align-items:center; gap:12px;">
-      <div
-        style="width:40px; height:40px; background:transparent; border-radius:0; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:none;">
-        <img src="/images/icon.png" alt="Robin Logo" style="width:32px; height:32px; object-fit:contain;" />
-      </div>
-      <div>
-        <div style="font-size:15px; font-weight:700; color:#ffffff; letter-spacing:-0.3px; line-height:1.2;">Robin АСУТП
-        </div>
-        <div
-          style="font-size:10px; color:rgba(148,163,184,0.55); letter-spacing:0.8px; text-transform:uppercase; font-weight:600; margin-top:1px;">
-          Data System</div>
-      </div>
+<nav class="sidebar-layout" aria-label="Основная навигация">
+  <a href="#" onclick="loadPage('/'); return false;" class="sidebar-brand">
+    <div class="sidebar-brand-icon">
+      <img src="/images/icon.png" alt="Robin Logo" />
     </div>
-  </div>
-
-  <!-- Nav links -->
-  <div style="flex:1; padding:12px 8px; overflow-y:auto;">
-
-    <div
-      style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:1px; color:rgba(148,163,184,0.4); padding:12px 12px 6px;">
-      Навигация
+    <div class="sidebar-brand-text">
+      <span class="sidebar-brand-title">Robin АСУТП</span>
+      <span class="sidebar-brand-sub">Industrial Data Console</span>
     </div>
+  </a>
 
-    <a href="#" onclick="loadPage('/'); return false;" class="nav-link-item" aria-label="Перейти на главную страницу">
+  <div class="sidebar-nav">
+    <div class="sidebar-section-label">Workspace</div>
+
+    <a href="#" onclick="loadPage('/'); return false;" class="nav-link-item">
       <span class="nav-link-icon"><img src="/images/Home_80px.png" alt="" /></span>
       <span data-i18n="nav.home">Главная</span>
     </a>
 
-    <a href="#" onclick="loadPage('/data/'); return false;" class="nav-link-item" aria-label="Просмотр данных системы">
+    <a href="#" onclick="loadPage('/data/'); return false;" class="nav-link-item">
       <span class="nav-link-icon"><img src="/images/Data Sheet_80px.png" alt="" /></span>
       <span data-i18n="nav.data">Данные</span>
     </a>
 
-    <a href="#" onclick="loadPage('/charts/'); return false;" class="nav-link-item" aria-label="Просмотр графиков">
+    <a href="#" onclick="loadPage('/charts/'); return false;" class="nav-link-item">
       <span class="nav-link-icon"><img src="/images/Data Sheet_96px.png" alt="" /></span>
       <span data-i18n="nav.charts">Графики</span>
     </a>
 
-    <a href="#" onclick="loadPage('/tags/'); return false;" class="nav-link-item" aria-label="Управление тегами">
+    <a href="#" onclick="loadPage('/tags/'); return false;" class="nav-link-item">
       <span class="nav-link-icon"><img src="/images/Report Card_80px.png" alt="" /></span>
       <span data-i18n="nav.tags">Теги</span>
     </a>
 
-    <a href="#" onclick="loadPage('/logs/'); return false;" class="nav-link-item" aria-label="Просмотр логов системы">
+    <a href="#" onclick="loadPage('/logs/'); return false;" class="nav-link-item">
       <span class="nav-link-icon"><img src="/images/Choice_80px.png" alt="" /></span>
       <span data-i18n="nav.logs">Логи</span>
     </a>
 
-    <div
-      style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:1px; color:rgba(148,163,184,0.4); padding:16px 12px 6px;">
-      Справка
-    </div>
+    <div class="sidebar-section-label">Reference</div>
 
-    <a href="#" onclick="loadPage('/docs/'); return false;" class="nav-link-item" aria-label="Документация">
+    <a href="#" onclick="loadPage('/docs/'); return false;" class="nav-link-item">
       <span class="nav-link-icon"><img src="/images/Knowledge_80px.png" alt="" /></span>
       <span data-i18n="nav.docs">Документация</span>
     </a>
 
-    <a href="#" onclick="loadPage('/swagger/'); return false;" class="nav-link-item" aria-label="API документация">
+    <a href="#" onclick="loadPage('/swagger/'); return false;" class="nav-link-item">
       <span class="nav-link-icon"><img src="/images/API_80px.png" alt="" /></span>
       <span data-i18n="nav.api">API</span>
     </a>
-
   </div>
 
-  <!-- Status footer -->
-  <div style="padding:14px 16px; border-top:1px solid rgba(255,255,255,0.06); background:rgba(0,0,0,0.15);">
-    <div
-      style="font-size:10px; text-transform:uppercase; letter-spacing:0.8px; color:rgba(148,163,184,0.45); font-weight:600; margin-bottom:6px;"
-      data-i18n="status.system_status">Статус системы</div>
-    <div id="system-status" style="display:flex; align-items:center; gap:8px;">
+  <div class="sidebar-status">
+    <div class="sidebar-status-label" data-i18n="status.system_status">Статус системы</div>
+    <div id="system-status" class="sidebar-status-row">
       <div id="dbstatus" class="status-dot unknown"></div>
-      <span id="dbstatus-text" style="font-size:12px; color:rgba(148,163,184,0.65);">Проверка...</span>
+      <span id="dbstatus-text">Проверка...</span>
     </div>
   </div>
-
 </nav>
