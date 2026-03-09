@@ -707,3 +707,50 @@ footer,
 [data-theme="dark"] .footer-shell {
     color: var(--text-muted);
 }
+
+[data-theme="dark"] #sidebar,
+[data-theme="dark"] .sidebar {
+    background: linear-gradient(180deg, #0b1220 0%, #0e1628 100%);
+    border-right-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .sidebar-brand,
+[data-theme="dark"] .sidebar-status {
+    background: rgba(5, 10, 18, 0.28);
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .sidebar-brand-title {
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .logo-image {
+    filter: none;
+}
+
+[data-theme="dark"] .theme-toggle,
+[data-theme="dark"] .language-toggle {
+    background: rgba(18, 21, 34, 0.96);
+    border-color: rgba(46, 48, 80, 0.92);
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .theme-toggle:hover,
+[data-theme="dark"] .language-toggle:hover {
+    background: rgba(24, 28, 44, 0.98);
+    color: var(--text-primary);
+}
+
+[data-theme="dark"] .language-dropdown {
+    background: rgba(14, 17, 27, 0.98);
+    border-color: rgba(46, 48, 80, 0.92);
+}
+
+[data-theme="dark"] .language-option {
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .language-option:hover {
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--text-primary);
+}

@@ -1,4 +1,4 @@
-import { showLoader, hideLoader, initializeMobileMenu, closeMobileMenu, showErrorNotification } from './ui.js';
+import { showLoader, hideLoader, initializeShellLayout, closeMobileMenu, showErrorNotification } from './ui.js';
 import { updateBreadcrumb } from './navigation.js';
 
 // core page loading functionality
@@ -48,8 +48,8 @@ function initialize() {
         robinImage.src = imagePath;
     }
     
-    // initialize mobile menu
-    initializeMobileMenu();
+    // initialize shell layout
+    initializeShellLayout();
     
     // initialize theme and language switchers
     if (typeof window.initializeThemeAndLanguage === 'function') {

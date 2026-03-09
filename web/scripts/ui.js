@@ -1,3 +1,71 @@
+const DESKTOP_SIDEBAR_KEY = 'robin2:sidebar-collapsed';
+
+// shell layout
+function initializeShellLayout() {
+    initializeDesktopSidebar();
+    initializeMobileMenu();
+}
+
+function initializeDesktopSidebar() {
+    const appShell = document.querySelector('.app-shell');
+    const toggleButton = document.getElementById('desktop-sidebar-toggle');
+
+    if (!appShell || !toggleButton) {
+        return;
+    }
+
+    if (window.innerWidth <= 1023) {
+        appShell.classList.remove('sidebar-collapsed');
+        toggleButton.setAttribute('aria-expanded', 'false');
+        return;
+    }
+
+    const collapsed = localStorage.getItem(DESKTOP_SIDEBAR_KEY) === '1';
+    appShell.classList.toggle('sidebar-collapsed', collapsed);
+    toggleButton.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+
+    if (toggleButton.dataset.bound !== '1') {
+        toggleButton.dataset.bound = '1';
+        toggleButton.addEventListener('click', toggleDesktopSidebar);
+    }
+
+    if (!window.desktopSidebarResizeBound) {
+        window.desktopSidebarResizeBound = true;
+        window.addEventListener('resize', syncDesktopSidebarForViewport);
+    }
+}
+
+function toggleDesktopSidebar() {
+    const appShell = document.querySelector('.app-shell');
+    const toggleButton = document.getElementById('desktop-sidebar-toggle');
+    if (!appShell || !toggleButton || window.innerWidth <= 1023) {
+        return;
+    }
+
+    const nextCollapsed = !appShell.classList.contains('sidebar-collapsed');
+    appShell.classList.toggle('sidebar-collapsed', nextCollapsed);
+    toggleButton.setAttribute('aria-expanded', nextCollapsed ? 'false' : 'true');
+    localStorage.setItem(DESKTOP_SIDEBAR_KEY, nextCollapsed ? '1' : '0');
+}
+
+function syncDesktopSidebarForViewport() {
+    const appShell = document.querySelector('.app-shell');
+    const toggleButton = document.getElementById('desktop-sidebar-toggle');
+    if (!appShell || !toggleButton) {
+        return;
+    }
+
+    if (window.innerWidth <= 1023) {
+        appShell.classList.remove('sidebar-collapsed');
+        toggleButton.setAttribute('aria-expanded', 'false');
+        return;
+    }
+
+    const collapsed = localStorage.getItem(DESKTOP_SIDEBAR_KEY) === '1';
+    appShell.classList.toggle('sidebar-collapsed', collapsed);
+    toggleButton.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+}
+
 // mobile menu functionality
 function initializeMobileMenu() {
     const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
@@ -167,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function createThemeToggle() {
     const themeToggle = document.createElement('button');
     themeToggle.id = 'theme-toggle';
-    themeToggle.className = 'p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors duration-200';
+    themeToggle.className = 'theme-toggle';
     themeToggle.innerHTML = `
         <span class="mr-1">🌙</span>
         <span class="hidden sm:inline text-sm">Темная</span>
@@ -183,11 +251,11 @@ function createThemeToggle() {
 
 function createLanguageToggle() {
     const languageContainer = document.createElement('div');
-    languageContainer.className = 'relative dropdown';
+    languageContainer.className = 'language-switcher dropdown';
     
     const languageToggle = document.createElement('button');
     languageToggle.id = 'language-toggle';
-    languageToggle.className = 'p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors duration-200 flex items-center';
+    languageToggle.className = 'language-toggle';
     languageToggle.setAttribute('data-bs-toggle', 'dropdown');
     languageToggle.setAttribute('aria-expanded', 'false');
     languageToggle.innerHTML = `
@@ -201,7 +269,7 @@ function createLanguageToggle() {
     
     const dropdown = document.createElement('div');
     dropdown.id = 'language-dropdown';
-    dropdown.className = 'absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 hidden';
+    dropdown.className = 'language-dropdown hidden';
     
     const languages = [
         { code: 'ru', name: 'Русский', flag: '🇷🇺' },
@@ -211,7 +279,7 @@ function createLanguageToggle() {
     
     languages.forEach(lang => {
         const a = document.createElement('a');
-        a.className = 'block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer flex items-center';
+        a.className = 'language-option';
         a.href = '#';
         a.setAttribute('data-lang', lang.code);
         a.innerHTML = `
@@ -261,7 +329,7 @@ function addThemeAndLanguageSwitchers() {
     
     // create container for switchers
     const switchersContainer = document.createElement('div');
-    switchersContainer.className = 'flex items-center space-x-2';
+    switchersContainer.className = 'header-switcher-group';
     switchersContainer.id = 'theme-language-switchers';
     
     // add theme toggle
@@ -322,6 +390,9 @@ function initializeThemeAndLanguage() {
 }
 
 export { 
+    initializeShellLayout,
+    initializeDesktopSidebar,
+    toggleDesktopSidebar,
     initializeMobileMenu, 
     openMobileMenu, 
     closeMobileMenu, 
