@@ -151,6 +151,10 @@ func (a *App) handlePageAny(page string, data map[string]interface{}) func(w htt
 		}
 
 		if err := a.template.ExecuteTemplate(w, "base.html", dataFull); err != nil {
+			if isClientDisconnect(err) {
+				logResponseWriteError(err)
+				return
+			}
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			logger.Error(err.Error())
 		}
@@ -257,10 +261,7 @@ func (a *App) handlePageTags(w http.ResponseWriter, r *http.Request) {
 		if a.pageCache.tagsList == nil {
 			tags, err := a.store.GetTagList(like)
 			if err != nil {
-				_, err := w.Write([]byte("#Error: " + err.Error()))
-				if err != nil {
-					logger.Error(fmt.Sprintf("Error writing response: %v", err))
-				}
+				writeStringResponse(w, "#Error: "+err.Error())
 				return
 			}
 			for _, tag := range tags.Rows {

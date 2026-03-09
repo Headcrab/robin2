@@ -8,9 +8,7 @@ import (
 func (a *App) handleAPIV2GetTagOnDate(w http.ResponseWriter, r *http.Request) {
 	writer := []byte("Error: unknown error")
 	defer func() {
-		if _,err := w.Write(writer); err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		writeResponse(w, writer)
 	}()
 	a.opCount++
 

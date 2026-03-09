@@ -36,10 +36,7 @@ func (a *App) handleTemplateList(w http.ResponseWriter, r *http.Request) {
 
 	b, err := a.store.TemplateList(like)
 	if err != nil {
-		if _, err := w.Write([]byte("#Error: " + err.Error())); err != nil {
-			logger.Error(fmt.Sprintf("Error writing response: %v", err))
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		writeStringResponse(w, "#Error: "+err.Error())
 		return
 	}
 
@@ -47,10 +44,7 @@ func (a *App) handleTemplateList(w http.ResponseWriter, r *http.Request) {
 	for k, v := range b {
 		res += k + "\n " + v + "\n\n"
 	}
-	if _, err := w.Write([]byte(res)); err != nil {
-		logger.Error(fmt.Sprintf("Error writing response: %v", err))
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
+	writeStringResponse(w, res)
 }
 
 // @Summary Добавить шаблон
@@ -78,10 +72,7 @@ func (a *App) handleTemplateAdd(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("adding template")
 	name := r.FormValue("name")
 	if name == "" {
-		_, err := w.Write([]byte("#Error: name is empty"))
-		if err != nil {
-			logger.Error(fmt.Sprintf("Error writing response: %v", err))
-		}
+		writeStringResponse(w, "#Error: name is empty")
 		return
 	}
 	if !isSafeTemplateName(name) {
@@ -91,26 +82,17 @@ func (a *App) handleTemplateAdd(w http.ResponseWriter, r *http.Request) {
 
 	body := r.FormValue("body")
 	if body == "" {
-		_, err := w.Write([]byte("#Error: body is empty"))
-		if err != nil {
-			logger.Error(fmt.Sprintf("Error writing response: %v", err))
-		}
+		writeStringResponse(w, "#Error: body is empty")
 		return
 	}
 
 	err := a.store.TemplateAdd(name, body)
 	if err != nil {
-		_, err := w.Write([]byte("#Error: " + err.Error()))
-		if err != nil {
-			logger.Error(fmt.Sprintf("Error writing response: %v", err))
-		}
+		writeStringResponse(w, "#Error: "+err.Error())
 		return
 	}
 
-	_, err = w.Write([]byte(fmt.Sprintf("Template %s added", name)))
-	if err != nil {
-		logger.Error(fmt.Sprintf("Error writing response: %v", err))
-	}
+	writeStringResponse(w, fmt.Sprintf("Template %s added", name))
 }
 
 // @Summary Получить тело шаблона
@@ -135,10 +117,7 @@ func (a *App) handleTemplateGet(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("getting template")
 	name := r.URL.Query().Get("name")
 	if name == "" {
-		_, err := w.Write([]byte("#Error: name is empty"))
-		if err != nil {
-			logger.Error(fmt.Sprintf("Error writing response: %v", err))
-		}
+		writeStringResponse(w, "#Error: name is empty")
 		return
 	}
 	if !isSafeTemplateName(name) {
@@ -148,16 +127,10 @@ func (a *App) handleTemplateGet(w http.ResponseWriter, r *http.Request) {
 
 	b, err := a.store.TemplateGet(name)
 	if err != nil {
-		_, err := w.Write([]byte("#Error: " + err.Error()))
-		if err != nil {
-			logger.Error(fmt.Sprintf("Error writing response: %v", err))
-		}
+		writeStringResponse(w, "#Error: "+err.Error())
 		return
 	}
-	_, err = w.Write([]byte(b))
-	if err != nil {
-		logger.Error(fmt.Sprintf("Error writing response: %v", err))
-	}
+	writeStringResponse(w, b)
 }
 
 // @Summary Изменить тело шаблона
@@ -185,10 +158,7 @@ func (a *App) handleTemplateEdit(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("editing template")
 	name := r.FormValue("name")
 	if name == "" {
-		_, err := w.Write([]byte("#Error: name is empty"))
-		if err != nil {
-			logger.Error(fmt.Sprintf("Error writing response: %v", err))
-		}
+		writeStringResponse(w, "#Error: name is empty")
 		return
 	}
 	if !isSafeTemplateName(name) {
@@ -198,26 +168,17 @@ func (a *App) handleTemplateEdit(w http.ResponseWriter, r *http.Request) {
 
 	body := r.FormValue("body")
 	if body == "" {
-		_, err := w.Write([]byte("#Error: body is empty"))
-		if err != nil {
-			logger.Error(fmt.Sprintf("Error writing response: %v", err))
-		}
+		writeStringResponse(w, "#Error: body is empty")
 		return
 	}
 
 	err := a.store.TemplateSet(name, body)
 	if err != nil {
-		_, err = w.Write([]byte("#Error: " + err.Error()))
-		if err != nil {
-			logger.Error(fmt.Sprintf("Error writing response: %v", err))
-		}
+		writeStringResponse(w, "#Error: "+err.Error())
 		return
 	}
 
-	_, err = w.Write([]byte(fmt.Sprintf("Template %s edited", name)))
-	if err != nil {
-		logger.Error(fmt.Sprintf("Error writing response: %v", err))
-	}
+	writeStringResponse(w, fmt.Sprintf("Template %s edited", name))
 }
 
 // @Summary Удалить шаблон
@@ -243,10 +204,7 @@ func (a *App) handleTemplateDelete(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("deleting template")
 	name := r.FormValue("name")
 	if name == "" {
-		_, err := w.Write([]byte("#Error: name is empty"))
-		if err != nil {
-			logger.Error(fmt.Sprintf("Error writing response: %v", err))
-		}
+		writeStringResponse(w, "#Error: name is empty")
 		return
 	}
 	if !isSafeTemplateName(name) {
@@ -256,17 +214,11 @@ func (a *App) handleTemplateDelete(w http.ResponseWriter, r *http.Request) {
 
 	err := a.store.TemplateDel(name)
 	if err != nil {
-		_, err := w.Write([]byte("#Error: " + err.Error()))
-		if err != nil {
-			logger.Error(fmt.Sprintf("Error writing response: %v", err))
-		}
+		writeStringResponse(w, "#Error: "+err.Error())
 		return
 	}
 
-	_, err = w.Write([]byte(fmt.Sprintf("Template %s deleted", name)))
-	if err != nil {
-		logger.Error(fmt.Sprintf("Error writing response: %v", err))
-	}
+	writeStringResponse(w, fmt.Sprintf("Template %s deleted", name))
 }
 
 // @Summary Выполнить шаблон
@@ -297,10 +249,7 @@ func (a *App) handleTemplateExec(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("executing template")
 	writer := []byte("#Error: unknown error")
 	defer func() {
-		_, err := w.Write(writer)
-		if err != nil {
-			logger.Error(fmt.Sprintf("Error writing response: %v", err))
-		}
+		writeResponse(w, writer)
 	}()
 	name := r.FormValue("name")
 	if name == "" {

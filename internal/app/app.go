@@ -5,6 +5,7 @@ package robin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"os"
@@ -75,7 +76,7 @@ func NewApp() *App {
 	logger.Debug("initializing app")
 	app.workDir = utils.GetWorkDir()
 	err := godotenv.Load(filepath.Join(app.workDir, ".env"))
-	if err != nil {
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		logger.Info(err.Error())
 	}
 	app.name = os.Getenv("PROJECT_NAME")
@@ -438,7 +439,7 @@ func (a *App) handleSwaggerDark(w http.ResponseWriter, r *http.Request) {
 </html>
 `
 	w.Header().Set("Content-Type", "text/html")
-	w.Write([]byte(swaggerHTML))
+	writeStringResponse(w, swaggerHTML)
 }
 
 // handleSwaggerJSON serves swagger JSON spec

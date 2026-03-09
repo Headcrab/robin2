@@ -12,6 +12,9 @@ type responseWriterWrapper struct {
 }
 
 func (rw *responseWriterWrapper) WriteHeader(status int) {
+	if rw.wrote {
+		return
+	}
 	rw.wrote = true
 	rw.status = status
 	rw.ResponseWriter.WriteHeader(status)

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -56,7 +57,7 @@ var (
 // инициализация переменных из .env файла
 func init() {
 	err := godotenv.Load(filepath.Join(GetWorkDir(), ".env"))
-	if err != nil {
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		slog.Error("Error loading .env file")
 	}
 

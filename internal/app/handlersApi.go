@@ -62,13 +62,13 @@ func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 	case "text", "str", "raw":
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		if err := streamLogAsText(w); err != nil {
-			logger.Error(fmt.Sprintf("Ошибка при потоковой выдаче логов: %v", err))
+			logResponseWriteError(err)
 		}
 		return
 	case "json":
 		w.Header().Set("Content-Type", "application/json")
 		if err := streamLogAsJSON(w); err != nil {
-			logger.Error(fmt.Sprintf("Ошибка при потоковой выдаче логов: %v", err))
+			logResponseWriteError(err)
 		}
 		return
 	default:
@@ -91,10 +91,7 @@ func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 
 	tagValue := fmtr.Process(logs)
 
-	if _, err := w.Write(tagValue); err != nil {
-		logger.Error(fmt.Sprintf("Ошибка при записи ответа: %v", err))
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
+	writeResponse(w, tagValue)
 }
 
 func streamLogAsText(w http.ResponseWriter) error {
@@ -150,10 +147,7 @@ func streamLogAsJSON(w http.ResponseWriter) error {
 func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 	writer := []byte("Error: unknown error")
 	defer func() {
-		if _, err := w.Write(writer); err != nil {
-			logger.Error(fmt.Sprintf("Ошибка при записи ответа: %v", err))
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		writeResponse(w, writer)
 	}()
 
 	a.opCount++
@@ -246,9 +240,7 @@ func (a *App) handleAPIGetTagList(w http.ResponseWriter, r *http.Request) {
 	buf := fmtr.Process(tags)
 
 	// Отправка ответа клиенту
-	if _, err := w.Write(buf); err != nil {
-		http.Error(w, "Ошибка записи ответа: "+err.Error(), http.StatusInternalServerError)
-	}
+	writeResponse(w, buf)
 }
 
 // @Summary Получить даты отключения оборудования
@@ -264,9 +256,7 @@ func (a *App) handleAPIGetTagList(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleAPIGetTagDown(w http.ResponseWriter, r *http.Request) {
 	tag := r.URL.Query().Get("tag")
 	if tag == "" {
-		if _, err := w.Write([]byte("#Error: tag is empty")); err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		writeStringResponse(w, "#Error: tag is empty")
 		return
 	}
 	from := r.URL.Query().Get("from")
@@ -278,23 +268,17 @@ func (a *App) handleAPIGetTagDown(w http.ResponseWriter, r *http.Request) {
 	}
 	fromT, err := utils.ExcelTimeToTime(from, a.config.DateFormats)
 	if err != nil {
-		if _, err = w.Write([]byte("#Error: " + err.Error())); err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		writeStringResponse(w, "#Error: "+err.Error())
 		return
 	}
 	toT, err := utils.ExcelTimeToTime(to, a.config.DateFormats)
 	if err != nil {
-		if _, err = w.Write([]byte("#Error: " + err.Error())); err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		writeStringResponse(w, "#Error: "+err.Error())
 		return
 	}
 	v, err := a.store.GetDownDates(tag, fromT, toT)
 	if err != nil {
-		if _, err = w.Write([]byte("#Error: " + err.Error())); err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		writeStringResponse(w, "#Error: "+err.Error())
 		return
 	} else {
 		// if err != nil {
@@ -305,13 +289,9 @@ func (a *App) handleAPIGetTagDown(w http.ResponseWriter, r *http.Request) {
 		// }
 		if (count >= 0) && (count < len(v)) {
 			val := v[count].Format("2006-01-02 15:04:05")
-			if _, err = w.Write([]byte(val)); err != nil {
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			}
+			writeStringResponse(w, val)
 		} else {
-			if _, err = w.Write([]byte("")); err != nil {
-				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			}
+			writeStringResponse(w, "")
 		}
 	}
 }
@@ -329,10 +309,7 @@ func (a *App) handleAPIGetTagDown(w http.ResponseWriter, r *http.Request) {
 func (a *App) handleAPIGetTagUp(w http.ResponseWriter, r *http.Request) {
 	writer := []byte("#Error: unknown error")
 	defer func() {
-		if _, err := w.Write(writer); err != nil {
-			logger.Error(fmt.Sprintf("Ошибка при записи ответа: %v", err))
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		}
+		writeResponse(w, writer)
 	}()
 
 	tag := r.URL.Query().Get("tag")
@@ -416,10 +393,7 @@ func (a *App) handleAPIClearLog(w http.ResponseWriter, r *http.Request) {
 
 	// Запишем ответ
 	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write([]byte("Логи успешно очищены")); err != nil {
-		logger.Error(fmt.Sprintf("Ошибка при записи ответа: %v", err))
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
+	writeStringResponse(w, "Логи успешно очищены")
 }
 
 // @Summary Полчить информацию
@@ -439,7 +413,7 @@ func (a *App) handleAPIInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewEncoder(w).Encode(inf); err != nil {
-		logger.Error(err.Error())
+		logResponseWriteError(err)
 	}
 }
 
@@ -479,11 +453,7 @@ func (a *App) handleAPIReloadConfig(w http.ResponseWriter, r *http.Request) {
 
 	logger.Info("Configuration reloaded and database initialized successfully")
 	w.WriteHeader(http.StatusOK)
-	_, err := w.Write([]byte("Configuration reloaded and database initialized successfully"))
-	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to write response: %s", err))
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
+	writeStringResponse(w, "Configuration reloaded and database initialized successfully")
 }
 
 func (a *App) handleAPIServerStatus(w http.ResponseWriter, r *http.Request) {
@@ -703,7 +673,5 @@ func (a *App) handleTagDecode(w http.ResponseWriter, r *http.Request) {
 
 	// Устанавливаем заголовок Content-Type и пишем ответ
 	setContentTypeByFormat(w, formatStr)
-	if _, err := w.Write([]byte(s)); err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-	}
+	writeResponse(w, s)
 }
