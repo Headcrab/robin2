@@ -35,6 +35,7 @@ import (
 type App struct {
 	name          string
 	version       string
+	adminToken    string
 	startTime     time.Time
 	workDir       string
 	opCount       int64
@@ -79,6 +80,7 @@ func NewApp() *App {
 	}
 	app.name = os.Getenv("PROJECT_NAME")
 	app.version = os.Getenv("PROJECT_VERSION")
+	app.adminToken = strings.TrimSpace(os.Getenv("ROBIN_ADMIN_TOKEN"))
 	// app.config = config.New()
 	app.config.Load(filepath.Join(app.workDir, "config", "Robin.json"))
 	app.formatterPool = format.NewFormatterPool(10)
@@ -127,6 +129,10 @@ func (a *App) Run() {
 
 func (a *App) initDatabase() error {
 	a.invalidateDbStatusCache()
+
+	if err := a.config.ValidateCurrent(); err != nil {
+		return err
+	}
 
 	var err error
 	a.cache, err = cache.New(a.config)
@@ -203,7 +209,6 @@ func (a *App) initHTTPHandlers() http.Handler {
 	a.template, err = a.template.ParseGlob(filepath.Join(a.workDir, "web", "templates", "*.html"))
 	if err != nil {
 		logger.Fatal(err.Error())
-		panic(err)
 	}
 
 	return middleware.Log(middleware.Timing(mux))

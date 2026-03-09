@@ -15,6 +15,7 @@ import (
 func newTestApp(t *testing.T) *App {
 	t.Helper()
 	t.Setenv("TEST_WORK_DIR", projectRoot())
+	t.Setenv("ROBIN_ADMIN_TOKEN", "secret")
 	app := NewApp()
 	if err := app.initDatabase(); err != nil {
 		t.Skipf("пропущено: нет соединения с БД: %v", err)
@@ -40,6 +41,16 @@ func mustURL(raw string) *url.URL {
 		panic(err)
 	}
 	return u
+}
+
+func adminRequest(method, rawURL string) *http.Request {
+	req := &http.Request{
+		Method: method,
+		URL:    mustURL(rawURL),
+		Header: make(http.Header),
+	}
+	req.Header.Set("X-Admin-Token", "secret")
+	return req
 }
 
 // ─── /api/info/ ──────────────────────────────────────────────────────────────
@@ -133,11 +144,7 @@ func Test_handleAPIClearLog(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := &http.Request{
-				Method: tc.method,
-				URL:    mustURL("/api/log/clear/"),
-				Header: make(http.Header),
-			}
+			req := adminRequest(tc.method, "/api/log/clear/")
 			w := httptest.NewRecorder()
 			app.handleAPIClearLog(w, req)
 			if w.Code != tc.wantCode {
@@ -485,7 +492,9 @@ func Test_handleTagDecode(t *testing.T) {
 func Test_handleAPIReloadConfig(t *testing.T) {
 	app := newTestApp(t)
 
-	w := get(app.handleAPIReloadConfig, "/api/reload/")
+	req := adminRequest(http.MethodPost, "/api/reload/")
+	w := httptest.NewRecorder()
+	app.handleAPIReloadConfig(w, req)
 
 	// Перезагрузка конфига должна успешно отработать если конфиг на месте
 	if w.Code != http.StatusOK && w.Code != http.StatusInternalServerError {
@@ -564,36 +573,42 @@ func Test_handleTemplateValidation(t *testing.T) {
 	cases := []struct {
 		name        string
 		handler     http.HandlerFunc
+		method      string
 		query       string
 		wantContain string
 	}{
 		{
 			name:        "templ add: empty name/body",
 			handler:     app.handleTemplateAdd,
+			method:      http.MethodPost,
 			query:       "/templ/add/",
 			wantContain: "#Error: name is empty",
 		},
 		{
 			name:        "templ get: empty name",
 			handler:     app.handleTemplateGet,
+			method:      http.MethodGet,
 			query:       "/templ/get/",
 			wantContain: "#Error: name is empty",
 		},
 		{
 			name:        "templ edit: empty name",
 			handler:     app.handleTemplateEdit,
+			method:      http.MethodPost,
 			query:       "/templ/edit/",
 			wantContain: "#Error: name is empty",
 		},
 		{
 			name:        "templ delete: empty name",
 			handler:     app.handleTemplateDelete,
+			method:      http.MethodDelete,
 			query:       "/templ/delete/",
 			wantContain: "#Error: name is empty",
 		},
 		{
 			name:        "templ exec: empty name",
 			handler:     app.handleTemplateExec,
+			method:      http.MethodPost,
 			query:       "/templ/exec/",
 			wantContain: "#Error: name is empty",
 		},
@@ -601,7 +616,9 @@ func Test_handleTemplateValidation(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			w := get(tc.handler, tc.query)
+			req := adminRequest(tc.method, tc.query)
+			w := httptest.NewRecorder()
+			tc.handler(w, req)
 			if w.Code != http.StatusOK {
 				t.Fatalf("ожидался 200, получен %d; тело: %s", w.Code, w.Body.String())
 			}

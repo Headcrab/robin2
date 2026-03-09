@@ -9,15 +9,30 @@ import (
 )
 
 // @Summary Получить список шаблонов
-// @Description Возвращает список шаблонов
+// @Description Возвращает список шаблонов. Требует admin token
 // @Tags Template
-// @Produce plain/text
-// @Success 200 {array} string
-// @Router /templ/list [get]
+// @Produce plain
+// @Success 200 {string} string
+// @Failure 400 {string} string
+// @Failure 403 {string} string
+// @Param X-Admin-Token header string false "Admin token"
+// @Param Authorization header string false "Bearer admin token"
+// @Router /templ/list/ [get]
 // @Param like query string false "Маска поиска шаблона"
 func (a *App) handleTemplateList(w http.ResponseWriter, r *http.Request) {
+	if !requireMethod(w, r, http.MethodGet) {
+		return
+	}
+	if !a.requireAdmin(w, r) {
+		return
+	}
+
 	logger.Trace("list templates")
 	like := r.URL.Query().Get("like")
+	if !isSafeTemplateLike(like) {
+		http.Error(w, "invalid template mask", http.StatusBadRequest)
+		return
+	}
 
 	b, err := a.store.TemplateList(like)
 	if err != nil {
@@ -39,24 +54,42 @@ func (a *App) handleTemplateList(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Добавить шаблон
-// @Description Добавляет шаблон
+// @Description Добавляет шаблон. Требует admin token
 // @Tags Template
-// @Produce plain/text
-// @Success 200 {array} string
-// @Router /templ/add [get]
-// @Param name query string true "Имя шаблона"
-// @Param body query string true "Тело шаблона"
+// @Produce plain
+// @Accept x-www-form-urlencoded
+// @Success 200 {string} string
+// @Failure 400 {string} string
+// @Failure 403 {string} string
+// @Failure 405 {string} string
+// @Param X-Admin-Token header string false "Admin token"
+// @Param Authorization header string false "Bearer admin token"
+// @Param name formData string true "Имя шаблона"
+// @Param body formData string true "Тело шаблона"
+// @Router /templ/add/ [post]
 func (a *App) handleTemplateAdd(w http.ResponseWriter, r *http.Request) {
+	if !requireMethod(w, r, http.MethodPost) {
+		return
+	}
+	if !a.requireAdmin(w, r) {
+		return
+	}
+
 	logger.Trace("adding template")
-	name := r.URL.Query().Get("name")
+	name := r.FormValue("name")
 	if name == "" {
 		_, err := w.Write([]byte("#Error: name is empty"))
 		if err != nil {
 			logger.Error(fmt.Sprintf("Error writing response: %v", err))
 		}
+		return
+	}
+	if !isSafeTemplateName(name) {
+		http.Error(w, "invalid template name", http.StatusBadRequest)
+		return
 	}
 
-	body := r.URL.Query().Get("body")
+	body := r.FormValue("body")
 	if body == "" {
 		_, err := w.Write([]byte("#Error: body is empty"))
 		if err != nil {
@@ -71,6 +104,7 @@ func (a *App) handleTemplateAdd(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			logger.Error(fmt.Sprintf("Error writing response: %v", err))
 		}
+		return
 	}
 
 	_, err = w.Write([]byte(fmt.Sprintf("Template %s added", name)))
@@ -80,13 +114,24 @@ func (a *App) handleTemplateAdd(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Получить тело шаблона
-// @Description Возвращает тело шаблона
+// @Description Возвращает тело шаблона. Требует admin token
 // @Tags Template
-// @Produce plain/text
-// @Success 200 {array} string
-// @Router /templ/get [get]
+// @Produce plain
+// @Success 200 {string} string
+// @Failure 400 {string} string
+// @Failure 403 {string} string
+// @Param X-Admin-Token header string false "Admin token"
+// @Param Authorization header string false "Bearer admin token"
+// @Router /templ/get/ [get]
 // @Param name query string true "Имя шаблона"
 func (a *App) handleTemplateGet(w http.ResponseWriter, r *http.Request) {
+	if !requireMethod(w, r, http.MethodGet) {
+		return
+	}
+	if !a.requireAdmin(w, r) {
+		return
+	}
+
 	logger.Trace("getting template")
 	name := r.URL.Query().Get("name")
 	if name == "" {
@@ -94,6 +139,10 @@ func (a *App) handleTemplateGet(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			logger.Error(fmt.Sprintf("Error writing response: %v", err))
 		}
+		return
+	}
+	if !isSafeTemplateName(name) {
+		http.Error(w, "invalid template name", http.StatusBadRequest)
 		return
 	}
 
@@ -112,16 +161,29 @@ func (a *App) handleTemplateGet(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Изменить тело шаблона
-// @Description Изменяет тело шаблона
+// @Description Изменяет тело шаблона. Требует admin token
 // @Tags Template
-// @Produce plain/text
-// @Success 200 {array} string
-// @Router /templ/edit [get]
-// @Param name query string true "Имя шаблона"
-// @Param body query string true "Тело шаблона"
+// @Produce plain
+// @Accept x-www-form-urlencoded
+// @Success 200 {string} string
+// @Failure 400 {string} string
+// @Failure 403 {string} string
+// @Failure 405 {string} string
+// @Param X-Admin-Token header string false "Admin token"
+// @Param Authorization header string false "Bearer admin token"
+// @Param name formData string true "Имя шаблона"
+// @Param body formData string true "Тело шаблона"
+// @Router /templ/edit/ [post]
 func (a *App) handleTemplateEdit(w http.ResponseWriter, r *http.Request) {
+	if !requireMethod(w, r, http.MethodPost) {
+		return
+	}
+	if !a.requireAdmin(w, r) {
+		return
+	}
+
 	logger.Trace("editing template")
-	name := r.URL.Query().Get("name")
+	name := r.FormValue("name")
 	if name == "" {
 		_, err := w.Write([]byte("#Error: name is empty"))
 		if err != nil {
@@ -129,8 +191,12 @@ func (a *App) handleTemplateEdit(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	if !isSafeTemplateName(name) {
+		http.Error(w, "invalid template name", http.StatusBadRequest)
+		return
+	}
 
-	body := r.URL.Query().Get("body")
+	body := r.FormValue("body")
 	if body == "" {
 		_, err := w.Write([]byte("#Error: body is empty"))
 		if err != nil {
@@ -155,20 +221,36 @@ func (a *App) handleTemplateEdit(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Удалить шаблон
-// @Description Удаляет шаблон
+// @Description Удаляет шаблон. Требует admin token
 // @Tags Template
-// @Produce plain/text
-// @Success 200 {array} string
-// @Router /templ/del [get]
+// @Produce plain
+// @Success 200 {string} string
+// @Failure 400 {string} string
+// @Failure 403 {string} string
+// @Failure 405 {string} string
+// @Param X-Admin-Token header string false "Admin token"
+// @Param Authorization header string false "Bearer admin token"
 // @Param name query string true "Имя шаблона"
+// @Router /templ/delete/ [delete]
 func (a *App) handleTemplateDelete(w http.ResponseWriter, r *http.Request) {
+	if !requireMethod(w, r, http.MethodDelete) {
+		return
+	}
+	if !a.requireAdmin(w, r) {
+		return
+	}
+
 	logger.Trace("deleting template")
-	name := r.URL.Query().Get("name")
+	name := r.FormValue("name")
 	if name == "" {
 		_, err := w.Write([]byte("#Error: name is empty"))
 		if err != nil {
 			logger.Error(fmt.Sprintf("Error writing response: %v", err))
 		}
+		return
+	}
+	if !isSafeTemplateName(name) {
+		http.Error(w, "invalid template name", http.StatusBadRequest)
 		return
 	}
 
@@ -188,17 +270,30 @@ func (a *App) handleTemplateDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 // @Summary Выполнить шаблон
-// @Description Выполняет шаблон
+// @Description Выполняет шаблон. Требует admin token
 // @Tags Template
-// @Produce plain/text
-// @Success 200 {array} string
-// @Router /templ/exec [get]
-// @Param name query string true "Имя шаблона"
-// @Param db query string false "Имя базы данных"
-// @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
-// @Param args query array false "Список аргументов"
+// @Produce plain
+// @Accept x-www-form-urlencoded
+// @Success 200 {string} string
+// @Failure 400 {string} string
+// @Failure 403 {string} string
+// @Failure 405 {string} string
+// @Param X-Admin-Token header string false "Admin token"
+// @Param Authorization header string false "Bearer admin token"
+// @Param name formData string true "Имя шаблона"
+// @Param db formData string false "Имя базы данных"
+// @Param format formData string false "Формат вывода (text, str, raw, json, xml, html, grafana)"
+// @Param args formData string false "Список аргументов k1=v1,k2=v2"
 // @x-try-it-out-enabled false
+// @Router /templ/exec/ [post]
 func (a *App) handleTemplateExec(w http.ResponseWriter, r *http.Request) {
+	if !requireMethod(w, r, http.MethodPost) {
+		return
+	}
+	if !a.requireAdmin(w, r) {
+		return
+	}
+
 	logger.Trace("executing template")
 	writer := []byte("#Error: unknown error")
 	defer func() {
@@ -207,24 +302,40 @@ func (a *App) handleTemplateExec(w http.ResponseWriter, r *http.Request) {
 			logger.Error(fmt.Sprintf("Error writing response: %v", err))
 		}
 	}()
-	name := r.URL.Query().Get("name")
+	name := r.FormValue("name")
 	if name == "" {
 		writer = []byte("#Error: name is empty")
 		return
 	}
+	if !isSafeTemplateName(name) {
+		http.Error(w, "invalid template name", http.StatusBadRequest)
+		return
+	}
 
-	formatStr := r.URL.Query().Get("format")
+	formatStr := r.FormValue("format")
 	params := make(map[string]string)
-	args := r.URL.Query().Get("args")
+	args := r.FormValue("args")
 	for _, arg := range strings.Split(args, ",") {
+		arg = strings.TrimSpace(arg)
+		if arg == "" {
+			continue
+		}
 		kv := strings.Split(arg, "=")
 		if len(kv) != 2 {
 			continue
 		}
+		if !isSafeTemplateArgKey(kv[0]) {
+			http.Error(w, "invalid template argument key", http.StatusBadRequest)
+			return
+		}
 		params[kv[0]] = kv[1]
 	}
 
-	db := r.URL.Query().Get("db")
+	db := r.FormValue("db")
+	if db != "" && !isSafeTemplateName(db) {
+		http.Error(w, "invalid database name", http.StatusBadRequest)
+		return
+	}
 	params["db"] = db
 
 	b, err := a.store.TemplateExec(name, params)

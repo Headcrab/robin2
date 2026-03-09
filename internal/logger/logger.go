@@ -27,6 +27,13 @@ var (
 )
 
 type LogLevel int
+type FatalError struct {
+	Msg string
+}
+
+func (e FatalError) Error() string {
+	return e.Msg
+}
 
 const (
 	LevelTrace LogLevel = iota
@@ -238,6 +245,7 @@ func Error(msg string) {
 
 func Fatal(msg string) {
 	logMessage(LevelFatal, msg)
+	panic(FatalError{Msg: msg})
 }
 
 func logMessage(level LogLevel, msg string) {

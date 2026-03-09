@@ -6,6 +6,7 @@ import (
 	"os"
 	"robin2/internal/errors"
 	"robin2/internal/logger"
+	"strings"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
@@ -82,6 +83,7 @@ func (c *Config) Reload() error {
 		logger.Error(err.Error())
 		return err
 	}
+	c.expandEnvRefs()
 
 	var currDB *Database
 	for i := range c.DB {
@@ -110,6 +112,53 @@ func (c *Config) Reload() error {
 		return errors.ErrCurrCacheNotFound
 	} else {
 		c.CurrCache = currCache
+	}
+	return nil
+}
+
+func (c *Config) expandEnvRefs() {
+	for i := range c.DB {
+		c.DB[i].Host = expandEnvRef(c.DB[i].Host)
+		c.DB[i].Port = expandEnvRef(c.DB[i].Port)
+		c.DB[i].User = expandEnvRef(c.DB[i].User)
+		c.DB[i].Password = expandEnvRef(c.DB[i].Password)
+		c.DB[i].Database = expandEnvRef(c.DB[i].Database)
+		c.DB[i].ConnectionString = expandEnvRef(c.DB[i].ConnectionString)
+	}
+
+	for i := range c.Cache {
+		c.Cache[i].Host = expandEnvRef(c.Cache[i].Host)
+		c.Cache[i].Port = expandEnvRef(c.Cache[i].Port)
+		c.Cache[i].Password = expandEnvRef(c.Cache[i].Password)
+		c.Cache[i].ConnectionString = expandEnvRef(c.Cache[i].ConnectionString)
+	}
+}
+
+func expandEnvRef(value string) string {
+	trimmed := strings.TrimSpace(value)
+	if strings.HasPrefix(trimmed, "${") && strings.HasSuffix(trimmed, "}") {
+		key := strings.TrimSuffix(strings.TrimPrefix(trimmed, "${"), "}")
+		if envValue, ok := os.LookupEnv(key); ok {
+			return envValue
+		}
+	}
+	return value
+}
+
+func isEnvRef(value string) bool {
+	trimmed := strings.TrimSpace(value)
+	return strings.HasPrefix(trimmed, "${") && strings.HasSuffix(trimmed, "}")
+}
+
+func (c *Config) ValidateCurrent() error {
+	if c.CurrDB == nil {
+		return errors.ErrCurrDBNotFound
+	}
+	if isEnvRef(c.CurrDB.Host) || isEnvRef(c.CurrDB.User) || isEnvRef(c.CurrDB.Password) {
+		return fmt.Errorf("current database %q requires environment secrets", c.CurrDB.Name)
+	}
+	if c.CurrCache != nil && isEnvRef(c.CurrCache.Host) {
+		return fmt.Errorf("current cache %q requires environment secrets", c.CurrCache.Name)
 	}
 	return nil
 }

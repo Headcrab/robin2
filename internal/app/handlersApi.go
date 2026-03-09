@@ -43,12 +43,12 @@ func setContentTypeByFormat(w http.ResponseWriter, formatStr string) {
 }
 
 // @Summary Получить лог
-// @Description Возвращает логи приложения
+// @Description Возвращает логи приложения в text/json и других зарегистрированных форматах
 // @Tags System
-// @Produce json
-// @Success 200 {array} string
+// @Produce plain
+// @Success 200 {string} string
 // @Router /api/log/ [get]
-// @Param format query string false "Формат вывода (str - по умолчанию, json, raw)"
+// @Param format query string false "Формат вывода (text, str, raw, json, xml, html, grafana)"
 func (a *App) handleAPIGetLog(w http.ResponseWriter, r *http.Request) {
 	logger.Trace("rendered log page")
 
@@ -136,7 +136,7 @@ func streamLogAsJSON(w http.ResponseWriter) error {
 // @Summary Получить значение тега
 // @Description Возвращает значение тега на выбранную дату.
 // @Tags Tag
-// @Produce plain/text json
+// @Produce plain
 // @Success 200 {array} string
 // @Router /get/tag/ [get]
 // @Param tag query string true "Наименование тега"
@@ -208,7 +208,7 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 // @Summary Получить список тегов
 // @Description Возвращает список всех тегов по маске
 // @Tags Tag
-// @Produce plain/text
+// @Produce plain
 // @Success 200 {array} string
 // @Router /get/tag/list/ [get]
 // @Param like query string false "Маска поиска"
@@ -254,7 +254,7 @@ func (a *App) handleAPIGetTagList(w http.ResponseWriter, r *http.Request) {
 // @Summary Получить даты отключения оборудования
 // @Description Возвращает дату и время отключения оборудования
 // @Tags Tag
-// @Produce plain/text
+// @Produce plain
 // @Success 200 {array} string
 // @Router /get/tag/down/ [get]
 // @Param tag query string true "Наименование тега"
@@ -319,7 +319,7 @@ func (a *App) handleAPIGetTagDown(w http.ResponseWriter, r *http.Request) {
 // @Summary Получить даты включения оборудования
 // @Description Возвращает дату и время включения оборудования
 // @Tags Tag
-// @Produce plain/text
+// @Produce plain
 // @Success 200 {array} string
 // @Router /get/tag/up/ [get]
 // @Param tag query string true "Наименование тега"
@@ -380,7 +380,7 @@ func (a *App) handleAPIGetTagUp(w http.ResponseWriter, r *http.Request) {
 // @Summary Очистить лог
 // @Description Очищает файл логов приложения
 // @Tags System
-// @Produce plain/text
+// @Produce plain
 // @Success 200 {string} string "Логи очищены"
 // @Failure 500 {string} string "Ошибка при очистке логов"
 // @Router /api/log/clear/ [delete]
@@ -443,13 +443,24 @@ func (a *App) handleAPIInfo(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// @Summary Презагрузить конфигурационный файл
-// @Description Презагружает конфигурационный файл приложения в случае изменения
+// @Summary Перезагрузить конфигурационный файл
+// @Description Перечитывает config/Robin.json и переинициализирует активные БД и кэш. Требует admin token
 // @Tags System
-// @Produce plain/text
-// @Success 200 {array} string
-// @Router /api/reload/ [get]
+// @Produce plain
+// @Success 200 {string} string
+// @Failure 403 {string} string
+// @Failure 405 {string} string
+// @Param X-Admin-Token header string false "Admin token"
+// @Param Authorization header string false "Bearer admin token"
+// @Router /api/reload/ [post]
 func (a *App) handleAPIReloadConfig(w http.ResponseWriter, r *http.Request) {
+	if !requireMethod(w, r, http.MethodPost) {
+		return
+	}
+	if !a.requireAdmin(w, r) {
+		return
+	}
+
 	logger.Trace("Reloading config file")
 
 	// Перезагрузка конфигурации
@@ -637,7 +648,7 @@ func (a *App) getTagFromToWithGroup(tag, from, to, group string, fmt string, rou
 // @Summary Получить расшифровку имени тега
 // @Description Возвращает расшифровку имени тега
 // @Tags Tag
-// @Produce plain/text json
+// @Produce json
 // @Success 200 {array} string
 // @Router /tag/decode/ [get]
 // @Param tag query string true "Наименование тега"

@@ -12,6 +12,11 @@ import (
 	"testing"
 )
 
+type tagListResponse struct {
+	Headers []string   `json:"headers"`
+	Rows    [][]string `json:"rows"`
+}
+
 // projectRoot вычисляет корень проекта из пути к файлу теста.
 // internal/app -> ../.. -> корень
 func projectRoot() string {
@@ -48,9 +53,7 @@ func Test_endpoint_get_tag_list(t *testing.T) {
 			// test request, get response
 			request := &http.Request{
 				Method: "GET",
-				URL: &url.URL{
-					Path: "/get/tag/list/?like=" + test.tag_like,
-				},
+				URL:    &url.URL{Path: "/get/tag/list/", RawQuery: "like=" + url.QueryEscape(test.tag_like)},
 			}
 			response := httptest.NewRecorder()
 			app.handleAPIGetTagList(response, request)
@@ -59,16 +62,31 @@ func Test_endpoint_get_tag_list(t *testing.T) {
 				t.Errorf("Test '%s' failed: expected status code '%v', got '%v'", test.name, http.StatusOK, response.Code)
 			}
 			// check response body
-			var tags []string
-			err := json.Unmarshal(response.Body.Bytes(), &tags)
+			var payload tagListResponse
+			err := json.Unmarshal(response.Body.Bytes(), &payload)
 			if err != nil {
 				t.Errorf("Test '%s' failed: expected valid json, got '%v'", test.name, err)
 			}
-			if len(tags) != 1 {
-				t.Errorf("Test '%s' failed: expected 1 tag, got '%v'", test.name, len(tags))
+			if test.expected == "" {
+				if len(payload.Rows) != 0 {
+					t.Errorf("Test '%s' failed: expected 0 rows, got '%v'", test.name, len(payload.Rows))
+				}
+				return
 			}
-			if tags[0] != test.expected {
-				t.Errorf("Test '%s' failed: expected tag '%v', got '%v'", test.name, test.expected, tags[0])
+
+			if len(payload.Rows) == 0 {
+				t.Fatalf("Test '%s' failed: expected at least 1 row, got 0", test.name)
+			}
+
+			found := false
+			for _, row := range payload.Rows {
+				if len(row) > 0 && row[0] == test.expected {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("Test '%s' failed: expected tag '%v' in rows '%v'", test.name, test.expected, payload.Rows)
 			}
 		})
 	}

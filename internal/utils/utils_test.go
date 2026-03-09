@@ -79,13 +79,13 @@ func Test_excelTimeToTime(t *testing.T) {
 		{
 			name:     "valid 31.12.2022 00:00:00",
 			time:     "44926,0",
-			expected: time.Date(2022, 12, 31, 0, 0, 0, 0, time.Local),
+			expected: time.Date(2022, 12, 31, 0, 0, 0, 0, time.UTC),
 			err:      nil,
 		},
 		{
 			name:     "valid 10.11.2022 18:12:34",
 			time:     "44875.7587268519",
-			expected: time.Date(2022, 11, 10, 18, 12, 34, 0, time.Local),
+			expected: time.Date(2022, 11, 10, 18, 12, 34, 0, time.UTC),
 			err:      nil,
 		},
 		{
