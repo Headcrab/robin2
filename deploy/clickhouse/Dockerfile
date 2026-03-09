@@ -10,6 +10,7 @@ RUN apt-get install -y mc
 RUN apt-get install -y sshfs
 # Добавление скрипта
 ADD script_download.sh /etc/cron.d/script_download.sh
+COPY init/ /docker-entrypoint-initdb.d/
 # Дать права на исполнение скрипту
 RUN chmod +x /etc/cron.d/script_download.sh
 # Добавление задач в cron
