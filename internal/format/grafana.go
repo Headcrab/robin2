@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"robin2/internal/data"
-
 	"robin2/internal/logger"
 	"time"
 )
@@ -45,6 +44,12 @@ func (r *ResponseFormatterGrafana) Process(val interface{}) []byte {
 		return mustMarshalJSON(v)
 
 	case []string:
+		return mustMarshalJSON(v)
+
+	case logger.LogHistory:
+		return mustMarshalJSON(v)
+
+	case []logger.LogItem:
 		return mustMarshalJSON(v)
 
 	case *data.Output:

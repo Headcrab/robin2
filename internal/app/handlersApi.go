@@ -162,6 +162,9 @@ func (a *App) handleAPIGetTag(w http.ResponseWriter, r *http.Request) {
 	count := query.Get("count")
 	format := normalizeFormatName(query.Get("format"), "text")
 
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	setContentTypeByFormat(w, format)
+
 	round := utils.ThenIf(roundStr != "", func() int { r, _ := strconv.Atoi(roundStr); return r }(), a.config.Round)
 
 	if tag != "" && date != "" {

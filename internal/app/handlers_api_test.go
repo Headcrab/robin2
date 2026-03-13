@@ -446,9 +446,10 @@ func Test_handleTagDecode(t *testing.T) {
 	app := newTestApp(t)
 
 	cases := []struct {
-		name     string
-		query    string
-		wantCode int
+		name               string
+		query              string
+		wantCode           int
+		wantBodyNotContain string
 	}{
 		{
 			name:     "без tag → 400",
@@ -471,6 +472,12 @@ func Test_handleTagDecode(t *testing.T) {
 			wantCode: http.StatusOK,
 		},
 		{
+			name:               "format=xml",
+			query:              "/tag/decode/?tag=A20_WT_01&format=xml",
+			wantCode:           http.StatusOK,
+			wantBodyNotContain: "#Error:",
+		},
+		{
 			name:     "несуществующий тег",
 			query:    "/tag/decode/?tag=NONEXISTENT_XYZ_TAG",
 			wantCode: http.StatusOK,
@@ -482,6 +489,9 @@ func Test_handleTagDecode(t *testing.T) {
 			w := get(app.handleTagDecode, tc.query)
 			if w.Code != tc.wantCode {
 				t.Errorf("ожидался %d, получен %d; тело: %s", tc.wantCode, w.Code, w.Body.String())
+			}
+			if tc.wantBodyNotContain != "" && strings.Contains(w.Body.String(), tc.wantBodyNotContain) {
+				t.Errorf("тело не должно содержать %q; тело: %s", tc.wantBodyNotContain, w.Body.String())
 			}
 		})
 	}

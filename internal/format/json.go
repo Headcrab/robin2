@@ -73,8 +73,8 @@ func (r *ResponseFormatterJSON) Process(val interface{}) []byte {
 		}
 
 	case *data.Output:
-		if len(v.Rows) == 1 {
-			return []byte(fmt.Sprintf(`"%s"`, v.Rows[0][2]))
+		if scalar, ok := scalarOutputValue(v); ok {
+			return []byte(fmt.Sprintf(`"%s"`, scalar))
 		}
 		headers := make([]string, len(v.Headers))
 		copy(headers, v.Headers)

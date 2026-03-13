@@ -75,8 +75,8 @@ func (r *ResponseFormatterString) Process(val interface{}) []byte {
 		}
 
 	case *data.Output:
-		if len(v.Rows) == 1 {
-			return []byte(v.Rows[0][2])
+		if scalar, ok := scalarOutputValue(v); ok {
+			return []byte(scalar)
 		}
 		sb.WriteString(strings.Join(v.Headers, "\t"))
 		sb.WriteString("\n")

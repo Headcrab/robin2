@@ -261,7 +261,9 @@ func (a *App) handleTemplateExec(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	formatStr := r.FormValue("format")
+	formatStr := normalizeFormatName(r.FormValue("format"), "text")
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	setContentTypeByFormat(w, formatStr)
 	params := make(map[string]string)
 	args := r.FormValue("args")
 	for _, arg := range strings.Split(args, ",") {

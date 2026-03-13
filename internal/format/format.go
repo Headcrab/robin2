@@ -4,6 +4,7 @@ package format
 import (
 	"fmt"
 	"math"
+	"robin2/internal/data"
 	"strconv"
 	"strings"
 	"sync"
@@ -37,6 +38,20 @@ func New(format string) (ResponseFormatter, error) {
 type ResponseFormatter interface {
 	Process(val interface{}) []byte
 	SetRound(r int) ResponseFormatter
+}
+
+func scalarOutputValue(out *data.Output) (string, bool) {
+	rows := out.Rows
+	if len(rows) != 1 {
+		return "", false
+	}
+
+	row := rows[0]
+	if len(row) >= 3 {
+		return row[2], true
+	}
+
+	return "", false
 }
 
 func Round(val float32, round float64) float64 {
