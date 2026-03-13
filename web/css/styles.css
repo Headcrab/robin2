@@ -2391,6 +2391,23 @@ input[type="datetime-local"].form-input {
   padding: 24px;
 }
 
+.swagger-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.swagger-frame {
+  display: block;
+  width: 100%;
+  height: calc(100vh - 220px);
+  min-height: 520px;
+  border: 1px solid rgba(188, 204, 220, 0.72);
+  border-radius: 20px;
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-soft);
+}
+
 .app-header {
   position: sticky;
   top: 0;
@@ -3094,6 +3111,12 @@ input[type="datetime-local"].form-input {
   .app-footer {
     padding-left: 14px;
     padding-right: 14px;
+  }
+
+  .swagger-frame {
+    height: calc(100vh - 170px);
+    min-height: 360px;
+    border-radius: 16px;
   }
 
   .workspace-hero,

@@ -35,7 +35,7 @@ tasks:
   swagger:
     desc: "generate swagger documentation"
     cmds:
-      - swag init -g internal/app/app.go --exclude vendor --exclude ./
+      - swag init -g app.go -d internal/app --parseInternal
 
   build:
     desc: "build the application binary"
