@@ -32,6 +32,65 @@ type Base struct {
 	round         int
 }
 
+func scanRowsToOutput(rows *sql.Rows) (*data.Output, error) {
+	out := &data.Output{}
+
+	cols, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+
+	out.Headers = append(out.Headers, cols...)
+
+	values := make([]interface{}, len(cols))
+	scanTargets := make([]interface{}, len(cols))
+	for i := range values {
+		scanTargets[i] = &values[i]
+	}
+
+	for rows.Next() {
+		if err := rows.Scan(scanTargets...); err != nil {
+			return nil, err
+		}
+
+		row := make([]string, len(values))
+		for i, value := range values {
+			row[i] = stringifyScannedValue(value)
+		}
+
+		out.Rows = append(out.Rows, row)
+		out.Count = len(out.Rows)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func stringifyScannedValue(value interface{}) string {
+	switch v := value.(type) {
+	case nil:
+		return ""
+	case []byte:
+		return string(v)
+	case sql.RawBytes:
+		return string(v)
+	case string:
+		return v
+	case *string:
+		if v == nil {
+			return ""
+		}
+		return *v
+	case fmt.Stringer:
+		return v.String()
+	default:
+		return fmt.Sprint(v)
+	}
+}
+
 // getMaxConnLimit возвращает лимит максимальных соединений.
 // Если MaxConnLimit установлен в конфиге, используется он.
 // Иначе используется значение по умолчанию 100.
@@ -844,45 +903,18 @@ func (s *Base) GetTagList(like string) (*data.Output, error) {
 	query = strings.Replace(query, "{tag}", like, -1)
 	// tags := make([]string, 0, 15000)
 	rows, err := s.db.Query(query)
+	if err != nil {
+		logger.Debug(err.Error())
+		return nil, err
+	}
 	defer func() {
 		err := rows.Close()
 		if err != nil {
 			logger.Debug(err.Error())
 		}
 	}()
-	if err != nil {
-		logger.Debug(err.Error())
-		return nil, err
-	}
 
-	out := &data.Output{}
-	cols, err := rows.Columns()
-	if err != nil {
-		return nil, err
-	}
-
-	out.Headers = append(out.Headers, cols...)
-
-	row := make([]interface{}, len(cols))
-	for i := range row {
-		row[i] = new(sql.RawBytes)
-	}
-
-	for rows.Next() {
-		err = rows.Scan(row...)
-		if err != nil {
-			return nil, err
-		}
-
-		values := make([]string, len(cols))
-		for i, v := range row {
-			values[i] = string(*v.(*sql.RawBytes))
-		}
-
-		out.Rows = append(out.Rows, values)
-	}
-
-	return out, nil
+	return scanRowsToOutput(rows)
 }
 
 // GetDownDates получает список дат отключений в указанном временном диапазоне, отфильтрованный по тегу.
@@ -1120,35 +1152,5 @@ func (s *Base) ExecQuery(query string) (*data.Output, error) {
 	}
 	defer rows.Close()
 
-	out := &data.Output{}
-
-	cols, err := rows.Columns()
-	if err != nil {
-		return nil, err
-	}
-
-	out.Headers = append(out.Headers, cols...)
-
-	row := make([]interface{}, len(cols))
-	for i := range row {
-		row[i] = new(sql.RawBytes)
-	}
-
-	for rows.Next() {
-		err = rows.Scan(row...)
-		if err != nil {
-			return nil, err
-		}
-
-		// Convert row to []string
-		strRow := make([]string, len(row))
-		for i, v := range row {
-			strRow[i] = string(*v.(*sql.RawBytes))
-		}
-
-		out.Rows = append(out.Rows, strRow)
-		out.Count = len(out.Rows)
-	}
-
-	return out, nil
+	return scanRowsToOutput(rows)
 }

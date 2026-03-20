@@ -92,3 +92,43 @@ func TestSampleTagCountValues(t *testing.T) {
 		}
 	})
 }
+
+func TestStringifyScannedValue(t *testing.T) {
+	text := "bulk cargo"
+	now := time.Date(2026, 2, 16, 19, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name  string
+		value interface{}
+		want  string
+	}{
+		{
+			name:  "nil becomes empty string",
+			value: nil,
+			want:  "",
+		},
+		{
+			name:  "bytes become string",
+			value: []byte("abc"),
+			want:  "abc",
+		},
+		{
+			name:  "string pointer is dereferenced",
+			value: &text,
+			want:  "bulk cargo",
+		},
+		{
+			name:  "time uses stringer output",
+			value: now,
+			want:  now.String(),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := stringifyScannedValue(tt.value); got != tt.want {
+				t.Fatalf("expected %q, got %q", tt.want, got)
+			}
+		})
+	}
+}
