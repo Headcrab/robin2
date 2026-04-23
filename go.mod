@@ -2,8 +2,6 @@ module robin2
 
 go 1.26.1
 
-toolchain go1.26.1
-
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.40.3
 	github.com/denisenkom/go-mssqldb v0.12.3
@@ -20,9 +18,6 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/dmarkham/enumer v1.6.1 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
-	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/swag/cmdutils v0.25.0 // indirect
 	github.com/go-openapi/swag/conv v0.25.0 // indirect
 	github.com/go-openapi/swag/fileutils v0.25.0 // indirect
@@ -34,21 +29,11 @@ require (
 	github.com/go-openapi/swag/stringutils v0.25.0 // indirect
 	github.com/go-openapi/swag/typeutils v0.25.0 // indirect
 	github.com/go-openapi/swag/yamlutils v0.25.0 // indirect
-	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/hashicorp/go-version v1.7.0 // indirect
-	github.com/nxadm/tail v1.4.8 // indirect
-	github.com/pascaldekloe/name v1.0.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/otel/metric v1.38.0 // indirect
-	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.0 // indirect
+	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/mod v0.28.0 // indirect
-	golang.org/x/net v0.44.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
-	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	olympos.io/encoding/edn v0.0.0-20201019073823-d3554ca0b0a3 // indirect
 )
 
@@ -68,14 +53,11 @@ require (
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/ilyakaznacheev/cleanenv v1.5.0
-	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
-	github.com/mailru/easyjson v0.9.1 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.38.2 // indirect
 	github.com/paulmach/orb v0.12.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sijms/go-ora/v2 v2.9.0

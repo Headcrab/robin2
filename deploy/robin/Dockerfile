@@ -5,18 +5,16 @@ ENV PROJECT_NAME=$PROJECT_NAME
 
 WORKDIR /$PROJECT_NAME
 RUN echo $PROJECT_NAME
+
+COPY go.mod go.sum ./
+RUN go mod download
+
 COPY cmd cmd
 COPY docs docs
 COPY internal internal
-# COPY vendor vendor
-COPY go.mod go.mod
-RUN go mod tidy
-RUN go mod download
 RUN CGO_ENABLED=0 go build -ldflags '-s -w' -trimpath -o ./bin/$PROJECT_NAME ./cmd/
-# RUN echo "nameserver 8.8.8.8" > /etc/resolv.conf && echo "nameserver 8.8.4.4" >> /etc/resolv.conf \
-#   && echo "nameserver 1.1.1.1" >> /etc/resolv.conf \
-#   && echo "nameserver 194.67.2.114" >> /etc/resolv.conf && echo "nameserver 194.67.1.154" >> /etc/resolv.conf
-RUN apk update && apk add upx
+
+RUN apk add --no-cache upx
 RUN upx ./bin/$PROJECT_NAME
 
 #todo: тоже норм, но нужно посмотреть настройки mc
@@ -40,19 +38,18 @@ ENV PROJECT_VERSION=$PROJECT_VERSION
 ARG PORT
 ENV PORT=$PORT
 
-RUN apk update && apk add tzdata
-RUN apk update && apk add mc
+RUN apk add --no-cache tzdata mc
 
 WORKDIR /$PROJECT_NAME
 COPY --from=builder $PROJECT_NAME/bin/$PROJECT_NAME bin/
 COPY web web
 COPY docs docs
-COPY log log
 COPY config config
-RUN chmod a+rwx log
+RUN mkdir -p log
 RUN chmod a+rwx config
 RUN chmod a+rwx web
 RUN chmod a+rwx docs
+RUN chmod a+rwx log
 
 EXPOSE $PORT
 USER root:root

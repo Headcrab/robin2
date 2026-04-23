@@ -20,3 +20,14 @@ func TestFatalPanics(t *testing.T) {
 
 	Fatal("boom")
 }
+
+func TestParseLogLineNormalizesFatalLevel(t *testing.T) {
+	item := parseLogLine(`{"time":"2026-04-23T15:43:42.058388+05:00","level":"ERROR+1","msg":"boom"}`)
+
+	if item.Level != "FATAL" {
+		t.Fatalf("expected FATAL level, got %q", item.Level)
+	}
+	if item.Msg != "boom" {
+		t.Fatalf("unexpected message: %q", item.Msg)
+	}
+}

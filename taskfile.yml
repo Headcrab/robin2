@@ -1,28 +1,64 @@
 version: "3"
 
 vars:
+  ENV_FILE:
+    sh: test -f .env && printf '%s\n' .env || printf '%s\n' .env.example
   PROJECT_NAME:
     sh: >-
-      powershell -NoProfile -Command
-      "(Select-String -Path '.env' -Pattern '^PROJECT_NAME\\s*=' | Select-Object -First 1).Line.Split('=', 2)[1].Trim()"
+      awk -F= -v key='PROJECT_NAME'
+      '$0 ~ "^[[:space:]]*" key "[[:space:]]*=" {
+        value=$0;
+        sub("^[[:space:]]*" key "[[:space:]]*=[[:space:]]*", "", value);
+        sub(/[[:space:]]*$/, "", value);
+        print value;
+        found=1;
+        exit
+      }
+      END { if (!found) exit 1 }'
+      {{.ENV_FILE}}
   PROJECT_VERSION:
     sh: >-
-      powershell -NoProfile -Command
-      "(Select-String -Path '.env' -Pattern '^PROJECT_VERSION\\s*=' | Select-Object -First 1).Line.Split('=', 2)[1].Trim()"
+      awk -F= -v key='PROJECT_VERSION'
+      '$0 ~ "^[[:space:]]*" key "[[:space:]]*=" {
+        value=$0;
+        sub("^[[:space:]]*" key "[[:space:]]*=[[:space:]]*", "", value);
+        sub(/[[:space:]]*$/, "", value);
+        print value;
+        found=1;
+        exit
+      }
+      END { if (!found) exit 1 }'
+      {{.ENV_FILE}}
   PORT:
     sh: >-
-      powershell -NoProfile -Command
-      "(Select-String -Path '.env' -Pattern '^PORT\\s*=' | Select-Object -First 1).Line.Split('=', 2)[1].Trim()"
+      awk -F= -v key='PORT'
+      '$0 ~ "^[[:space:]]*" key "[[:space:]]*=" {
+        value=$0;
+        sub("^[[:space:]]*" key "[[:space:]]*=[[:space:]]*", "", value);
+        sub(/[[:space:]]*$/, "", value);
+        print value;
+        found=1;
+        exit
+      }
+      END { if (!found) exit 1 }'
+      {{.ENV_FILE}}
   EXE:
     sh: >-
-      powershell -NoProfile -Command
-      "(Select-String -Path '.env' -Pattern '^EXE\\s*=' | Select-Object -First 1).Line.Split('=', 2)[1].Trim()"
+      awk -F= -v key='EXE'
+      '$0 ~ "^[[:space:]]*" key "[[:space:]]*=" {
+        value=$0;
+        sub("^[[:space:]]*" key "[[:space:]]*=[[:space:]]*", "", value);
+        sub(/[[:space:]]*$/, "", value);
+        print value;
+        found=1;
+        exit
+      }
+      END { if (!found) exit 1 }'
+      {{.ENV_FILE}}
   BIN_NAME: "{{.PROJECT_NAME}}{{.EXE}}"
   BIN_PATH: "./bin/{{.BIN_NAME}}"
   PROJECT_NAME_LOW:
-    sh: >-
-      powershell -NoProfile -Command
-      "'{{.PROJECT_NAME}}'.ToLowerInvariant()"
+    sh: printf '%s' '{{.PROJECT_NAME}}' | tr '[:upper:]' '[:lower:]'
   COMPOSE_DEV: "deploy/docker-compose.dev.yml"
   COMPOSE_PROD: "deploy/docker-compose.prod.yml"
 
@@ -35,7 +71,7 @@ tasks:
   swagger:
     desc: "generate swagger documentation"
     cmds:
-      - swag init -g app.go -d internal/app --parseInternal
+      - go run github.com/swaggo/swag/cmd/swag@v1.16.6 init -g app.go -d internal/app --parseInternal
 
   build:
     desc: "build the application binary"
@@ -70,20 +106,48 @@ tasks:
     desc: "increment PROJECT_VERSION patch in .env"
     cmds:
       - >-
-        powershell -NoProfile -Command
-        "$p='PROJECT_VERSION=([0-9]+)\.([0-9]+)\.([0-9]+)';
-        $content=Get-Content '.env';
-        $updated=$content | ForEach-Object {
-          if ($_ -match $p) {
-            'PROJECT_VERSION=' + $matches[1] + '.' + $matches[2] + '.' + ([int]$matches[3] + 1)
-          } else {
-            $_
+        test -f .env ||
+        { echo ".env not found; copy .env.example to .env first" >&2; exit 1; };
+        tmp="$(mktemp)";
+        awk '
+          BEGIN { updated=0 }
+          /^[[:space:]]*PROJECT_VERSION[[:space:]]*=/ {
+            value=$0;
+            sub(/^[[:space:]]*PROJECT_VERSION[[:space:]]*=[[:space:]]*/, "", value);
+            sub(/[[:space:]]*$/, "", value);
+            split(value, parts, ".");
+            if (parts[1] ~ /^[0-9]+$/ && parts[2] ~ /^[0-9]+$/ && parts[3] ~ /^[0-9]+$/) {
+              print "PROJECT_VERSION=" parts[1] "." parts[2] "." (parts[3] + 1);
+              updated=1;
+              next;
+            }
           }
-        };
-        Set-Content '.env' $updated"
+          { print }
+          END { if (!updated) exit 1 }
+        ' .env > "$tmp" &&
+        mv "$tmp" .env ||
+        { rc=$?; rm -f "$tmp"; exit "$rc"; }
 
   docker:build:
-    desc: "build robin and clickhouse images with docker compose"
+    desc: "build robin image with docker compose cache"
+    env:
+      PROJECT_NAME: "{{.PROJECT_NAME}}"
+      PROJECT_VERSION: "{{.PROJECT_VERSION}}"
+      PORT: "{{.PORT}}"
+    cmds:
+      - docker compose -f {{.COMPOSE_DEV}} build robin
+
+  docker:build:all:
+    desc: "build robin and clickhouse images with docker compose cache"
+    env:
+      PROJECT_NAME: "{{.PROJECT_NAME}}"
+      PROJECT_VERSION: "{{.PROJECT_VERSION}}"
+      PORT: "{{.PORT}}"
+    cmds:
+      - docker compose -f {{.COMPOSE_DEV}} build robin clickhouse
+
+  docker:build:clean:
+    desc: "rebuild robin and clickhouse images without docker cache"
     env:
       PROJECT_NAME: "{{.PROJECT_NAME}}"
       PROJECT_VERSION: "{{.PROJECT_VERSION}}"
@@ -101,8 +165,18 @@ tasks:
       - docker compose -f {{.COMPOSE_DEV}} up -d
 
   docker:rebuild:
-    desc: "rebuild and restart dev docker stack"
+    desc: "rebuild robin image and restart dev docker stack"
     deps: ["docker:build"]
+    env:
+      PROJECT_NAME: "{{.PROJECT_NAME}}"
+      PROJECT_VERSION: "{{.PROJECT_VERSION}}"
+      PORT: "{{.PORT}}"
+    cmds:
+      - docker compose -f {{.COMPOSE_DEV}} up -d
+
+  docker:rebuild:all:
+    desc: "rebuild robin and clickhouse images and restart dev docker stack"
+    deps: ["docker:build:all"]
     env:
       PROJECT_NAME: "{{.PROJECT_NAME}}"
       PROJECT_VERSION: "{{.PROJECT_VERSION}}"
@@ -142,8 +216,8 @@ tasks:
     cmds:
       - docker compose -f {{.COMPOSE_DEV}} down --remove-orphans
       - docker compose -f {{.COMPOSE_PROD}} down --remove-orphans
-      - powershell -NoProfile -Command "if (docker image inspect '{{.PROJECT_NAME_LOW}}-clickhouse' *> $null) { docker rmi '{{.PROJECT_NAME_LOW}}-clickhouse' }"
-      - powershell -NoProfile -Command "if (docker image inspect '{{.PROJECT_NAME_LOW}}-robin' *> $null) { docker rmi '{{.PROJECT_NAME_LOW}}-robin' }"
+      - docker image inspect '{{.PROJECT_NAME_LOW}}-clickhouse' >/dev/null 2>&1 && docker rmi '{{.PROJECT_NAME_LOW}}-clickhouse' || true
+      - docker image inspect '{{.PROJECT_NAME_LOW}}-robin' >/dev/null 2>&1 && docker rmi '{{.PROJECT_NAME_LOW}}-robin' || true
 
   docker:prod:up:
     desc: "start prod docker stack"

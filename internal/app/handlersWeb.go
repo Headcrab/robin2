@@ -31,6 +31,9 @@ func (a *App) handleDirectory(d string) http.HandlerFunc {
 			http.Error(w, "Access denied", http.StatusForbidden)
 			return
 		}
+		if d == "scripts" || d == "css" {
+			w.Header().Set("Cache-Control", "no-store")
+		}
 		logger.Trace(filePath)
 		http.ServeFile(w, r, filePath)
 	}

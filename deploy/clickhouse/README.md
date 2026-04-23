@@ -20,14 +20,14 @@ These scripts run automatically on first start when the ClickHouse data director
 
 The dev stack mounts three source directories into the container:
 
-- `D:\work\docker\copy_to_clickhouse` -> `/var/lib/clickhouse/copyed`
-- `D:\work\docker\copy_to_clickhouse_` -> `/var/lib/clickhouse/copyed_legacy`
-- `D:\work\docker\copy_to_clickhouse_from_rail` -> `/var/lib/clickhouse/copyed_truckscales`
+- `deploy/dev-data/clickhouse/copyed` -> `/var/lib/clickhouse/copyed`
+- `deploy/dev-data/clickhouse/copyed_legacy` -> `/var/lib/clickhouse/copyed_legacy`
+- `deploy/dev-data/clickhouse/copyed_truckscales` -> `/var/lib/clickhouse/copyed_truckscales`
 
 - `result_*.json.gz` and `hs_*.json.gz` are imported as `JSONEachRow` into `runtime.history`
 - `av_*.json.gz` and `rail_*.json.gz` are converted by `transform_truckscales_json.py` and inserted into `truckscales.stat`
 
-The rail files from `D:\work\docker\copy_to_clickhouse_from_rail` are gzipped JSON arrays with string values, so they require normalization before insertion.
+The rail files from `deploy/dev-data/clickhouse/copyed_truckscales` are gzipped JSON arrays with string values, so they require normalization before insertion.
 
 ## Safe optimization plan
 

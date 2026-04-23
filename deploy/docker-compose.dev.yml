@@ -34,9 +34,9 @@ services:
       CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: "1"
     volumes:
       - clickhouse:/var/lib/clickhouse
-      - D:/work/docker/copy_to_clickhouse:/var/lib/clickhouse/copyed
-      - D:/work/docker/copy_to_clickhouse_:/var/lib/clickhouse/copyed_legacy
-      - D:/work/docker/copy_to_clickhouse_from_rail:/var/lib/clickhouse/copyed_truckscales
+      - ./dev-data/clickhouse/copyed:/var/lib/clickhouse/copyed
+      - ./dev-data/clickhouse/copyed_legacy:/var/lib/clickhouse/copyed_legacy
+      - ./dev-data/clickhouse/copyed_truckscales:/var/lib/clickhouse/copyed_truckscales
     ports:
       - 8123:8123
       - 9000:9000
@@ -55,24 +55,23 @@ services:
     env_file:
       - ../.env
     environment:
-      - PROJECT_NAME=${PROJECT_NAME}
-      - PROJECT_VERSION=${PROJECT_VERSION}
-      - PORT=${PORT}
+      - PROJECT_NAME=${PROJECT_NAME:-Robin}
+      - PROJECT_VERSION=${PROJECT_VERSION:-2.4.96}
+      - PORT=${PORT:-8008}
     build:
       context: ../
       dockerfile: deploy/robin/Dockerfile
-      no_cache: true
       args:
-        - PROJECT_NAME
-        - PROJECT_VERSION
-        - PORT
+        - PROJECT_NAME=${PROJECT_NAME:-Robin}
+        - PROJECT_VERSION=${PROJECT_VERSION:-2.4.96}
+        - PORT=${PORT:-8008}
 
     # image: robin
     container_name: robin
     restart: always
     volumes:
-      - D:/work/docker/configs/Robin:/Robin/config
-      - D:/work/docker/logs/Robin:/Robin/log
+      - ../config:/Robin/config:ro
+      - ../log:/Robin/log
     ports:
       - 8008:8008
     extra_hosts:

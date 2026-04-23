@@ -1,20 +1,38 @@
+let lastSystemStatus = null;
+
 function fetchStatus() {
-    const apiElement = document.getElementById('apiserver');
-    if (!apiElement) {
-        return;
-    }
-
-    const api = apiElement.textContent;
-
-    fetch(`${api}/api/status/`)
-        .then(response => response.json())
+    fetch('/api/status/', {
+        cache: 'no-store',
+        headers: {
+            'Accept': 'application/json'
+        }
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`status HTTP ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            if (!isValidStatusPayload(data)) {
+                throw new Error('status payload is invalid');
+            }
+            lastSystemStatus = data;
             updateSystemStatus(data);
             updateLastUpdateTime();
         })
-        .catch(() => {
+        .catch((error) => {
+            console.warn('Не удалось обновить статус системы:', error);
+            if (lastSystemStatus) {
+                updateSystemStatus(lastSystemStatus);
+                return;
+            }
             setStatusError();
         });
+}
+
+function isValidStatusPayload(data) {
+    return Boolean(data && typeof data === 'object' && typeof data.dbstatus === 'string');
 }
 
 // update all status indicators

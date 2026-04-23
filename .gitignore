@@ -37,3 +37,8 @@ go.sum
 log/*
 vendor/*
 *.log
+
+# Local ClickHouse import data for the dev stack
+deploy/dev-data/**
+!deploy/dev-data/**/
+!deploy/dev-data/**/.gitkeep

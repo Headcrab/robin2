@@ -117,6 +117,45 @@ func getLogLevel(level LogLevel) slog.Level {
 	}
 }
 
+func logLevelName(level slog.Level) string {
+	switch level {
+	case slog.LevelDebug - 1:
+		return "TRACE"
+	case slog.LevelDebug:
+		return "DEBUG"
+	case slog.LevelInfo:
+		return "INFO"
+	case slog.LevelWarn:
+		return "WARN"
+	case slog.LevelError:
+		return "ERROR"
+	case slog.LevelError + 1:
+		return "FATAL"
+	default:
+		return level.String()
+	}
+}
+
+func replaceLogAttr(groups []string, attr slog.Attr) slog.Attr {
+	if attr.Key == slog.LevelKey {
+		if level, ok := attr.Value.Any().(slog.Level); ok {
+			attr.Value = slog.StringValue(logLevelName(level))
+		}
+	}
+	return attr
+}
+
+func normalizeLogLevelName(level string) string {
+	switch strings.ToUpper(strings.TrimSpace(level)) {
+	case "DEBUG-1":
+		return "TRACE"
+	case "ERROR+1":
+		return "FATAL"
+	default:
+		return level
+	}
+}
+
 // CustomHandler is a custom slog handler for pretty console output
 type CustomHandler struct {
 	writer io.Writer
@@ -154,19 +193,21 @@ func (h *CustomHandler) Handle(ctx context.Context, r slog.Record) error {
 	// format level with color
 	var levelStr string
 	switch r.Level {
+	case slog.LevelDebug - 1:
+		levelStr = fmt.Sprintf("%sTRACE%s", colorGray, colorReset)
 	case slog.LevelDebug:
-		levelStr = fmt.Sprintf("%sDEBUG%s", colorBlue, colorReset)
+		levelStr = fmt.Sprintf("%s%s%s", colorBlue, logLevelName(r.Level), colorReset)
 	case slog.LevelInfo:
-		levelStr = fmt.Sprintf("%sINFO%s", colorGreen, colorReset)
+		levelStr = fmt.Sprintf("%s%s%s", colorGreen, logLevelName(r.Level), colorReset)
 	case slog.LevelWarn:
-		levelStr = fmt.Sprintf("%sWARN%s", colorYellow, colorReset)
-	case slog.LevelError, slog.LevelError + 1: // LevelError+1 is our Fatal level
-		levelStr = fmt.Sprintf("%sERROR%s", colorRed, colorReset)
+		levelStr = fmt.Sprintf("%s%s%s", colorYellow, logLevelName(r.Level), colorReset)
+	case slog.LevelError, slog.LevelError + 1:
+		levelStr = fmt.Sprintf("%s%s%s", colorRed, logLevelName(r.Level), colorReset)
 	default:
 		if r.Level < slog.LevelDebug {
-			levelStr = fmt.Sprintf("%sTRACE%s", colorGray, colorReset)
+			levelStr = fmt.Sprintf("%s%s%s", colorGray, logLevelName(r.Level), colorReset)
 		} else {
-			levelStr = r.Level.String()
+			levelStr = logLevelName(r.Level)
 		}
 	}
 
@@ -212,7 +253,10 @@ func fileLog() *slog.Logger {
 	onceFile.Do(func() {
 		checkFileLog()
 		fileLogPtr = slog.New(
-			slog.NewJSONHandler(file, &slog.HandlerOptions{Level: getLogLevel(strToLogLevel(logLevel))}))
+			slog.NewJSONHandler(file, &slog.HandlerOptions{
+				Level:       getLogLevel(strToLogLevel(logLevel)),
+				ReplaceAttr: replaceLogAttr,
+			}))
 		fileLogPtr.Info("Initializing file logger")
 	})
 	return fileLogPtr
@@ -363,6 +407,7 @@ func parseLogLine(line string) LogItem {
 	err := json.Unmarshal([]byte(line), &logItem)
 	if err == nil {
 		// JSON парсинг успешен
+		logItem.Level = normalizeLogLevelName(logItem.Level)
 		return logItem
 	}
 
@@ -386,7 +431,7 @@ func parseLogLine(line string) LogItem {
 		dateTimeStr := parts[0] + " " + parts[1]
 		if parsedTime, err := time.Parse("02.01.2006 15:04:05", dateTimeStr); err == nil {
 			logItem.Date = parsedTime
-			logItem.Level = parts[2]
+			logItem.Level = normalizeLogLevelName(parts[2])
 			if len(parts) > 3 {
 				logItem.Msg = strings.Join(parts[3:], " ")
 			}
@@ -413,7 +458,7 @@ func parseLogLine(line string) LogItem {
 				logItem.Date = parsedTime
 			}
 		} else if strings.HasPrefix(part, "level=") {
-			logItem.Level = strings.TrimPrefix(part, "level=")
+			logItem.Level = normalizeLogLevelName(strings.TrimPrefix(part, "level="))
 		}
 	}
 
